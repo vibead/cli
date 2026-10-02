@@ -2,8 +2,6 @@
 
 **Official distribution:** [vibead/cli](https://github.com/vibead/cli). Beta.8 archives are unchanged from their original publication. Their bundled guide can contain older repository links; use this online guide for current downloads and known issues.
 
-**Enterprise communications Mac test:** a separate [experimental download](https://github.com/vibead/cli/releases/tag/v0.1.0-enterprise-demo.1) demonstrates fictional organization messages in Claude Code. Use the [Mac test guide](ENTERPRISE-DEMO.md) for both Mac architectures. Beta.8 below tests advertisements and does not contain the organization feature.
-
 Vibead adds disclosed test advertisements to supported thinking rows in **Claude Code, Codex, Gemini CLI and OpenCode**. Beta.8 uses your existing login, model/provider configuration, settings and current project. Its local mock ad service starts automatically.
 
 **Known OpenCode issue:** beta.8 improves first-turn activity-only ads, but a customer reports missing advertisements on later turns (`all_eligible_turns_displayed: false`). OpenCode and cleanup still work. Investigation is deferred; this release does not resolve multi-turn display in that setup.
@@ -79,3 +77,7 @@ Beta.8 improves first-turn OpenCode activity-only ads and retains thinking-label
 This is an explicit beta wrapper. Keep launching your ordinary agent directly whenever you do not want Vibead. Automatic activation through your usual command name remains later distribution work. Native permissions, trust prompts and organization policies still apply; unsupported cases preserve the agent's normal launch without ads.
 
 Source and server code remain private. Synthetic ads generate no earnings or credits. [Release notes](https://github.com/vibead/cli/releases/tag/v0.1.0-beta.8) identify exact tested agents/platforms and limits; simulated-model qualification does not establish live-provider or physical-desktop acceptance.
+
+## Separate enterprise communications demo
+
+The optional [Mac organization-message demo](ENTERPRISE-DEMO.md) uses a [separate experimental download](https://github.com/vibead/cli/releases/tag/v0.1.0-enterprise-demo.1). Its publisher and Ona tunnel steps apply only to that demo. **Beta.8 ad testing continues with the download and one-command agent launch above; no publisher, Ona account, or tunnel is required.**
