@@ -2,6 +2,8 @@
 
 **Official distribution:** [vibead/cli](https://github.com/vibead/cli). Beta.8 archives are unchanged from their original publication. Their bundled guide can contain older repository links; use this online guide for current downloads and known issues.
 
+**Enterprise communications Mac test:** a separate [experimental download](https://github.com/vibead/cli/releases/tag/v0.1.0-enterprise-demo.1) demonstrates fictional organization messages in Claude Code. Use the [Mac test guide](ENTERPRISE-DEMO.md) for both Mac architectures. Beta.8 below tests advertisements and does not contain the organization feature.
+
 Vibead adds disclosed test advertisements to supported thinking rows in **Claude Code, Codex, Gemini CLI and OpenCode**. Beta.8 uses your existing login, model/provider configuration, settings and current project. Its local mock ad service starts automatically.
 
 **Known OpenCode issue:** beta.8 improves first-turn activity-only ads, but a customer reports missing advertisements on later turns (`all_eligible_turns_displayed: false`). OpenCode and cleanup still work. Investigation is deferred; this release does not resolve multi-turn display in that setup.
