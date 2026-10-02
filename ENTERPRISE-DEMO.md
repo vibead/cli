@@ -1,55 +1,24 @@
-# Test publisher changes on your Mac
+# Mac publisher beta
 
-**Publisher:** [Open the Woolworths demo](https://4180--01a0fa0e-1ee5-7350-b0ad-f976a181e629.us-east-1-01.gitpod.dev/woolworths-demo). This exact publisher is already connected to the client. No URL flags or local publisher are needed.
+Download and extract the complete **beta.9** kit: [Apple Silicon](https://github.com/vibead/cli/releases/download/v0.1.0-beta.9/vibead-beta-0.1.0-beta.9-darwin-arm64.tar.gz) · [Intel](https://github.com/vibead/cli/releases/download/v0.1.0-beta.9/vibead-beta-0.1.0-beta.9-darwin-x64.tar.gz). [Checksums](https://github.com/vibead/cli/releases/tag/v0.1.0-beta.9) are available as with the advertising beta. Keep the extracted folder together.
 
-Once you have the enterprise kit, launch it just like the advertising beta:
-
-```sh
-"/path/to/vibead-enterprise" claude
-```
-
-Keep that Claude session open:
-
-1. In the publisher, select a message, edit **Terminal line**, and click **Publish to workspace**.
-2. Send any short prompt in Claude. The published line appears with `[Org]` while Claude works.
-3. Change the line and publish again. Send another prompt in the **same session** to see the change. No restart, download or reconfiguration is needed.
-4. Click **Withdraw featured message**, then send another prompt. Claude should show its normal working status.
-
-Only the featured **Terminal line** is delivered; editing **Full update** alone will not change that line. A turn already in progress keeps its current message. **Run demo turn** on the web page is a browser preview; send prompts in your Mac's Claude session to test the Mac client.
-
-## First time on this Mac
-
-Claude Code must already be installed. Run this once; it chooses Apple Silicon or Intel, downloads the pinned release, checks its checksum, and prepares the executable for macOS:
+From your usual project, run:
 
 ```sh
-curl -fsSL https://raw.githubusercontent.com/vibead/cli/main/install-enterprise.sh | /bin/bash
+"/path/to/vibead-beta" claude --test-publisher
 ```
 
-Then launch from any folder with:
+This uses your existing Claude login, provider, settings and project, just like the ad beta. Normal model charges apply. The publisher connection is built in. No installer, local publisher, endpoint configuration or manual signing command is needed.
 
-```sh
-"$HOME/.vibead-enterprise/vibead-enterprise" claude
-```
+**Publisher:** [Open the Woolworths demo](https://4180--01a0fa0e-1ee5-7350-b0ad-f976a181e629.us-east-1-01.gitpod.dev/woolworths-demo).
 
-You can [inspect the setup script](install-enterprise.sh) or use the [manual downloads](https://github.com/vibead/cli/releases/tag/v0.1.0-enterprise-demo.2). Setup needs no administrator privileges and does not change your shell, agent settings or advertising kit. This experimental executable is not Developer ID signed or notarized; setup applies a local signature and leaves macOS security settings intact.
+1. Edit **Terminal line** and click **Publish to workspace**.
+2. Send a prompt in Claude. Look for that line with `[Org]` while it works.
+3. Change and publish the line, then send another prompt in the **same Claude session**. No restart needed.
+4. To test removal, click **Withdraw featured message** and send another prompt. Native working status should remain.
 
-**Scope:** publisher testing currently supports Claude Code on Mac. Your existing `vibead-beta` commands, including `--test-links` for Claude, Codex, Gemini and OpenCode, remain unchanged; they test ads, not this publisher. [Advertising beta guide](BETA.md)
+The owner edits the publisher; testers only need the beta command. Only the featured Terminal line is delivered, beginning on the next turn. The hosted demo must remain running.
 
-This demo uses fictional content and simulated model replies, with no model charges. Actual Mac acceptance remains pending your test. The hosted demo must stay running. The publisher editor requires owner access; another tester can receive changes while the owner publishes them.
+Publisher testing is Claude Code on Mac only. Your ordinary `vibead-beta` ad commands and `--test-links` remain the same; use the two test flags separately. Beta.8 and the older `vibead-enterprise` demo do not support `--test-publisher`.
 
-<details>
-<summary>If something does not work, or you want an automated check</summary>
-
-If no `[Org]` line appears, check that a message is featured and the hosted demo is running. Exit and relaunch only if the agent itself stops responding. Use the command printed by setup if you installed in another folder. Keep all kit files together.
-
-With a message featured, this optional check runs one turn and exits:
-
-```sh
-"$HOME/.vibead-enterprise/vibead-enterprise" claude --verify
-```
-
-Look for `"passed": true`. Reports are under `demo/enterprise/artifacts/` in the installed kit. If Claude is outside PATH, the launcher accepts `--binary /absolute/path/to/claude`; the automatic setup expects `claude` on PATH.
-
-Tell us your Mac chip, macOS version, terminal app, Claude Code version, and whether publication, change and withdrawal worked. Review any screen captures before sharing.
-
-</details>
+Exit Claude normally. The usual report is saved under `~/.vibead-beta/results`; share it with what you saw. No separate verification command is required. Actual Mac acceptance is pending. The kit is ad hoc signed before download, with the same lack of Developer ID notarization as the ad beta; normal macOS opening controls still apply.

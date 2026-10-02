@@ -78,6 +78,6 @@ This is an explicit beta wrapper. Keep launching your ordinary agent directly wh
 
 Source and server code remain private. Synthetic ads generate no earnings or credits. [Release notes](https://github.com/vibead/cli/releases/tag/v0.1.0-beta.8) identify exact tested agents/platforms and limits; simulated-model qualification does not establish live-provider or physical-desktop acceptance.
 
-## Separate enterprise communications demo
+## Mac publisher beta
 
-To test changes from the [hosted publisher](https://4180--01a0fa0e-1ee5-7350-b0ad-f976a181e629.us-east-1-01.gitpod.dev/woolworths-demo), use the [Mac publisher quick start](ENTERPRISE-DEMO.md). One-time setup prepares the kit; then run `"$HOME/.vibead-enterprise/vibead-enterprise" claude`. Publish a change and send another prompt in the same session. **Beta.8 ad testing continues with the download and one-command agent launch above.**
+Use the [beta.9 Mac kit](ENTERPRISE-DEMO.md), then run `"/path/to/vibead-beta" claude --test-publisher` from your usual project. Change the Terminal line in the [hosted publisher](https://4180--01a0fa0e-1ee5-7350-b0ad-f976a181e629.us-east-1-01.gitpod.dev/woolworths-demo) and send another prompt in the same session. Your existing Claude setup stays in use. The four ad-test commands above remain unchanged.

@@ -10,6 +10,16 @@ No new account setup, private checkout or separate ad server is required by Vibe
 
 **Beta.8 includes optional clickable test ads.** Follow the [click-test instructions](#optional-clickable-ad-test-beta8). Use the complete beta.8 archive for Mac or Linux; older beta.5 downloads do not contain this feature. **Windows is deferred to the backlog.** Older Windows packages were not migrated to this organization release.
 
+## Optional Mac publisher test (beta.9)
+
+Use the [publisher-ready Mac download](ENTERPRISE-DEMO.md), then launch from your usual project:
+
+```sh
+"/path/to/vibead-beta" claude --test-publisher
+```
+
+Your existing Claude account, provider, settings and project stay in use; normal model charges apply. In the [hosted publisher](https://4180--01a0fa0e-1ee5-7350-b0ad-f976a181e629.us-east-1-01.gitpod.dev/woolworths-demo), change **Terminal line**, click **Publish to workspace**, and send another Claude prompt in the same session. The next working line shows the publication with `[Org]`. No installer, local publisher, URL configuration or manual signing is needed. Publisher testing is Claude-only; use `--test-publisher` separately from `--test-links`. Existing ad commands and beta.8 downloads below are unchanged.
+
 <a id="optional-clickable-ad-test-beta6"></a>
 
 ## Optional clickable-ad test (beta.8)
