@@ -1,46 +1,55 @@
-# Test organization messages in Claude Code on a Mac
+# Test publisher changes on your Mac
 
-This separate demo shows fictional Woolworths Group messages in Claude Code. **Enterprise demo.2 reads messages from the hosted publisher automatically.** You run one command; the feed is already configured. It uses a local deterministic model with no model account or paid calls. The existing [beta.8 advertising test](BETA.md) is unchanged.
+**Publisher:** [Open the Woolworths demo](https://4180--01a0fa0e-1ee5-7350-b0ad-f976a181e629.us-east-1-01.gitpod.dev/woolworths-demo). This exact publisher is already connected to the client. No URL flags or local publisher are needed.
 
-Install Claude Code first so `claude --version` works. Download, verify, extract, and locally sign the experimental Mac kit with this block:
-
-```sh
-case "$(uname -m)" in
-  arm64) vibead_arch=arm64 ;;
-  x86_64) vibead_arch=x64 ;;
-  *) echo "This test needs an Apple Silicon or Intel Mac"; exit 1 ;;
-esac
-cd "$HOME/Downloads" || exit 1
-vibead_file="vibead-enterprise-demo-darwin-${vibead_arch}.tar.gz"
-vibead_url="https://github.com/vibead/cli/releases/download/v0.1.0-enterprise-demo.2"
-curl --fail --location --output "$vibead_file" "$vibead_url/$vibead_file" || exit 1
-curl --fail --location --output "$vibead_file.sha256" "$vibead_url/$vibead_file.sha256" || exit 1
-shasum -a 256 -c "$vibead_file.sha256" || exit 1
-tar -xzf "$vibead_file" || exit 1
-cd "vibead-enterprise-demo-darwin-${vibead_arch}" || exit 1
-codesign --force --sign - ./vibead-enterprise || exit 1
-```
-
-You can also download from the [release page](https://github.com/vibead/cli/releases/tag/v0.1.0-enterprise-demo.2). Keep the extracted folder together. The experimental executable is not Developer ID signed or notarized; macOS may require its normal opening confirmation. If signing fails, record the error.
-
-From the extracted folder, launch the demo:
+Once you have the enterprise kit, launch it just like the advertising beta:
 
 ```sh
-./vibead-enterprise claude
+"/path/to/vibead-enterprise" claude
 ```
 
-Ask Claude a short question. While it is working, look for the hosted publisher's current featured message with `[Org]`. Every new turn fetches the current publication. You do not need to run a publisher or configure an endpoint.
+Keep that Claude session open:
 
-The demo administrator can publish a changed reminder, news item, or announcement in the hosted publisher. Submit another prompt to see the new short line. After the administrator withdraws the featured message, the next turn keeps native `Working…`. Messages clear at completion and interruption; answers and controls should remain readable. Exit normally or press Ctrl-C twice.
+1. In the publisher, select a message, edit **Terminal line**, and click **Publish to workspace**.
+2. Send any short prompt in Claude. The published line appears with `[Org]` while Claude works.
+3. Change the line and publish again. Send another prompt in the **same session** to see the change. No restart, download or reconfiguration is needed.
+4. Click **Withdraw featured message**, then send another prompt. Claude should show its normal working status.
 
-For an optional automated one-turn check:
+Only the featured **Terminal line** is delivered; editing **Full update** alone will not change that line. A turn already in progress keeps its current message. **Run demo turn** on the web page is a browser preview; send prompts in your Mac's Claude session to test the Mac client.
+
+## First time on this Mac
+
+Claude Code must already be installed. Run this once; it chooses Apple Silicon or Intel, downloads the pinned release, checks its checksum, and prepares the executable for macOS:
 
 ```sh
-./vibead-enterprise claude --verify
+curl -fsSL https://raw.githubusercontent.com/vibead/cli/main/install-enterprise.sh | /bin/bash
 ```
 
-Keep a message featured in the hosted publisher for this check. Success prints `"passed": true`, with `observedPlacement` and `observedCompletion` both true. It writes `demo/enterprise/artifacts/claude-verification.json` and `claude-screens.txt`. If Claude is outside PATH, add `--binary /absolute/path/to/claude`.
+Then launch from any folder with:
 
-If no organization line appears, the administrator should check that a message is featured and the hosted demo is running. The client keeps native output when no message is available. This is a temporary hosted beta feed, not a production tenant service.
+```sh
+"$HOME/.vibead-enterprise/vibead-enterprise" claude
+```
 
-Report your macOS version, Apple Silicon or Intel, terminal app, Claude Code version, and result. Review screen captures before sharing; do not share credentials. The enterprise demo uses an isolated temporary Claude setup and a local model fixture with deterministic answers. That model fixture is managed automatically and makes no paid calls. Your normal Claude setup and the advertising beta remain unchanged. Actual Mac acceptance remains pending tester results.
+You can [inspect the setup script](install-enterprise.sh) or use the [manual downloads](https://github.com/vibead/cli/releases/tag/v0.1.0-enterprise-demo.2). Setup needs no administrator privileges and does not change your shell, agent settings or advertising kit. This experimental executable is not Developer ID signed or notarized; setup applies a local signature and leaves macOS security settings intact.
+
+**Scope:** publisher testing currently supports Claude Code on Mac. Your existing `vibead-beta` commands, including `--test-links` for Claude, Codex, Gemini and OpenCode, remain unchanged; they test ads, not this publisher. [Advertising beta guide](BETA.md)
+
+This demo uses fictional content and simulated model replies, with no model charges. Actual Mac acceptance remains pending your test. The hosted demo must stay running. The publisher editor requires owner access; another tester can receive changes while the owner publishes them.
+
+<details>
+<summary>If something does not work, or you want an automated check</summary>
+
+If no `[Org]` line appears, check that a message is featured and the hosted demo is running. Exit and relaunch only if the agent itself stops responding. Use the command printed by setup if you installed in another folder. Keep all kit files together.
+
+With a message featured, this optional check runs one turn and exits:
+
+```sh
+"$HOME/.vibead-enterprise/vibead-enterprise" claude --verify
+```
+
+Look for `"passed": true`. Reports are under `demo/enterprise/artifacts/` in the installed kit. If Claude is outside PATH, the launcher accepts `--binary /absolute/path/to/claude`; the automatic setup expects `claude` on PATH.
+
+Tell us your Mac chip, macOS version, terminal app, Claude Code version, and whether publication, change and withdrawal worked. Review any screen captures before sharing.
+
+</details>

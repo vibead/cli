@@ -80,4 +80,4 @@ Source and server code remain private. Synthetic ads generate no earnings or cre
 
 ## Separate enterprise communications demo
 
-The optional [Mac organization-message demo](ENTERPRISE-DEMO.md) uses a [separate experimental download](https://github.com/vibead/cli/releases/tag/v0.1.0-enterprise-demo.2). Run `./vibead-enterprise claude` to receive messages from its configured hosted feed. **Beta.8 ad testing continues with the download and one-command agent launch above.**
+To test changes from the [hosted publisher](https://4180--01a0fa0e-1ee5-7350-b0ad-f976a181e629.us-east-1-01.gitpod.dev/woolworths-demo), use the [Mac publisher quick start](ENTERPRISE-DEMO.md). One-time setup prepares the kit; then run `"$HOME/.vibead-enterprise/vibead-enterprise" claude`. Publish a change and send another prompt in the same session. **Beta.8 ad testing continues with the download and one-command agent launch above.**
