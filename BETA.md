@@ -10,7 +10,7 @@ No new account setup, private checkout or separate ad server is required by Vibe
 
 **Beta.8 includes optional clickable test ads.** Follow the [click-test instructions](#optional-clickable-ad-test-beta8). Use the complete beta.8 archive for Mac or Linux; older beta.5 downloads do not contain this feature. **Windows is deferred to the backlog.** Older Windows packages were not migrated to this organization release.
 
-## Optional publisher test on Mac and Linux (beta.11)
+## Optional publisher test on Mac and Linux (beta.12)
 
 For organization messages, download the [publisher beta](ENTERPRISE-DEMO.md), then run the command for your agent:
 
@@ -21,7 +21,7 @@ For organization messages, download the [publisher beta](ENTERPRISE-DEMO.md), th
 "/path/to/vibead-beta" opencode --test-publisher
 ```
 
-Your existing account, provider, settings and project stay in use; normal model charges apply. In the [hosted publisher](https://4180--01a0fa0e-1ee5-7350-b0ad-f976a181e629.us-east-1-01.gitpod.dev/woolworths-demo), change **Terminal line**, click **Publish to workspace**, and send another prompt in the same session. The publication appears with `[Org]` while the agent works. Existing proxy settings are used automatically. Use `--test-publisher` separately from `--test-links`. Existing ad commands and beta.8 downloads below are unchanged.
+Your existing account, provider, settings and project stay in use; normal model charges apply. In the [hosted publisher](https://www.vibead.ai/woolworths-demo), change **Terminal line**, click **Publish to workspace**, and send another prompt in the same session. The publication appears with `[Org]` while the agent works. Existing proxy settings are used automatically. Use `--test-publisher` separately from `--test-links`. Existing ad commands and beta.8 downloads below are unchanged.
 
 <a id="optional-clickable-ad-test-beta6"></a>
 
