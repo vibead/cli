@@ -80,4 +80,4 @@ Source and server code remain private. Synthetic ads generate no earnings or cre
 
 ## Separate enterprise communications demo
 
-The optional [Mac organization-message demo](ENTERPRISE-DEMO.md) uses a [separate experimental download](https://github.com/vibead/cli/releases/tag/v0.1.0-enterprise-demo.1). Its publisher and Ona tunnel steps apply only to that demo. **Beta.8 ad testing continues with the download and one-command agent launch above; no publisher, Ona account, or tunnel is required.**
+The optional [Mac organization-message demo](ENTERPRISE-DEMO.md) uses a [separate experimental download](https://github.com/vibead/cli/releases/tag/v0.1.0-enterprise-demo.2). Run `./vibead-enterprise claude` to receive messages from its configured hosted feed. **Beta.8 ad testing continues with the download and one-command agent launch above.**
