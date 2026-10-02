@@ -80,4 +80,4 @@ Source and server code remain private. Synthetic ads generate no earnings or cre
 
 ## Mac publisher beta
 
-Use the [beta.9 Mac kit](ENTERPRISE-DEMO.md), then run `"/path/to/vibead-beta" claude --test-publisher` from your usual project. Change the Terminal line in the [hosted publisher](https://4180--01a0fa0e-1ee5-7350-b0ad-f976a181e629.us-east-1-01.gitpod.dev/woolworths-demo) and send another prompt in the same session. Your existing Claude setup stays in use. The four ad-test commands above remain unchanged.
+Use the [beta.10 Mac kit](ENTERPRISE-DEMO.md), then run `"/path/to/vibead-beta" claude --test-publisher` from your usual project. Change the Terminal line in the [hosted publisher](https://4180--01a0fa0e-1ee5-7350-b0ad-f976a181e629.us-east-1-01.gitpod.dev/woolworths-demo) and send another prompt in the same session. Your existing Claude setup stays in use. The four ad-test commands above remain unchanged.

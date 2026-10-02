@@ -10,7 +10,7 @@ No new account setup, private checkout or separate ad server is required by Vibe
 
 **Beta.8 includes optional clickable test ads.** Follow the [click-test instructions](#optional-clickable-ad-test-beta8). Use the complete beta.8 archive for Mac or Linux; older beta.5 downloads do not contain this feature. **Windows is deferred to the backlog.** Older Windows packages were not migrated to this organization release.
 
-## Optional Mac publisher test (beta.9)
+## Optional Mac publisher test (beta.10)
 
 Use the [publisher-ready Mac download](ENTERPRISE-DEMO.md), then launch from your usual project:
 
