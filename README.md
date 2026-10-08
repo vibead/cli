@@ -12,6 +12,18 @@ Vibead adds disclosed test advertisements to supported thinking rows in **Claude
 
 ## 1. Download
 
+### Install with Homebrew
+
+On a Mac (Apple Silicon or Intel) or Linux x64, with [Homebrew](https://brew.sh) installed:
+
+```sh
+brew install vibead/tap/vibead
+vibead claude
+# Also: vibead codex, vibead gemini, vibead opencode
+```
+
+This installs the complete **beta.12** kit, including its runtime. No Homebrew account or separate Node.js/npm installation is needed. Linux requires glibc 2.34 or newer. Your agent must already work in your terminal. See the [Homebrew tap guide](https://github.com/vibead/homebrew-tap) for updates, removal and switching from npm.
+
 ### Install with npm
 
 The npm launcher installs the newer **beta.12** kit on first use, verifying the official archive's SHA-256 checksum:
