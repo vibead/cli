@@ -3,12 +3,12 @@
 The npm launcher for the official [vibead/cli](https://github.com/vibead/cli) beta.12 release. Vibead adds disclosed synthetic advertisements or publisher messages to supported working-status rows in Claude Code, Codex, Gemini CLI and OpenCode.
 
 ```sh
-npm install -g vibead
+npm install -g @vibead/cli
 vibead claude
 # Or: vibead codex, vibead gemini, vibead opencode
 ```
 
-You can also run `npx vibead claude`. Your agent must already be installed and working. Your existing agent login, provider settings and project stay in use; normal provider charges apply. This is a beta with no earnings or credits.
+You can also run `npx @vibead/cli claude`. Your agent must already be installed and working. Your existing agent login, provider settings and project stay in use; normal provider charges apply. This is a beta with no earnings or credits.
 
 ## Supported systems
 
@@ -29,4 +29,4 @@ Use `--test-links` and `--test-publisher` separately. The publisher demo is shar
 
 See the [beta guide](https://github.com/vibead/cli/blob/main/BETA.md), [publisher guide](https://github.com/vibead/cli/blob/main/ENTERPRISE-DEMO.md), and [release notes](https://github.com/vibead/cli/releases/tag/v0.1.0-beta.12) for limits and platform qualification. Physical Mac acceptance remains pending, and OpenCode has a reported multi-turn advertisement display issue. Source and server code remain private. Third-party notices ship in this package and in each downloaded kit.
 
-Remove the npm launcher with `npm uninstall -g vibead`. To remove cached downloads too, remove the `vibead` folder in your cache directory after all Vibead sessions have exited.
+Remove the npm launcher with `npm uninstall -g @vibead/cli`. To remove cached downloads too, remove the `vibead` folder in your cache directory after all Vibead sessions have exited.

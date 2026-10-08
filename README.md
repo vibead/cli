@@ -17,7 +17,7 @@ Vibead adds disclosed test advertisements to supported thinking rows in **Claude
 The npm launcher installs the newer **beta.12** kit on first use, verifying the official archive's SHA-256 checksum:
 
 ```sh
-npm install -g vibead
+npm install -g @vibead/cli
 vibead claude
 # Also: vibead codex, vibead gemini, vibead opencode
 ```

@@ -1,5 +1,5 @@
 {
-  "name": "vibead",
+  "name": "@vibead/cli",
   "version": "0.1.0-beta.12",
   "description": "Vibead beta launcher for Claude Code, Codex, Gemini CLI and OpenCode",
   "type": "module",
