@@ -1,0 +1,17 @@
+{
+  "name": "@vibead/cli",
+  "version": "0.1.0-beta.12",
+  "description": "Try clearly marked test ads in Claude Code, Codex, Gemini CLI and OpenCode while they work.",
+  "type": "module",
+  "license": "UNLICENSED",
+  "repository": { "type": "git", "url": "git+https://github.com/vibead/cli.git", "directory": "npm" },
+  "homepage": "https://github.com/vibead/cli#readme",
+  "bugs": { "url": "https://github.com/vibead/cli/issues" },
+  "bin": { "vibead": "bin/vibead.mjs", "vibead-beta": "bin/vibead.mjs" },
+  "files": ["bin", "lib", "releases.json", "README.md", "THIRD-PARTY-NOTICES.txt"],
+  "engines": { "node": ">=20" },
+  "os": ["darwin", "linux"],
+  "cpu": ["arm64", "x64"],
+  "publishConfig": { "access": "public", "registry": "https://registry.npmjs.org/", "tag": "latest" },
+  "scripts": { "test": "node --test", "prepublishOnly": "npm test" }
+}
