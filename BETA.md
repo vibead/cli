@@ -174,6 +174,8 @@ Extract the complete archive somewhere convenient. Keep all extracted files toge
 
 ## 2. Open your usual project and launch
 
+> **Claude Code first run:** the first time Claude Code opens a folder, it asks whether you trust it. The first option, which is already selected, is **No, exit**. Use the arrow keys to choose **Yes, I trust this folder** (the wording in Claude Code 2.1.x), then press Enter. If you exit by mistake, just run the same command again.
+
 Use the same terminal, exported environment and project directory where you normally run your agent. Call the extracted executable by its full path; **do not change into the download folder to do your project work**.
 
 Example for macOS/Linux; replace both paths with yours:
