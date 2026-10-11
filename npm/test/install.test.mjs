@@ -35,3 +35,16 @@ test('platforms may pin an earlier archive version (macOS on beta.12 while Linux
     assert.match(entry.sha256, /^[0-9a-f]{64}$/);
   }
 });
+
+test('vibead --version prints the release version without downloading', async () => {
+  const { execFileSync } = await import('node:child_process');
+  const { mkdtemp, readdir } = await import('node:fs/promises');
+  const { release } = await import('../lib/install.mjs');
+  const cache = await mkdtemp(join(tmpdir(), 'vibead-version-'));
+  for (const flag of ['--version', '-v']) {
+    const out = execFileSync(process.execPath, [new URL('../bin/vibead.mjs', import.meta.url).pathname, flag], { encoding: 'utf8', env: { ...process.env, VIBEAD_CACHE_DIR: cache, HTTPS_PROXY: 'http://127.0.0.1:9' } });
+    assert.equal(out.trim(), release.version);
+  }
+  assert.deepEqual(await readdir(cache), [], 'nothing downloaded or cached');
+  await rm(cache, { recursive: true, force: true });
+});

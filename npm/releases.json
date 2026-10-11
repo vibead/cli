@@ -1,5 +1,5 @@
 {
-  "version": "0.1.0-beta.14",
+  "version": "0.1.0-beta.15",
   "platforms": {
     "darwin-arm64": {
       "version": "0.1.0-beta.12",
@@ -9,6 +9,6 @@
       "version": "0.1.0-beta.12",
       "sha256": "ae0dbfce66e971f04813d39d597541caa542fbad84ec2d07b41760822bcf4b0d"
     },
-    "linux-x64": "88e4710b9a217296306fd545898961f321d85f981393d89b06b413c14075cf76"
+    "linux-x64": "c04df0b15bfe5e3f2f50c7a5d671b19ff28b85134e4a5688566e6ea760cdbf2a"
   }
 }
