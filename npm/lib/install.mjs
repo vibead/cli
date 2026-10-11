@@ -17,6 +17,14 @@ export function platformKey(platform = process.platform, arch = process.arch) {
   return key;
 }
 
+// A platform entry is either a SHA-256 string (built at release.version) or
+// { version, sha256 } when that platform stays on an earlier archive, e.g.
+// macOS on beta.12 while beta.14 ships Linux x64 only.
+export function platformRelease(key) {
+  const entry = release.platforms[key];
+  return typeof entry === 'string' ? { version: release.version, sha256: entry } : entry;
+}
+
 export async function verifyChecksum(file, expected) {
   const hash = createHash('sha256');
   for await (const chunk of createReadStream(file)) hash.update(chunk);
@@ -42,17 +50,18 @@ async function download(url, destination) {
 export async function ensureInstalled() {
   const key = platformKey();
   const cache = resolve(process.env.VIBEAD_CACHE_DIR || join(homedir(), '.cache', 'vibead'));
-  const target = join(cache, `${release.version}-${key}-${release.platforms[key].slice(0, 12)}`);
+  const { version, sha256 } = platformRelease(key);
+  const target = join(cache, `${version}-${key}-${sha256.slice(0, 12)}`);
   const executable = join(target, 'vibead-beta');
   try { await access(executable); return executable; } catch {}
   await mkdir(cache, { recursive: true, mode: 0o700 });
   const staging = await mkdtemp(join(cache, '.install-'));
   try {
-    console.error(`vibead: downloading verified ${release.version} for ${key} (first run only)…`);
+    console.error(`vibead: downloading verified ${version} for ${key} (first run only)…`);
     const archive = join(staging, 'release.tar.gz');
-    const url = `https://github.com/vibead/cli/releases/download/v${release.version}/vibead-beta-${release.version}-${key}.tar.gz`;
+    const url = `https://github.com/vibead/cli/releases/download/v${version}/vibead-beta-${version}-${key}.tar.gz`;
     await download(url, archive);
-    await verifyChecksum(archive, release.platforms[key]);
+    await verifyChecksum(archive, sha256);
     try { await execute('tar', ['-xzf', archive, '-C', staging]); }
     catch (error) { throw new Error(error.code === 'ENOENT' ? 'tar is required to extract the official release.' : `Could not extract release: ${error.message}`); }
     const extracted = join(staging, `vibead-beta-${key}`);

@@ -62,7 +62,7 @@ Replace `claude` with `codex`, `gemini` or `opencode` as needed. If npm asks to 
 | Your agent is missing or asks you to sign in | First make sure its usual command, such as `claude`, works on its own. Complete the agent's normal setup, then launch it through Vibead. |
 | The first launch cannot download its files | Check your connection and access to GitHub, then rerun the same command. If the error names `tar` or `curl`, install that tool through your system's package manager. |
 | `Unsupported platform` or a `GLIBC` error | Check the system requirements below. This release does not support Windows, Linux ARM64 or Alpine Linux. |
-| Your agent opens but no ad appears | Try a longer prompt and review any hook approvals. OpenCode has a known issue where ads may be missing on later turns. If it continues, use the issue link below. |
+| Your agent opens but no ad appears | Try a longer prompt and review any hook approvals. On the first turn of a session, a hosted (`--test-publisher`) ad may not be ready yet; later turns are served from a prefetch cache. If it continues, use the issue link below. |
 
 For command help, run `vibead --help`. To check the installed beta release, run `vibead --version`.
 
@@ -98,11 +98,11 @@ Downloaded files remain in `~/.cache/vibead`; you can remove that folder too aft
 
 ## System requirements and beta details
 
-- **macOS:** Apple Silicon or Intel. Builds are ad hoc signed and are not Apple-notarized. Testing on physical Mac terminals is still in progress; see the [release notes](https://github.com/vibead/cli/releases/tag/v0.1.0-beta.12).
+- **macOS:** Apple Silicon or Intel. Builds are ad hoc signed and are not Apple-notarized. macOS stays on the beta.12 archive until macOS builds of beta.14 are qualified; testing on physical Mac terminals is still in progress. See the [beta.14 release notes](https://github.com/vibead/cli/releases/tag/v0.1.0-beta.14) and [beta.12 release notes](https://github.com/vibead/cli/releases/tag/v0.1.0-beta.12).
 - **Linux:** x64 with glibc 2.34 or newer. Linux ARM64 and Alpine/musl are not supported.
 - **Tools:** Node.js 20+ and `tar`. `curl` is also needed when an HTTPS proxy is configured. No compiler or separately managed ad server is needed.
-- **Downloads:** the launcher chooses the matching official beta.12 archive, checks its SHA-256 checksum, and stores the complete kit in `~/.cache/vibead`. Set `VIBEAD_CACHE_DIR` to use another writable folder.
-- **Known limitation:** OpenCode may not show ads on later turns in the same session. Source and server code remain private. Third-party notices are included with the package and downloaded kit.
+- **Downloads:** the launcher chooses the matching official archive (beta.14 on Linux x64, beta.12 on macOS), checks its SHA-256 checksum, and stores the complete kit in `~/.cache/vibead`. Set `VIBEAD_CACHE_DIR` to use another writable folder.
+- **Known limitations:** a hosted `--test-publisher` ad may miss the first turn if you prompt before the first decision arrives (the live API can take 5–7 s). beta.14 fixes are verified with simulated models only. Source and server code remain private. Third-party notices are included with the package and downloaded kit.
 
 Your agent's own options go after `--`. For example, to use an existing Codex profile:
 
@@ -116,4 +116,4 @@ If a session was interrupted and left its integration behind, use the cleanup co
 vibead claude --cleanup
 ```
 
-Replace `claude` with the affected agent's name if needed. See the [full beta guide](https://github.com/vibead/cli/blob/main/BETA.md) for recovery details and additional tests. Its manual-download examples use `vibead-beta`; with this npm package, use `vibead` instead of the executable path.
+Replace `claude` with the affected agent's name if needed. See the [full beta guide](https://github.com/vibead/cli/blob/main/BETA.md) for recovery details and additional tests. Its manual-download examples run `./vibead-beta-linux-x64/vibead-beta claude`. The npm package installs the same launcher under two names, `vibead` and `vibead-beta`, so `vibead claude` and `vibead-beta claude` are equivalent; this guide uses `vibead`.

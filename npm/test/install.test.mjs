@@ -25,3 +25,13 @@ test('rejects modified downloads before extraction', async () => {
     await assert.rejects(verifyChecksum(file, expected), /checksum mismatch/);
   } finally { await rm(dir, { recursive: true, force: true }); }
 });
+
+test('platforms may pin an earlier archive version (macOS on beta.12 while Linux is on beta.14)', async () => {
+  const { platformRelease, release } = await import('../lib/install.mjs');
+  assert.deepEqual(platformRelease('linux-x64'), { version: release.version, sha256: release.platforms['linux-x64'] });
+  for (const key of ['darwin-arm64', 'darwin-x64']) {
+    const entry = platformRelease(key);
+    assert.match(entry.version, /^0\.1\.0-beta\.\d+$/);
+    assert.match(entry.sha256, /^[0-9a-f]{64}$/);
+  }
+});
