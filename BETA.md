@@ -1,14 +1,20 @@
 # Beta test with your existing AI agent setup
 
-**Official distribution:** [vibead/cli](https://github.com/vibead/cli). Beta.8 archives are unchanged from their original publication. Their bundled guide can contain older repository links; use this online guide for current downloads and known issues.
+**Official distribution:** [vibead/cli](https://github.com/vibead/cli). Beta.17 archives are unchanged from their original publication. Their bundled guide can contain older repository links; use this online guide for current downloads and known issues.
 
-**Beta.8 keeps the setup you already use:** your home directory, saved login, model/provider configuration, custom configuration directories, project files, settings, plugins and exported environment. You launch through Vibead from your usual project, and it adds local mock advertisements during supported thinking states.
+**Beta.17 keeps the setup you already use:** your home directory, saved login, model/provider configuration, custom configuration directories, project files, settings, plugins and exported environment. You launch through Vibead from your usual project, and it adds local mock advertisements during supported thinking states.
 
 No new account setup, private checkout or separate ad server is required by Vibead. Your agent's own permissions, trust prompts and provider charges still apply.
 
-**Known OpenCode multi-turn defect:** beta.8 improves first-turn activity-only display and ordinary spinner repaint filtering, but a customer reports ads still missing on later turns, with `all_eligible_turns_displayed: false`. OpenCode and cleanup remain functional. Investigation is deferred. Do not treat the earlier automated three-turn checks as proof that this customer issue is resolved. If you choose to test OpenCode, record each turn separately. Download and extract the complete beta.8 archive into a fresh folder and update `VIBEAD_BETA`; do not replace only the executable in an older runtime.
+**Known issues in beta.17** ([release notes](https://github.com/vibead/cli/releases/tag/v0.1.0-beta.17)):
+- **Fixed in beta.17:** stray text such as `0;0m` in Claude Code output; "Ads unavailable (beta_integration_busy_or_needs_cleanup)" after an interrupted session, which now recovers automatically; OpenCode ads missing after the first turn (fixed in beta.15).
+- **Claude Code first run:** the workspace-trust dialog selects **No, exit** first. Choose **Yes, I trust this folder**, or rerun the command if you exit by mistake.
+- While the hosted publisher service warms up, turn 1 can show a VibeAd house ad (labelled `[Ad]`).
+- **Windows is not supported yet.** macOS builds are ad hoc signed and not Apple-notarized. Automated qualification uses simulated models; real-model and physical-terminal beta testing is ongoing.
 
-**Beta.8 includes optional clickable test ads.** Follow the [click-test instructions](#optional-clickable-ad-test-beta8). Use the complete beta.8 archive for Mac or Linux; older beta.5 downloads do not contain this feature. **Windows is deferred to the backlog.** Older Windows packages were not migrated to this organization release.
+Download and extract the complete beta.17 archive into a fresh folder and update `VIBEAD_BETA`; do not replace only the executable in an older runtime.
+
+**Beta.17 includes optional clickable test ads.** Follow the [click-test instructions](#optional-clickable-ad-test-beta8). Use the complete beta.17 archive for Mac or Linux; older beta.5 downloads do not contain this feature. **Windows is deferred to the backlog.** Older Windows packages were not migrated to this organization release.
 
 ## Optional publisher test on Mac and Linux (beta.12)
 
@@ -21,7 +27,7 @@ For organization messages, download the [publisher beta](ENTERPRISE-DEMO.md), th
 "/path/to/vibead-beta" opencode --test-publisher
 ```
 
-Your existing account, provider, settings and project stay in use; normal model charges apply. In the [hosted publisher](https://www.vibead.ai/woolworths-demo), change **Terminal line**, click **Publish to workspace**, and send another prompt in the same session. The publication appears with `[Org]` while the agent works. Existing proxy settings are used automatically. Use `--test-publisher` separately from `--test-links`. Existing ad commands and beta.8 downloads below are unchanged.
+Your existing account, provider, settings and project stay in use; normal model charges apply. In the [hosted publisher](https://www.vibead.ai/woolworths-demo), change **Terminal line**, click **Publish to workspace**, and send another prompt in the same session. The publication appears with `[Org]` while the agent works. Existing proxy settings are used automatically. Use `--test-publisher` separately from `--test-links`. Existing ad commands and beta.17 downloads below are unchanged.
 
 <a id="optional-clickable-ad-test-beta6"></a>
 
@@ -29,7 +35,7 @@ Your existing account, provider, settings and project stay in use; normal model 
 
 This tests a synthetic ad opening a local browser page. It uses your existing agent account and project, starts its mock service automatically, and makes no advertiser requests. It does not test paid clicks, cash balances or payouts.
 
-1. Check the executable before starting: `"/path/to/vibead-beta" --help` on macOS/Linux. It must list `--test-links`. Keep the complete beta.8 archive together; do not copy the executable over a beta.5 folder.
+1. Check the executable before starting: `"/path/to/vibead-beta" --help` on macOS/Linux. It must list `--test-links`. Keep the complete beta.17 archive together; do not copy the executable over a beta.5 folder.
 2. Open your usual project in a terminal from this table, directly rather than inside tmux or screen:
 
 | Platform | Initial link-test terminal | Open the ad |
@@ -39,7 +45,7 @@ This tests a synthetic ad opening a local browser page. It uses your existing ag
 
 These are initial capability checks, not a claim of physical-desktop qualification. Apple Terminal and unidentified terminals currently keep plain text. Remote/SSH sessions are outside this local-browser test: `127.0.0.1` must refer to the computer running both Vibead and the browser. Do not override terminal variables to force support.
 
-3. Run one agent at a time, using the path to beta.8. No `--mode interactive` is needed:
+3. Run one agent at a time, using the path to beta.17. No `--mode interactive` is needed:
 
 ```sh
 "/path/to/vibead-beta" claude --test-links
@@ -48,7 +54,7 @@ These are initial capability checks, not a claim of physical-desktop qualificati
 "/path/to/vibead-beta" opencode --test-links
 ```
 
-On a Mac where you already set `VIBEAD_BETA` to beta.8, use `"$VIBEAD_BETA" claude --test-links`, changing the agent name as needed. Windows clickable-ad testing is not included in this release.
+On a Mac where you already set `VIBEAD_BETA` to beta.17, use `"$VIBEAD_BETA" claude --test-links`, changing the agent name as needed. Windows clickable-ad testing is not included in this release.
 
 Keep gateway variables and saved logins as they normally are. Native agent arguments still follow `--`, for example `"/path/to/vibead-beta" claude --test-links -- --model my-model`.
 
@@ -81,8 +87,8 @@ Share the reviewed report JSON, archive version, terminal application/version, a
 
 | Your Mac | Archive | Checksum file |
 | --- | --- | --- |
-| Apple Silicon | [Download ARM64](https://github.com/vibead/cli/releases/download/v0.1.0-beta.8/vibead-beta-0.1.0-beta.8-darwin-arm64.tar.gz) | [ARM64 checksum](https://github.com/vibead/cli/releases/download/v0.1.0-beta.8/vibead-beta-0.1.0-beta.8-darwin-arm64.tar.gz.sha256) |
-| Intel | [Download x64](https://github.com/vibead/cli/releases/download/v0.1.0-beta.8/vibead-beta-0.1.0-beta.8-darwin-x64.tar.gz) | [x64 checksum](https://github.com/vibead/cli/releases/download/v0.1.0-beta.8/vibead-beta-0.1.0-beta.8-darwin-x64.tar.gz.sha256) |
+| Apple Silicon | [Download ARM64](https://github.com/vibead/cli/releases/download/v0.1.0-beta.17/vibead-beta-0.1.0-beta.17-darwin-arm64.tar.gz) | [ARM64 checksum](https://github.com/vibead/cli/releases/download/v0.1.0-beta.17/vibead-beta-0.1.0-beta.17-darwin-arm64.tar.gz.sha256) |
+| Intel | [Download x64](https://github.com/vibead/cli/releases/download/v0.1.0-beta.17/vibead-beta-0.1.0-beta.17-darwin-x64.tar.gz) | [x64 checksum](https://github.com/vibead/cli/releases/download/v0.1.0-beta.17/vibead-beta-0.1.0-beta.17-darwin-x64.tar.gz.sha256) |
 
 2. Exit any running Vibead session. In Terminal, run the block for **your Mac only**. It checks the download and extracts it into a versioned folder only if the checksum matches. These commands leave your terminal's working directory unchanged.
 
@@ -91,9 +97,9 @@ Apple Silicon:
 ```sh
 (
   cd "$HOME/Downloads" &&
-  shasum -a 256 -c vibead-beta-0.1.0-beta.8-darwin-arm64.tar.gz.sha256 &&
-  mkdir -p vibead-beta8 &&
-  tar -xzf vibead-beta-0.1.0-beta.8-darwin-arm64.tar.gz -C vibead-beta8
+  shasum -a 256 -c vibead-beta-0.1.0-beta.17-darwin-arm64.tar.gz.sha256 &&
+  mkdir -p vibead-beta17 &&
+  tar -xzf vibead-beta-0.1.0-beta.17-darwin-arm64.tar.gz -C vibead-beta17
 )
 ```
 
@@ -102,9 +108,9 @@ Intel:
 ```sh
 (
   cd "$HOME/Downloads" &&
-  shasum -a 256 -c vibead-beta-0.1.0-beta.8-darwin-x64.tar.gz.sha256 &&
-  mkdir -p vibead-beta8 &&
-  tar -xzf vibead-beta-0.1.0-beta.8-darwin-x64.tar.gz -C vibead-beta8
+  shasum -a 256 -c vibead-beta-0.1.0-beta.17-darwin-x64.tar.gz.sha256 &&
+  mkdir -p vibead-beta17 &&
+  tar -xzf vibead-beta-0.1.0-beta.17-darwin-x64.tar.gz -C vibead-beta17
 )
 ```
 
@@ -113,13 +119,13 @@ Expect a line ending in `OK`. If the check fails or either file is missing, down
 3. Open the same terminal and project where your agent already works. Stay in your project; you do not need to work from the download folder. Set the executable path in that terminal. For Apple Silicon:
 
 ```sh
-VIBEAD_BETA="$HOME/Downloads/vibead-beta8/vibead-beta-darwin-arm64/vibead-beta"
+VIBEAD_BETA="$HOME/Downloads/vibead-beta17/vibead-beta-darwin-arm64/vibead-beta"
 ```
 
 For Intel:
 
 ```sh
-VIBEAD_BETA="$HOME/Downloads/vibead-beta8/vibead-beta-darwin-x64/vibead-beta"
+VIBEAD_BETA="$HOME/Downloads/vibead-beta17/vibead-beta-darwin-x64/vibead-beta"
 ```
 
 If you extracted elsewhere, change the path. This variable lasts for the current terminal session; set it again in a new terminal. Test one agent at a time:
@@ -146,7 +152,7 @@ Repeat for each installed agent and share one report per agent. Include your Mac
 open "$HOME/.vibead-beta/results"
 ```
 
-If you only see `Vibead beta: passed` from an automatic test without your normal session, check that you downloaded **beta.8** and omitted `--mode fixture`. Older releases used the simulated test by default.
+If you only see `Vibead beta: passed` from an automatic test without your normal session, check that you downloaded **beta.17** and omitted `--mode fixture`. Older releases used the simulated test by default.
 
 If macOS blocks the executable, see [platform notes](#platform-notes). If you force-killed a session, use the [recovery command](#recovery-after-a-crash-or-forced-termination) before trying again or deleting the folder.
 
@@ -154,7 +160,7 @@ Gemini is also supported on qualified Mac builds: use `"$VIBEAD_BETA" gemini`. U
 
 ## 1. Download
 
-Get an archive and its `.sha256` file from [beta.8 Releases](https://github.com/vibead/cli/releases/tag/v0.1.0-beta.8):
+Get an archive and its `.sha256` file from [beta.17 Releases](https://github.com/vibead/cli/releases/tag/v0.1.0-beta.17):
 
 | Computer | Archive ending |
 | --- | --- |
@@ -242,7 +248,7 @@ Vibead prints the ad-test result and a report path, normally under `~/.vibead-be
 
 A `passed` report means the display checks passed for this session. `failed` or `blocked` is not a pass, even if the agent itself answered. Interactive mode does not compare the model's answer against a fixed expected response; your visual check matters. The wrapper preserves the agent's exit code, so judge ad-test success from the JSON status rather than the shell exit code.
 
-Confirm `artifact_version` is `0.1.0-beta.8`; a report written before this session exited may belong to an older run. `all_eligible_turns_displayed` must be true. Each turn with `display_eligible: true` should have `displayed`, `thinking_row_replaced` and `cleared` true. Turns shorter than the 500 ms display debounce may legitimately have no ad. `activity_frames_filtered` records ordinary OpenCode animation frames that avoided repainting the sponsor; it is diagnostic evidence, not proof that your terminal looked smooth or that an advertiser was billed.
+Confirm `artifact_version` is `0.1.0-beta.17`; a report written before this session exited may belong to an older run. `all_eligible_turns_displayed` must be true. Each turn with `display_eligible: true` should have `displayed`, `thinking_row_replaced` and `cleared` true. Turns shorter than the 500 ms display debounce may legitimately have no ad. `activity_frames_filtered` records ordinary OpenCode animation frames that avoided repainting the sponsor; it is diagnostic evidence, not proof that your terminal looked smooth or that an advertiser was billed.
 
 Review the JSON and attach it to a [beta issue](https://github.com/vibead/cli/issues) with your OS, agent version and what you observed. Reports contain versions, timings and checks, not prompts, terminal captures, model responses, credentials or project contents. Reports stay local until you choose to share them. **Share only report JSON from `results`; integration recovery files contain local settings backups and must not be shared.**
 
@@ -286,7 +292,7 @@ Release notes list combinations actually tested. Other OS versions, terminal app
 
 These builds are not publisher-signed or notarized. macOS uses an ad hoc signature; Windows may show an unrecognized-publisher warning. Hosted tests do not establish desktop approval or enterprise-policy behavior. Do not disable system-wide security controls to run a beta.
 
-Windows Codex teardown can print an `AttachConsole failed` helper warning even when display/cleanup checks pass. Retain the JSON report and check its status. [Release notes](https://github.com/vibead/cli/releases/tag/v0.1.0-beta.8) identify tested versions, platforms and known limits.
+Windows Codex teardown can print an `AttachConsole failed` helper warning even when display/cleanup checks pass. Retain the JSON report and check its status. [Release notes](https://github.com/vibead/cli/releases/tag/v0.1.0-beta.17) identify tested versions, platforms and known limits.
 
 ## Remove or upgrade
 
