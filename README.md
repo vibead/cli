@@ -36,6 +36,8 @@ vibead claude
 
 Requires Node.js 20+, macOS Apple Silicon/Intel or Linux x64 (glibc 2.34+), and `tar`. See the [npm launcher guide](npm/README.md) for first-run downloads, proxy support and cache removal. You can use `vibead` in place of the extracted executable in the commands below. The complete archive downloads remain available without Node.js/npm.
 
+> **Claude Code first run:** the first time Claude Code opens a folder, it asks whether you trust it. The first option, which is already selected, is **No, exit**. Use the arrow keys to choose **Yes, I trust this folder** (the wording in Claude Code 2.1.x), then press Enter. If you exit by mistake, just run the same command again.
+
 ### Download an archive
 
 Download the complete archive and its `.sha256` file from [beta.8 Releases](https://github.com/vibead/cli/releases/tag/v0.1.0-beta.8). [Verify the checksum](BETA.md#1-download), then extract it somewhere convenient and keep its files together.

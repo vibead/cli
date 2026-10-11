@@ -33,6 +33,8 @@ In the project folder where you normally use your agent, run **one** of these co
 
 **The first launch downloads about 72–84 MB.** Wait for the download message to finish and your agent to open. Later launches reuse the downloaded files. Review any permission or project-trust prompts from your agent; in Codex, review the Vibead hooks if prompted.
 
+> **Claude Code first run:** the first time Claude Code opens a folder, it asks whether you trust it. The first option, which is already selected, is **No, exit**. Use the arrow keys to choose **Yes, I trust this folder** (the wording in Claude Code 2.1.x), then press Enter. If you exit by mistake, just run the same command again.
+
 ### 3. Send a prompt
 
 Use your agent as usual, or try this:
