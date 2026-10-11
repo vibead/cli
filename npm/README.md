@@ -98,10 +98,10 @@ Downloaded files remain in `~/.cache/vibead`; you can remove that folder too aft
 
 ## System requirements and beta details
 
-- **macOS:** Apple Silicon or Intel. Builds are ad hoc signed and are not Apple-notarized. Testing on physical Mac terminals is still in progress. See the [beta.16 release notes](https://github.com/vibead/cli/releases/tag/v0.1.0-beta.16) and [beta.12 release notes](https://github.com/vibead/cli/releases/tag/v0.1.0-beta.12).
+- **macOS:** Apple Silicon or Intel. Builds are ad hoc signed and are not Apple-notarized. Testing on physical Mac terminals is still in progress. macOS stays on beta.16 until beta.17 Mac builds are qualified. See the [beta.17 release notes](https://github.com/vibead/cli/releases/tag/v0.1.0-beta.17), [beta.16 release notes](https://github.com/vibead/cli/releases/tag/v0.1.0-beta.16) and [beta.12 release notes](https://github.com/vibead/cli/releases/tag/v0.1.0-beta.12).
 - **Linux:** x64 with glibc 2.34 or newer. Linux ARM64 and Alpine/musl are not supported.
 - **Tools:** Node.js 20+ and `tar`. `curl` is also needed when an HTTPS proxy is configured. No compiler or separately managed ad server is needed.
-- **Downloads:** the launcher chooses the matching official archive (beta.16 on Linux x64 and macOS), checks its SHA-256 checksum, and stores the complete kit in `~/.cache/vibead`. Set `VIBEAD_CACHE_DIR` to use another writable folder.
+- **Downloads:** the launcher chooses the matching official archive (beta.17 on Linux x64, beta.16 on macOS), checks its SHA-256 checksum, and stores the complete kit in `~/.cache/vibead`. Set `VIBEAD_CACHE_DIR` to use another writable folder.
 - **Known limitations:** while the hosted `--test-publisher` service warms up, turn 1 shows a VibeAd house ad (labelled `[Ad]`); with a single published message it alternates with house ads so no ad repeats on consecutive turns. Clickable ads are still unreliable on Windows terminals (Windows is not supported). Source and server code remain private. Third-party notices are included with the package and downloaded kit.
 
 Your agent's own options go after `--`. For example, to use an existing Codex profile:
