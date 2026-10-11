@@ -1,10 +1,14 @@
 # Try Vibead with your usual AI agent setup
 
-**Official distribution:** [vibead/cli](https://github.com/vibead/cli). Beta.8 archives are unchanged from their original publication. Their bundled guide can contain older repository links; use this online guide for current downloads and known issues.
+**Official distribution:** [vibead/cli](https://github.com/vibead/cli). Beta.17 archives are unchanged from their original publication. Their bundled guide can contain older repository links; use this online guide for current downloads and known issues.
 
-Vibead adds disclosed test advertisements to supported thinking rows in **Claude Code, Codex, Gemini CLI and OpenCode**. Beta.8 uses your existing login, model/provider configuration, settings and current project. Its local mock ad service starts automatically.
+Vibead adds disclosed test advertisements to supported thinking rows in **Claude Code, Codex, Gemini CLI and OpenCode**. Beta.17 uses your existing login, model/provider configuration, settings and current project. Its local mock ad service starts automatically.
 
-**Known OpenCode issue:** beta.8 improves first-turn activity-only ads, but a customer reports missing advertisements on later turns (`all_eligible_turns_displayed: false`). OpenCode and cleanup still work. Investigation is deferred; this release does not resolve multi-turn display in that setup.
+**Known issues in beta.17** ([release notes](https://github.com/vibead/cli/releases/tag/v0.1.0-beta.17)):
+- **Fixed in beta.17:** stray text such as `0;0m` in Claude Code output; "Ads unavailable (beta_integration_busy_or_needs_cleanup)" after an interrupted session, which now recovers automatically; OpenCode ads missing after the first turn (fixed in beta.15).
+- **Claude Code first run:** the workspace-trust dialog selects **No, exit** first. Choose **Yes, I trust this folder**, or rerun the command if you exit by mistake.
+- While the hosted publisher service warms up, turn 1 can show a VibeAd house ad (labelled `[Ad]`).
+- **Windows is not supported yet.** macOS builds are ad hoc signed and not Apple-notarized. Automated qualification uses simulated models; real-model and physical-terminal beta testing is ongoing.
 
 **Optional clickable ads:** add `--test-links` to test opening a synthetic ad in your browser. The [click-test checklist](BETA.md#optional-clickable-ad-test-beta8) covers all four agents and supported terminal families. No advertiser requests or earnings are generated.
 
@@ -22,11 +26,11 @@ vibead claude
 # Also: vibead codex, vibead gemini, vibead opencode
 ```
 
-This installs the complete **beta.12** kit, including its runtime. No Homebrew account or separate Node.js/npm installation is needed. Linux requires glibc 2.34 or newer. Your agent must already work in your terminal. See the [Homebrew tap guide](https://github.com/vibead/homebrew-tap) for updates, removal and switching from npm.
+This installs the complete **beta.17** kit, including its runtime. No Homebrew account or separate Node.js/npm installation is needed. Linux requires glibc 2.34 or newer. Your agent must already work in your terminal. See the [Homebrew tap guide](https://github.com/vibead/homebrew-tap) for updates, removal and switching from npm.
 
 ### Install with npm
 
-The npm launcher installs the newer **beta.12** kit on first use, verifying the official archive's SHA-256 checksum:
+The npm launcher installs the **beta.17** kit on first use, verifying the official archive's SHA-256 checksum:
 
 ```sh
 npm install -g @vibead/cli
@@ -40,13 +44,13 @@ Requires Node.js 20+, macOS Apple Silicon/Intel or Linux x64 (glibc 2.34+), and 
 
 ### Download an archive
 
-Download the complete archive and its `.sha256` file from [beta.8 Releases](https://github.com/vibead/cli/releases/tag/v0.1.0-beta.8). [Verify the checksum](BETA.md#1-download), then extract it somewhere convenient and keep its files together.
+Download the complete archive and its `.sha256` file from [beta.17 Releases](https://github.com/vibead/cli/releases/tag/v0.1.0-beta.17). [Verify the checksum](BETA.md#1-download), then extract it somewhere convenient and keep its files together.
 
 | Computer | Download |
 | --- | --- |
-| Apple Silicon Mac | [macOS ARM64](https://github.com/vibead/cli/releases/download/v0.1.0-beta.8/vibead-beta-0.1.0-beta.8-darwin-arm64.tar.gz) |
-| Intel Mac | [macOS x64](https://github.com/vibead/cli/releases/download/v0.1.0-beta.8/vibead-beta-0.1.0-beta.8-darwin-x64.tar.gz) |
-| Linux x64 | [Linux archive](https://github.com/vibead/cli/releases/download/v0.1.0-beta.8/vibead-beta-0.1.0-beta.8-linux-x64.tar.gz) |
+| Apple Silicon Mac | [macOS ARM64](https://github.com/vibead/cli/releases/download/v0.1.0-beta.17/vibead-beta-0.1.0-beta.17-darwin-arm64.tar.gz) |
+| Intel Mac | [macOS x64](https://github.com/vibead/cli/releases/download/v0.1.0-beta.17/vibead-beta-0.1.0-beta.17-darwin-x64.tar.gz) |
+| Linux x64 | [Linux archive](https://github.com/vibead/cli/releases/download/v0.1.0-beta.17/vibead-beta-0.1.0-beta.17-linux-x64.tar.gz) |
 
 **Windows is deferred.** This organization release contains only the current Mac and Linux downloads; older Windows packages were not migrated.
 
@@ -63,10 +67,10 @@ Open the terminal and project you normally use for your agent. Call the extracte
 "/path/to/vibead-beta" opencode
 ```
 
-For an Apple Silicon Mac, after following the guide's extraction commands into `Downloads/vibead-beta8`, set this once in that terminal:
+For an Apple Silicon Mac, after following the guide's extraction commands into `Downloads/vibead-beta17`, set this once in that terminal:
 
 ```sh
-VIBEAD_BETA="$HOME/Downloads/vibead-beta8/vibead-beta-darwin-arm64/vibead-beta"
+VIBEAD_BETA="$HOME/Downloads/vibead-beta17/vibead-beta-darwin-arm64/vibead-beta"
 ```
 
 For an Intel Mac, replace `darwin-arm64` with `darwin-x64`. From your usual project, run `"$VIBEAD_BETA" claude`, `"$VIBEAD_BETA" codex`, or `"$VIBEAD_BETA" opencode`, one at a time. See the [Mac quick start](BETA.md#mac-quick-start-claude-code-codex-and-opencode) for what to check and how to exit.
@@ -96,16 +100,16 @@ Exit the agent normally. Vibead removes its session integration and prints the l
 
 `"/path/to/vibead-beta" claude --mode fixture` runs the old isolated simulated-model test without credentials or model charges. Replace `claude` with any of the four agents. This is optional; it does not test your usual account or configuration.
 
-Beta.3 and earlier defaulted to this simulated test, and their interactive mode used an empty temporary home. Upgrade the complete archive to beta.8 for the existing-setup experience.
+Beta.3 and earlier defaulted to this simulated test, and their interactive mode used an empty temporary home. Upgrade the complete archive to beta.17 for the existing-setup experience.
 
 ## Scope
 
-Beta.8 improves first-turn OpenCode activity-only ads and retains thinking-label support and optional local click testing. The reported later-turn OpenCode failure remains unresolved. Reports check every display-eligible turn. Successful ad decisions alone do not mean an ad was displayed; check the report and the screen. Automated checks cannot certify physical-terminal smoothness.
+Beta.17 supports Claude Code, Codex, Gemini CLI and OpenCode across turns, with optional local click testing and the publisher test. Reports check every display-eligible turn. Successful ad decisions alone do not mean an ad was displayed; check the report and the screen. Automated checks cannot certify physical-terminal smoothness.
 
 This is an explicit beta wrapper. Keep launching your ordinary agent directly whenever you do not want Vibead. Automatic activation through your usual command name remains later distribution work. Native permissions, trust prompts and organization policies still apply; unsupported cases preserve the agent's normal launch without ads.
 
-Source and server code remain private. Synthetic ads generate no earnings or credits. [Release notes](https://github.com/vibead/cli/releases/tag/v0.1.0-beta.8) identify exact tested agents/platforms and limits; simulated-model qualification does not establish live-provider or physical-desktop acceptance.
+Source and server code remain private. Synthetic ads generate no earnings or credits. [Release notes](https://github.com/vibead/cli/releases/tag/v0.1.0-beta.17) identify exact tested agents/platforms and limits; simulated-model qualification does not establish live-provider or physical-desktop acceptance.
 
 ## Publisher beta for Mac and Linux
 
-Use the [beta.12 Mac/Linux kit](ENTERPRISE-DEMO.md), then run `"/path/to/vibead-beta" claude --test-publisher` from your usual project. Change the Terminal line in the [hosted publisher](https://www.vibead.ai/woolworths-demo) and send another prompt in the same session. Replace `claude` with `codex`, `gemini` or `opencode` for your agent. Your existing setup and proxy settings stay in use. The four ad-test commands above remain unchanged.
+Use the [beta.17 Mac/Linux kit](ENTERPRISE-DEMO.md), then run `"/path/to/vibead-beta" claude --test-publisher` from your usual project. Change the Terminal line in the [hosted publisher](https://www.vibead.ai/woolworths-demo) and send another prompt in the same session. Replace `claude` with `codex`, `gemini` or `opencode` for your agent. Your existing setup and proxy settings stay in use. The four ad-test commands above remain unchanged.
