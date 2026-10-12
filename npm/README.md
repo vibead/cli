@@ -6,44 +6,32 @@ Vibead shows test ads in your terminal while **Claude Code, Codex, Gemini CLI or
 
 **This is a beta:** ads are simulated, with no earnings or credits. Your AI provider's usual charges still apply.
 
-## Get started
+## Quick start
 
-You need **macOS** (Apple Silicon or Intel) or **Linux x64**, **Node.js 20 or newer**, and one of the agents below already installed and working. **Windows is not supported yet.** If you need Node.js, [install the current LTS version](https://nodejs.org/en/download), then reopen your terminal.
-
-### 1. Install Vibead
-
-Open Terminal on your Mac, or your Linux terminal, and run:
+You need **macOS** (Apple Silicon or Intel) or **Linux x64**, **Node.js 20 or newer**, and Claude Code or OpenCode already installed and working. **Windows is not supported yet.** If you need Node.js, [install the current LTS version](https://nodejs.org/en/download), then reopen your terminal.
 
 ```sh
-npm install -g @vibead/cli
+npm i -g @vibead/cli && vibead enable
 ```
 
-You only need to install it once. You do not need to sign in to npm to install this public package.
+Then run plain `claude` or `opencode` as usual.
 
-### 2. Choose your agent
+`vibead enable` lists exactly which files it will change and asks before changing anything. The first run downloads about 72–84 MB and checks it against its SHA-256. While your agent works you'll see a message marked **`[Ad]`**:
 
-In the project folder where you normally use your agent, run **one** of these commands:
+- **Claude Code:** in bold in the status line, and from turn 2 also as a dim `Ad: … [Ad]` spinner tip.
+- **OpenCode:** as a "Sponsored" notification.
 
-| Your agent | Run this |
-| --- | --- |
-| Claude Code | `vibead claude` |
-| Codex | `vibead codex` |
-| Gemini CLI | `vibead gemini` |
-| OpenCode | `vibead opencode` |
+Ads never enter your prompts or the model's context.
 
-**The first launch downloads about 72–84 MB.** Wait for the download message to finish and your agent to open. Later launches reuse the downloaded files. Review any permission or project-trust prompts from your agent; in Codex, review the Vibead hooks if prompted.
+> **Codex:** Codex has no extension point that can show an ad. Run `vibead codex`, or accept the opt-in shell alias (`codex` → `vibead codex`) that `vibead enable` offers when Codex is installed.
+
+To pause ads, set `VIBEAD_DISABLE=1`. `vibead disable` restores your agent settings exactly, and `vibead uninstall` removes everything Vibead added. Vibead counts which ads were shown (ad id, agent, time; nothing else); set `VIBEAD_NO_TELEMETRY=1` or `DO_NOT_TRACK=1` to turn that off.
 
 > **Claude Code first run:** the first time Claude Code opens a folder, it asks whether you trust it. The first option, which is already selected, is **No, exit**. Use the arrow keys to choose **Yes, I trust this folder** (the wording in Claude Code 2.1.x), then press Enter. If you exit by mistake, just run the same command again.
 
-### 3. Send a prompt
+### Or use the wrapper
 
-Use your agent as usual, or try this:
-
-> Compare five sorting algorithms and explain their tradeoffs. Do not run commands or change files.
-
-Look for a message marked **`[Ad]`** in the agent's status line while it thinks. The message should disappear when the response finishes. Very short responses may finish before an ad appears.
-
-Exit your agent normally when you're done. To use your agent without Vibead next time, launch it with its usual command, such as `claude` or `codex`.
+You can also start any agent through Vibead without changing its settings: `vibead claude`, `vibead codex`, `vibead gemini` or `vibead opencode`. Gemini CLI is supported only this way. To use an agent without Vibead, launch it with its usual command, or run `vibead disable` if you enabled it.
 
 ## Try without a global install
 
@@ -53,7 +41,7 @@ If you prefer to try it first, or the install command reports a permissions erro
 npx @vibead/cli claude
 ```
 
-Replace `claude` with `codex`, `gemini` or `opencode` as needed. If npm asks to install `@vibead/cli`, confirm to continue. This still downloads and caches Vibead's files.
+This uses the wrapper. Replace `claude` with `codex`, `gemini` or `opencode` as needed. If npm asks to install `@vibead/cli`, confirm to continue. This still downloads and caches Vibead's files.
 
 ## Need help?
 
@@ -90,7 +78,7 @@ To update to the latest npm release:
 npm install -g @vibead/cli@latest
 ```
 
-To remove the global installation, first exit any running Vibead sessions, then run:
+To remove the global installation, first exit any running Vibead sessions and run `vibead uninstall`, then run:
 
 ```sh
 npm uninstall -g @vibead/cli
@@ -100,10 +88,10 @@ Downloaded files remain in `~/.cache/vibead`; you can remove that folder too aft
 
 ## System requirements and beta details
 
-- **macOS:** Apple Silicon or Intel. Builds are ad hoc signed and are not Apple-notarized. Testing on physical Mac terminals is still in progress. See the [beta.17 release notes](https://github.com/vibead/cli/releases/tag/v0.1.0-beta.17) and [beta.12 release notes](https://github.com/vibead/cli/releases/tag/v0.1.0-beta.12).
+- **macOS:** Apple Silicon or Intel. Builds are ad hoc signed and are not Apple-notarized. Testing on physical Mac terminals is still in progress. See the [beta.19 release notes](https://github.com/vibead/cli/releases/tag/v0.1.0-beta.19).
 - **Linux:** x64 with glibc 2.34 or newer. Linux ARM64 and Alpine/musl are not supported.
 - **Tools:** Node.js 20+ and `tar`. `curl` is also needed when an HTTPS proxy is configured. No compiler or separately managed ad server is needed.
-- **Downloads:** the launcher chooses the matching official archive (beta.17 on Linux x64 and macOS), checks its SHA-256 checksum, and stores the complete kit in `~/.cache/vibead`. Set `VIBEAD_CACHE_DIR` to use another writable folder.
+- **Downloads:** the launcher chooses the matching official archive (beta.19 on Linux x64 and macOS), checks its SHA-256 checksum, and stores the complete kit in `~/.cache/vibead`. Set `VIBEAD_CACHE_DIR` to use another writable folder.
 - **Known limitations:** while the hosted `--test-publisher` service warms up, turn 1 shows a VibeAd house ad (labelled `[Ad]`); with a single published message it alternates with house ads so no ad repeats on consecutive turns. Clickable ads are still unreliable on Windows terminals (Windows is not supported). Source and server code remain private. Third-party notices are included with the package and downloaded kit.
 
 Your agent's own options go after `--`. For example, to use an existing Codex profile:
