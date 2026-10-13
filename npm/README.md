@@ -1,29 +1,39 @@
-# VibeAd
+<h1 align="center">VibeAd</h1>
 
-**Your AI agent thinks. You get paid.**
+<p align="center"><b>Your AI agent thinks. You get paid.</b></p>
 
-[![npm](https://img.shields.io/npm/v/@vibead/cli?label=npm)](https://www.npmjs.com/package/@vibead/cli) ![agents](https://img.shields.io/badge/agents-Claude%20Code%20%C2%B7%20Codex%20%C2%B7%20OpenCode-blue) ![os](https://img.shields.io/badge/OS-macOS%20%C2%B7%20Linux%20x64-lightgrey) ![license](https://img.shields.io/badge/license-proprietary-lightgrey)
+<p align="center">
+<a href="https://www.npmjs.com/package/@vibead/cli"><img src="https://img.shields.io/npm/v/@vibead/cli?label=npm" alt="npm version"></a>
+<img src="https://img.shields.io/badge/agents-Claude%20Code%20%C2%B7%20Codex%20%C2%B7%20OpenCode-blue" alt="Supported agents">
+<img src="https://img.shields.io/badge/OS-macOS%20%C2%B7%20Linux%20x64-lightgrey" alt="Supported OS">
+<img src="https://img.shields.io/badge/license-proprietary-lightgrey" alt="License">
+</p>
+
+<p align="center">
+<a href="https://www.vibead.ai">Website</a> · <a href="https://github.com/vibead/cli/releases/latest">Releases</a> · <a href="https://github.com/vibead/cli/issues">Issues</a> · <a href="https://x.com/VibeadAi">X</a> · <a href="https://www.linkedin.com/company/vibeadai">LinkedIn</a>
+</p>
 
 > **PLACEHOLDER: real capture of the `[Ad]` line in Claude Code goes here.**
 > Not captured yet: it needs a signed-in Claude Code session. No mock-up is used.
 
-**Install**
+## Quick start
 
 ```sh
-npm i -g @vibead/cli && vibead enable
+npm i -g @vibead/cli && vibead enable   # install, then review and approve the changes
+claude                                  # or opencode: use your agent as usual
+vibead disable                          # turn ads off and restore your settings
 ```
 
-**Use:** run `claude`, `codex` or `opencode` as usual. Codex is opt-in: accept the `codex` alias when `vibead enable` offers it, or run `vibead codex`.
+**Codex** is opt-in: accept the `codex` alias that `vibead enable` offers, or run `vibead codex`.
 
-**Turn off**
+- Short `[Ad]` lines appear in the status area while your agent thinks.
+- VibeAd never reads or changes your prompts, code or agent output.
+- Asks before changing any file; `vibead disable` restores them exactly.
+- Payouts launching soon.
 
-```sh
-vibead disable
-```
+Works with **Claude Code, Codex and OpenCode** on **macOS (Apple Silicon, Intel)** and **Linux x64 (glibc 2.34+)**. Windows is not supported yet.
 
-VibeAd never reads or changes your prompts, code or agent output. Payouts launching soon.
-
-Supports **Claude Code, Codex and OpenCode** on **macOS (Apple Silicon, Intel)** and **Linux x64 (glibc 2.34+)**. Windows is not supported yet.
+**Uninstall:** `vibead uninstall && npm uninstall -g @vibead/cli`
 
 ---
 
