@@ -26,7 +26,7 @@ vibead disable                          # turn ads off and restore your settings
 
 **Codex** is opt-in: accept the `codex` alias that `vibead enable` offers, or run `vibead codex`.
 
-- Short `[Ad]` lines appear in the status area while your agent thinks.
+- A short, labelled `[Ad]` line appears in the status line (Claude Code) or a notification (OpenCode) while your agent thinks.
 - VibeAd never reads or changes your prompts, code or agent output.
 - Asks before changing any file; `vibead disable` restores them exactly.
 - Payouts launching soon.
