@@ -13,7 +13,7 @@
 <a href="https://www.vibead.ai">Website</a> · <a href="https://github.com/vibead/cli/releases/latest">Releases</a> · <a href="https://github.com/vibead/cli/issues">Issues</a> · <a href="https://x.com/VibeadAi">X</a> · <a href="https://www.linkedin.com/company/vibeadai">LinkedIn</a>
 </p>
 
-<p align="center"><img src="https://raw.githubusercontent.com/vibead/cli/main/docs/readme-ad-claude.gif" alt="Scripted demo of the beta.24 Claude Code layout: one labelled [Ad] in the status line while it thinks" width="100%"><br><sub>Scripted demo of the beta.24 layout (not a live capture)</sub></p>
+<p align="center"><img src="https://raw.githubusercontent.com/vibead/cli/main/docs/readme-ad-claude.gif" alt="Real capture, beta.24, Claude Code 2.1.299: a labelled [Ad] line in the status line while it thinks" width="100%"><br><sub>Real capture, beta.24, Claude Code 2.1.299</sub></p>
 
 ## Quick start
 
