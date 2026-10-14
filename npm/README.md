@@ -13,8 +13,7 @@
 <a href="https://www.vibead.ai">Website</a> · <a href="https://github.com/vibead/cli/releases/latest">Releases</a> · <a href="https://github.com/vibead/cli/issues">Issues</a> · <a href="https://x.com/VibeadAi">X</a> · <a href="https://www.linkedin.com/company/vibeadai">LinkedIn</a>
 </p>
 
-> **PLACEHOLDER: real capture of the `[Ad]` line in Claude Code goes here.**
-> Not captured yet: it needs a signed-in Claude Code session. No mock-up is used.
+<p align="center"><img src="https://raw.githubusercontent.com/vibead/cli/main/docs/readme-ad-claude.gif" alt="Real capture: Claude Code showing a labelled [Ad] line while it thinks" width="100%"><br><sub>Real capture: Claude Code</sub></p>
 
 ## Quick start
 
