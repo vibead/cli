@@ -45,7 +45,9 @@ Works with **Claude Code, Codex and OpenCode** on **macOS (Apple Silicon, Intel)
 - **OpenCode:** adds a plugin that shows a labelled toast when a turn starts.
 - **Codex:** an optional shell alias, `codex` → `vibead codex`.
 
-Ads are labelled `[Ad]` and appear only in status or notification UI. `vibead disable` restores your files exactly; `vibead uninstall` also removes VibeAd's data. Only impression counts (ad id, agent, time) are sent; set `VIBEAD_NO_TELEMETRY=1` or `DO_NOT_TRACK=1` to turn that off.
+Ads are labelled `[Ad]` and appear only in status or notification UI. `vibead disable` removes only VibeAd's changes and keeps yours; `vibead uninstall` also removes VibeAd's data.
+
+VibeAd counts how many times ads are shown, nothing else. Never your prompts or code. Turn it off anytime with `vibead telemetry off`.
 </details>
 
 <details>
