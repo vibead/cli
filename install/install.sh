@@ -3,14 +3,15 @@
 #
 #   curl -fsSL https://www.vibead.ai/install | sh
 #
-# Downloads the release for this computer from GitHub Releases, verifies its
+# Reads the pinned version from https://www.vibead.ai/install.json (never
+# GitHub's "latest"), downloads that release for this computer, verifies its
 # SHA-256 against the release's SHA256SUMS (and the Sigstore signature of
 # SHA256SUMS when `cosign` is installed), installs it under ~/.vibead with a
 # `vibead` command in ~/.local/bin (no sudo), then runs `vibead enable`, which
 # lists every file it will change and asks before touching anything.
 #
 # Optional environment:
-#   VIBEAD_VERSION=0.1.0-beta.27   install this version instead of the latest
+#   VIBEAD_VERSION=0.1.0-beta.27   install this version instead of the pinned one
 #   VIBEAD_INSTALL_DIR=~/.vibead   where versions and the launcher live
 #   VIBEAD_BIN_DIR=~/.local/bin    where the `vibead` command is linked
 #   VIBEAD_NO_ENABLE=1             install only; run `vibead enable` yourself
@@ -40,12 +41,18 @@ main() {
   tmp=$(mktemp -d 2>/dev/null || mktemp -d -t vibead) || fail "Could not create a temporary folder."
   trap 'rm -rf "$tmp"' EXIT INT TERM
 
+  # The version comes from VIBEAD_VERSION or the site's pinned manifest, never
+  # GitHub's "latest" release, which can point at a release without SHA256SUMS.
   if [ -n "${VIBEAD_VERSION:-}" ]; then
-    sums_url="$release_base/download/v${VIBEAD_VERSION#v}/SHA256SUMS"
+    want=${VIBEAD_VERSION#v}
   else
-    sums_url="$release_base/latest/download/SHA256SUMS"
+    manifest_url=${VIBEAD_MANIFEST_URL:-https://www.vibead.ai/install.json}
+    fetch "$manifest_url" "$tmp/install.json" || fail "Could not read the current version ($manifest_url). Use npm instead: npm i -g @vibead/cli && vibead enable"
+    want=$(tr -d '\n\r' < "$tmp/install.json" | grep -oE '"version"[[:space:]]*:[[:space:]]*"[0-9A-Za-z.+-]+"' | head -n 1 | sed -E 's/.*"([^"]+)"$/\1/')
+    [ -n "$want" ] || fail "The version manifest ($manifest_url) has no version. Use npm instead: npm i -g @vibead/cli && vibead enable"
   fi
-  fetch "$sums_url" "$tmp/SHA256SUMS" || fail "Could not download the release checksums ($sums_url)."
+  sums_url="$release_base/download/v$want/SHA256SUMS"
+  fetch "$sums_url" "$tmp/SHA256SUMS" || fail "Could not download the release checksums ($sums_url). Use npm instead: npm i -g @vibead/cli && vibead enable"
 
   # SHA256SUMS lines: "<64 hex>  vibead-beta-<version>-<platform>.tar.gz"
   line=$(grep -E "^[0-9a-f]{64}  vibead-beta-[0-9A-Za-z.+-]+-$platform\.tar\.gz\$" "$tmp/SHA256SUMS" | head -n 1)
@@ -54,9 +61,7 @@ main() {
   archive=${line##* }
   version=${archive#vibead-beta-}
   version=${version%-"$platform".tar.gz}
-  if [ -n "${VIBEAD_VERSION:-}" ] && [ "$version" != "${VIBEAD_VERSION#v}" ]; then
-    fail "Checksums are for $version, not ${VIBEAD_VERSION#v}."
-  fi
+  [ "$version" = "$want" ] || fail "Checksums are for $version, not $want."
 
   verify_signature "$release_base/download/v$version/SHA256SUMS.sigstore.json"
 
