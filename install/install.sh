@@ -120,7 +120,9 @@ LAUNCHER
     say "Next: vibead enable"
   elif has_tty; then
     say ""
-    PATH="$install_dir/bin:$PATH" "$launcher" enable < /dev/tty || warn "vibead enable did not finish. Run it again any time: vibead enable"
+    # A non-zero exit is almost always a deliberate "n" at the consent prompt
+    # (the kit prints its own error otherwise), so say so neutrally.
+    PATH="$install_dir/bin:$PATH" "$launcher" enable < /dev/tty || say "Setup skipped. Run \`vibead enable\` any time."
   else
     say "Next: vibead enable   (reviews and approves the changes)"
   fi
@@ -178,12 +180,20 @@ ensure_path() {
   case ":$PATH:" in *":$bin_dir:"*) return 0 ;; esac
   case "${SHELL:-}" in */zsh) rc="$HOME/.zshrc" ;; */bash) rc="$HOME/.bashrc"; [ "$(uname -s)" = Darwin ] && rc="$HOME/.bash_profile" ;; */fish) rc="" ;; *) rc="$HOME/.profile" ;; esac
   line="export PATH=\"$bin_dir:\$PATH\""
+  begin='# >>> vibead installer PATH >>>'
+  end='# <<< vibead installer PATH <<<'
+  # Idempotent (cli#24): if this profile already has our block, or the exact
+  # line from an earlier installer, don't ask again or append a second copy.
+  if [ -n "$rc" ] && [ -f "$rc" ] && { grep -qxF "$begin" "$rc" || grep -qxF "$line" "$rc"; }; then
+    say "$bin_dir is already in your PATH in $rc. Open a new terminal to use \`vibead\`."
+    return 0
+  fi
   if [ -n "$rc" ] && [ -z "${VIBEAD_NO_MODIFY_PATH:-}" ] && has_tty; then
     printf 'Add %s to your PATH in %s? [Y/n] ' "$bin_dir" "$rc"
     read -r answer < /dev/tty || answer=n
     case "$answer" in
       ""|y|Y|yes|YES)
-        printf '\n# Added by the VibeAd installer\n%s\n' "$line" >> "$rc" && say "Added. Open a new terminal to use \`vibead\`."
+        printf '\n%s\n%s\n%s\n' "$begin" "$line" "$end" >> "$rc" && say "Added. Open a new terminal to use \`vibead\`."
         return 0 ;;
     esac
   fi

@@ -26,6 +26,7 @@ const KIT = `#!/bin/sh
 tty=no; [ -t 0 ] && tty=yes
 case ":$PATH:" in *"/.vibead/bin:"*) onpath=yes ;; *) onpath=no ;; esac
 echo "kit=@VERSION@ args=$* tty=$tty launcher_on_path=$onpath" >> "$HOME/kit.log"
+if [ "$1" = enable ] && [ -n "\${FAKE_DECLINE:-}" ]; then echo "No changes made."; exit 1; fi
 `;
 
 function release(base, version, { platform = PLATFORM, extra = null, corrupt = false, zip = false } = {}) {
@@ -104,6 +105,39 @@ test('install.sh: with a terminal, runs `vibead enable` (same setup as npm) with
   const log = readFileSync(join(box.home, 'kit.log'), 'utf8');
   assert.match(log, /kit=0\.1\.0-beta\.99 args=enable tty=yes launcher_on_path=yes/);
   assert.doesNotMatch(r.stdout, /Add .* to your PATH/, 'bin dir already on PATH: no prompt');
+});
+
+// Run the installer under script(1) so it has a real terminal; `answers` is
+// typed into that terminal (the PATH prompt reads /dev/tty).
+function runTty(box, answers, env = {}) {
+  const full = { HOME: box.home, PATH: basePath, SHELL: '/bin/bash', VIBEAD_RELEASE_BASE: box.base, ...env };
+  return spawnSync('script', ['-qec', `sh '${installSh}'`, '/dev/null'], { encoding: 'utf8', env: full, input: answers });
+}
+
+test('install.sh: re-running from a shell without ~/.local/bin on PATH adds one PATH block and asks once (cli#24)', { skip: (!linuxX64 || !which('script')) && 'needs Linux x64 and script(1)' }, () => {
+  const box = sandbox();
+  release(box.rel, '0.1.0-beta.99');
+  const first = runTty(box, 'y\n');
+  assert.equal(first.status, 0, first.stdout + first.stderr);
+  assert.match(first.stdout, /Add .*\.local\/bin to your PATH in .*\.bashrc\? \[Y\/n\]/);
+  const second = runTty(box, 'y\n');
+  assert.equal(second.status, 0, second.stdout + second.stderr);
+  assert.doesNotMatch(second.stdout, /to your PATH in/, 'no second prompt');
+  assert.match(second.stdout, /already in .*\.bashrc/);
+  const rc = readFileSync(join(box.home, '.bashrc'), 'utf8');
+  const exportLine = `export PATH="${join(box.home, '.local/bin')}:$PATH"`;
+  assert.equal(rc.split('\n').filter(l => l === exportLine).length, 1, rc);
+  assert.equal(rc.split('\n').filter(l => l === '# >>> vibead installer PATH >>>').length, 1, rc);
+  assert.equal(rc.split('\n').filter(l => l === '# <<< vibead installer PATH <<<').length, 1, rc);
+});
+
+test('install.sh: answering n at the enable consent prints a neutral "Setup skipped" line', { skip: (!linuxX64 || !which('script')) && 'needs Linux x64 and script(1)' }, () => {
+  const box = sandbox();
+  release(box.rel, '0.1.0-beta.99');
+  const r = runTty(box, '', { VIBEAD_NO_MODIFY_PATH: '1', FAKE_DECLINE: '1' });
+  assert.equal(r.status, 0, r.stdout + r.stderr);
+  assert.match(r.stdout, /Setup skipped\. Run `vibead enable` any time\./);
+  assert.doesNotMatch(r.stdout + r.stderr, /did not finish/);
 });
 
 test('install.sh: a checksum mismatch installs nothing', { skip: !linuxX64 && 'Linux x64 only' }, () => {

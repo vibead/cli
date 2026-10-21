@@ -97,7 +97,7 @@ function Install-VibeAd {
     if ($env:VIBEAD_NO_ENABLE) { Write-Host 'Next: vibead enable'; return }
     Write-Host ''
     & $launcher enable
-    if ($LASTEXITCODE -ne 0) { Write-Host 'vibead enable did not finish. Run it again any time: vibead enable' -ForegroundColor Yellow }
+    if ($LASTEXITCODE -ne 0) { Write-Host 'Setup skipped. Run `vibead enable` any time.' }
   } finally {
     Remove-Item -Recurse -Force $tmp -ErrorAction SilentlyContinue
   }
