@@ -18,7 +18,7 @@ concurrency:
 
 jobs:
   docs:
-    name: Docs updated (or 'docs: n/a')
+    name: "Docs updated (or 'docs: n/a')"
     runs-on: ubuntu-latest
     timeout-minutes: 3
     steps:
