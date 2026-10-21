@@ -1,0 +1,37 @@
+name: Docs check
+
+# Docs move with code (vibead/vibead-ai#143): a PR that changes a code path
+# must change a doc too, or say "docs: n/a - <why>" in its body. Path check
+# only (.github/docs-check/config.json); no checkout of the PR code is run.
+# Re-runs when the PR body is edited. One tiny Ubuntu job, no matrix, no secrets.
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, edited]
+
+permissions:
+  contents: read
+  pull-requests: read
+
+concurrency:
+  group: docs-check-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  docs:
+    name: "Docs updated (or 'docs: n/a')"
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+          sparse-checkout: .github/docs-check
+      - name: Self-test
+        run: node --test .github/docs-check/check-docs.test.mjs
+      - name: Check changed paths against the PR body
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          PR_BODY: ${{ github.event.pull_request.body }}
+        run: node .github/docs-check/check-docs.mjs
