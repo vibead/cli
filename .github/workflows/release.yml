@@ -145,5 +145,6 @@ jobs:
           done
           rm SHA256SUMS
           git diff --stat
-          git -c user.name="Gaurav Wasan" -c user.email="gaurav.wasan@gmail.com" commit -am "vibead $VERSION"
+          # Author and committer are the Actions bot, never a person's address.
+          git -c user.name="github-actions[bot]" -c user.email="41898282+github-actions[bot]@users.noreply.github.com" commit -am "vibead $VERSION"
           git push origin HEAD:main
