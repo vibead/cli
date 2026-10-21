@@ -1,5 +1,7 @@
 # Lessons
 
+New lessons go in lessons/, one file each; read both.
+
 - Docs drift unless the PR that changes code also changes the docs. The Docs check fails a PR that touches install/, npm/, packaging/ or workflows with no doc change and no `docs: n/a - <why>` line (vibead-ai#143).
 - `curl … | sh`: stdin is the script, so prompts must read `/dev/tty`, and only when `(: </dev/tty)` succeeds. With no terminal, print the next command; never edit shell profiles silently.
 - Wrap a piped installer in `main` and call it on the last line, so a truncated download runs nothing.

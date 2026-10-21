@@ -1,4 +1,19 @@
 {
-  "code": ["install/", "npm/", "packaging/", ".github/workflows/"],
-  "docs": ["docs/", "README.md", "BETA.md", "install/README.md", "npm/README.md"]
+  "code": [
+    "install/",
+    "npm/",
+    "packaging/",
+    ".github/workflows/"
+  ],
+  "docs": [
+    "docs/",
+    "README.md",
+    "BETA.md",
+    "install/README.md",
+    "npm/README.md"
+  ],
+  "lessonsAllowlist": [
+    30,
+    28
+  ]
 }
