@@ -23,6 +23,14 @@ claude                                  # or opencode: use your agent as usual
 vibead disable                          # turn ads off and restore your settings
 ```
 
+**No npm, or npm unavailable?** Each of these is one command that installs the same release and runs the same `vibead enable`:
+
+```sh
+curl -fsSL https://www.vibead.ai/install | sh       # macOS and Linux, no sudo
+brew install vibead/tap/vibead && vibead enable    # Homebrew
+irm https://www.vibead.ai/install.ps1 | iex        # Windows PowerShell (once Windows builds ship)
+```
+
 **Codex** is opt-in: accept the `codex` alias that `vibead enable` offers, or run `vibead codex`.
 
 - A short, labelled `[Ad]` line appears in the status line (Claude Code) or a notification (OpenCode) while your agent thinks.
@@ -32,7 +40,7 @@ vibead disable                          # turn ads off and restore your settings
 
 Works with **Claude Code, Codex and OpenCode** on **macOS (Apple Silicon, Intel)** and **Linux x64 (glibc 2.34+)**. Windows is not supported yet.
 
-**Uninstall:** `vibead uninstall && npm uninstall -g @vibead/cli`
+**Uninstall:** `vibead uninstall && npm uninstall -g @vibead/cli` (npm), `vibead uninstall && rm -rf ~/.vibead/versions ~/.vibead/bin ~/.local/bin/vibead` (install script), or `vibead uninstall && brew uninstall vibead` (Homebrew).
 
 ---
 
@@ -63,7 +71,13 @@ Includes its own runtime, so Node.js is not needed. See [vibead/homebrew-tap](ht
 <details>
 <summary><b>Manual download</b></summary>
 
-Download the archive for your computer and its `.sha256` file from the [latest release](https://github.com/vibead/cli/releases/latest), verify the checksum, extract it, and run `/path/to/vibead-beta enable`. See the [beta guide](https://github.com/vibead/cli/blob/main/BETA.md#1-download).
+Download the archive for your computer and `SHA256SUMS` from the [latest release](https://github.com/vibead/cli/releases/latest), check it with `shasum -a 256 -c --ignore-missing SHA256SUMS`, extract it, and run `/path/to/vibead-beta enable`. `SHA256SUMS` is signed in CI with Sigstore; with [cosign](https://docs.sigstore.dev/cosign/system_config/installation/) installed you can check it too:
+
+```sh
+cosign verify-blob --bundle SHA256SUMS.sigstore.json --certificate-oidc-issuer https://token.actions.githubusercontent.com --certificate-identity-regexp '^https://github\.com/vibead/cli/\.github/workflows/sign-release\.yml@refs/heads/main$' SHA256SUMS
+```
+
+The install script does both checks for you (the signature check runs when `cosign` is installed). See the [beta guide](https://github.com/vibead/cli/blob/main/BETA.md#1-download).
 </details>
 
 <details>
@@ -94,5 +108,5 @@ Full guide: [BETA.md](https://github.com/vibead/cli/blob/main/BETA.md). Publishe
 <details>
 <summary><b>For developers</b></summary>
 
-This repo holds public releases and the npm launcher in [`npm/`](https://github.com/vibead/cli/tree/main/npm). Source and server code are private. [Release notes](https://github.com/vibead/cli/releases/latest).
+This repo holds public releases, the npm launcher in [`npm/`](https://github.com/vibead/cli/tree/main/npm) and the backup installers in [`install/`](https://github.com/vibead/cli/tree/main/install) (served at `www.vibead.ai/install` and `/install.ps1`). Source and server code are private. [Release notes](https://github.com/vibead/cli/releases/latest).
 </details>

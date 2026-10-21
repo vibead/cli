@@ -1,0 +1,61 @@
+name: Sign release
+
+# Run by hand on a DRAFT release before publishing it. Checks every archive
+# against its .sha256, writes SHA256SUMS, signs it with cosign keyless
+# (GitHub OIDC -> Sigstore; no keys to store) and uploads SHA256SUMS and
+# SHA256SUMS.sigstore.json to the same release. The installers verify against
+# this workflow's identity on main, so run it from main only.
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Release tag, for example v0.1.0-beta.28
+        required: true
+
+permissions:
+  contents: write
+  id-token: write
+
+concurrency:
+  group: sign-release-${{ inputs.tag }}
+  cancel-in-progress: false
+
+jobs:
+  sign:
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      GH_TOKEN: ${{ github.token }}
+      TAG: ${{ inputs.tag }}
+    steps:
+      - name: Download archives and their .sha256 files
+        run: |
+          case "$TAG" in v[0-9]*) ;; *) echo "bad tag"; exit 1 ;; esac
+          mkdir assets && cd assets
+          gh release download "$TAG" --repo "$GITHUB_REPOSITORY" --pattern 'vibead-beta-*'
+          ls -l
+      - name: Verify each archive and write SHA256SUMS
+        working-directory: assets
+        run: |
+          set -eu
+          : > ../SHA256SUMS
+          for f in vibead-beta-*.tar.gz vibead-beta-*.zip; do
+            [ -e "$f" ] || continue
+            [ -f "$f.sha256" ] || { echo "missing $f.sha256"; exit 1; }
+            sha256sum -c "$f.sha256"
+            sha256sum "$f" >> ../SHA256SUMS
+          done
+          [ -s ../SHA256SUMS ] || { echo "no archives"; exit 1; }
+          cat ../SHA256SUMS
+      - uses: sigstore/cosign-installer@6f9f17788090df1f26f669e9d70d6ae9567deba6 # v4.1.2
+      - name: Sign SHA256SUMS (keyless)
+        run: cosign sign-blob --yes --bundle SHA256SUMS.sigstore.json SHA256SUMS
+      - name: Verify the signature as installers will
+        run: |
+          cosign verify-blob --bundle SHA256SUMS.sigstore.json \
+            --certificate-oidc-issuer https://token.actions.githubusercontent.com \
+            --certificate-identity "https://github.com/${GITHUB_REPOSITORY}/.github/workflows/sign-release.yml@refs/heads/main" \
+            SHA256SUMS
+      - name: Upload to the release
+        run: gh release upload "$TAG" SHA256SUMS SHA256SUMS.sigstore.json --repo "$GITHUB_REPOSITORY" --clobber
