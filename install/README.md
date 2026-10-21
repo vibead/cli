@@ -24,4 +24,4 @@ npm (`npm i -g @vibead/cli && vibead enable`) is the primary channel. These one-
 
 ## Tests
 
-`node --test install/test` runs shellcheck, the shell installer in a temp HOME against a local fake release (latest, pinned, upgrade, checksum mismatch, unsafe archive, missing platform, with and without a terminal, existing non-installer `vibead`), the PowerShell installer under `pwsh`, and checks that the README lists npm first with every channel as one command.
+`node --test install/test/*.test.mjs` runs shellcheck, the shell installer in a temp HOME against a local fake release (latest, pinned, upgrade, checksum mismatch, unsafe archive, missing platform, with and without a terminal, existing non-installer `vibead`), the PowerShell installer under `pwsh`, and checks that the README lists npm first with every channel as one command.

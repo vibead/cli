@@ -32,4 +32,6 @@ jobs:
       - name: Tools present (tests must not silently skip in CI)
         run: shellcheck --version && pwsh -NoProfile -Command '$PSVersionTable.PSVersion.ToString()' && command -v script
       - name: Tests
-        run: node --test install/test npm/test
+        run: |
+          node --test install/test/*.test.mjs
+          cd npm && node --test

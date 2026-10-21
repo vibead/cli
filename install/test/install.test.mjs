@@ -1,6 +1,6 @@
 // Installer tests: run the real install.sh / install.ps1 in a temp HOME
 // against a local fake release (file:// URLs), so nothing touches the network
-// or the tester's own ~/.vibead. Run: node --test install/test
+// or the tester's own ~/.vibead. Run: node --test install/test/*.test.mjs
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { createHash } from 'node:crypto';
