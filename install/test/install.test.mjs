@@ -1,0 +1,218 @@
+// Installer tests: run the real install.sh / install.ps1 in a temp HOME
+// against a local fake release (file:// URLs), so nothing touches the network
+// or the tester's own ~/.vibead. Run: node --test install/test
+import { test } from 'node:test';
+import assert from 'node:assert/strict';
+import { createHash } from 'node:crypto';
+import { spawnSync, execFileSync } from 'node:child_process';
+import { chmodSync, existsSync, lstatSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, readlinkSync, rmSync, writeFileSync, copyFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { dirname, join } from 'node:path';
+import { fileURLToPath, pathToFileURL } from 'node:url';
+
+const here = dirname(fileURLToPath(import.meta.url));
+const root = join(here, '..', '..');
+const installSh = join(here, '..', 'install.sh');
+const installPs1 = join(here, '..', 'install.ps1');
+const linuxX64 = process.platform === 'linux' && process.arch === 'x64';
+const PLATFORM = 'linux-x64';
+const which = cmd => spawnSync('sh', ['-c', `command -v ${cmd}`], { encoding: 'utf8' }).stdout.trim() || null;
+const pwsh = process.env.VIBEAD_PWSH || which('pwsh');
+const sha = file => createHash('sha256').update(readFileSync(file)).digest('hex');
+
+// The fake kit logs each call (args, whether stdin is a TTY, and whether the
+// stable launcher dir is on PATH) so tests can see what the installer ran.
+const KIT = `#!/bin/sh
+tty=no; [ -t 0 ] && tty=yes
+case ":$PATH:" in *"/.vibead/bin:"*) onpath=yes ;; *) onpath=no ;; esac
+echo "kit=@VERSION@ args=$* tty=$tty launcher_on_path=$onpath" >> "$HOME/kit.log"
+`;
+
+function release(base, version, { platform = PLATFORM, extra = null, corrupt = false, zip = false } = {}) {
+  const dir = join(base, 'download', `v${version}`);
+  mkdirSync(dir, { recursive: true });
+  const work = mkdtempSync(join(tmpdir(), 'vibead-kit-'));
+  const folder = join(work, `vibead-beta-${platform}`);
+  mkdirSync(folder);
+  const exe = join(folder, zip ? 'vibead-beta.exe' : 'vibead-beta');
+  writeFileSync(exe, KIT.replace('@VERSION@', version)); chmodSync(exe, 0o755);
+  writeFileSync(join(folder, 'README.txt'), 'fake kit\n');
+  if (extra) writeFileSync(join(work, extra), 'outside the kit folder\n');
+  const name = `vibead-beta-${version}-${platform}.${zip ? 'zip' : 'tar.gz'}`;
+  const archive = join(dir, name);
+  const entries = [`vibead-beta-${platform}`, ...(extra ? [extra] : [])];
+  if (zip) execFileSync('python3', ['-c', 'import shutil,sys; shutil.make_archive(sys.argv[1][:-4], "zip", sys.argv[2], sys.argv[3])', archive, work, entries[0]]);
+  else execFileSync('tar', ['-czf', archive, '-C', work, ...entries]);
+  const digest = corrupt ? '0'.repeat(64) : sha(archive);
+  writeFileSync(join(dir, 'SHA256SUMS'), `${digest}  ${name}\n`);
+  rmSync(work, { recursive: true, force: true });
+  const latest = join(base, 'latest', 'download');
+  mkdirSync(latest, { recursive: true });
+  copyFileSync(join(dir, 'SHA256SUMS'), join(latest, 'SHA256SUMS'));
+  return { dir, name };
+}
+
+function sandbox() {
+  const home = mkdtempSync(join(tmpdir(), 'vibead-home-'));
+  const rel = join(home, 'release');
+  return { home, rel, base: pathToFileURL(rel).href };
+}
+const basePath = '/usr/local/bin:/usr/bin:/bin';
+
+// detached: true runs the installer in a new session with no controlling
+// terminal, like `curl | sh` from CI or a script.
+function runSh(box, env = {}, { detached = true } = {}) {
+  return spawnSync('sh', [installSh], {
+    encoding: 'utf8', detached,
+    env: { HOME: box.home, PATH: basePath, SHELL: '/bin/bash', VIBEAD_RELEASE_BASE: box.base, ...env },
+  });
+}
+
+test('install.sh: shellcheck finds no issues', { skip: !which('shellcheck') && 'shellcheck not installed' }, () => {
+  const r = spawnSync('shellcheck', ['-s', 'sh', installSh], { encoding: 'utf8' });
+  assert.equal(r.status, 0, r.stdout + r.stderr);
+});
+
+test('install.sh: installs the latest release into a temp HOME without sudo', { skip: !linuxX64 && 'Linux x64 only' }, () => {
+  const box = sandbox();
+  release(box.rel, '0.1.0-beta.99');
+  const r = runSh(box);
+  assert.equal(r.status, 0, r.stderr);
+  assert.match(r.stdout, /Checksum verified\./);
+  assert.match(r.stdout, /Installed VibeAd 0\.1\.0-beta\.99/);
+  const link = join(box.home, '.local/bin/vibead');
+  assert.ok(lstatSync(link).isSymbolicLink());
+  assert.equal(readlinkSync(link), join(box.home, '.vibead/bin/vibead'));
+  assert.equal(execFileSync(link, ['--version'], { encoding: 'utf8' }).trim(), '0.1.0-beta.99');
+  assert.ok(existsSync(join(box.home, '.vibead/versions/0.1.0-beta.99-linux-x64/vibead-beta')));
+  // No terminal: it must not prompt or edit shell profiles; it says what to run next.
+  assert.match(r.stdout, /Next: vibead enable/);
+  assert.match(r.stdout, /export PATH=/);
+  assert.ok(!existsSync(join(box.home, '.bashrc')));
+  assert.ok(!existsSync(join(box.home, 'kit.log')), 'enable must not run without a terminal');
+  // The launcher forwards arguments to the kit.
+  execFileSync(link, ['status'], { env: { HOME: box.home, PATH: basePath } });
+  assert.match(readFileSync(join(box.home, 'kit.log'), 'utf8'), /kit=0\.1\.0-beta\.99 args=status/);
+});
+
+test('install.sh: with a terminal, runs `vibead enable` (same setup as npm) with the stable launcher on PATH', { skip: (!linuxX64 || !which('script')) && 'needs Linux x64 and script(1)' }, () => {
+  const box = sandbox();
+  release(box.rel, '0.1.0-beta.99');
+  const env = { HOME: box.home, PATH: `${join(box.home, '.local/bin')}:${basePath}`, SHELL: '/bin/bash', VIBEAD_RELEASE_BASE: box.base };
+  const r = spawnSync('script', ['-qec', `sh '${installSh}'`, '/dev/null'], { encoding: 'utf8', env, input: '' });
+  assert.equal(r.status, 0, r.stdout + r.stderr);
+  const log = readFileSync(join(box.home, 'kit.log'), 'utf8');
+  assert.match(log, /kit=0\.1\.0-beta\.99 args=enable tty=yes launcher_on_path=yes/);
+  assert.doesNotMatch(r.stdout, /Add .* to your PATH/, 'bin dir already on PATH: no prompt');
+});
+
+test('install.sh: a checksum mismatch installs nothing', { skip: !linuxX64 && 'Linux x64 only' }, () => {
+  const box = sandbox();
+  release(box.rel, '0.1.0-beta.99', { corrupt: true });
+  const r = runSh(box);
+  assert.notEqual(r.status, 0);
+  assert.match(r.stderr, /Checksum mismatch/);
+  assert.ok(!existsSync(join(box.home, '.vibead/bin/vibead')));
+  assert.ok(!existsSync(join(box.home, '.local/bin/vibead')));
+});
+
+test('install.sh: rejects an archive with files outside the kit folder', { skip: !linuxX64 && 'Linux x64 only' }, () => {
+  const box = sandbox();
+  release(box.rel, '0.1.0-beta.99', { extra: 'evil.sh' });
+  const r = runSh(box);
+  assert.notEqual(r.status, 0);
+  assert.match(r.stderr, /Unexpected files/);
+  assert.ok(!existsSync(join(box.home, '.vibead/bin/vibead')));
+});
+
+test('install.sh: clear message when the release has no build for this platform', { skip: !linuxX64 && 'Linux x64 only' }, () => {
+  const box = sandbox();
+  release(box.rel, '0.1.0-beta.99', { platform: 'darwin-arm64' });
+  const r = runSh(box);
+  assert.notEqual(r.status, 0);
+  assert.match(r.stderr, /no build for linux-x64/);
+});
+
+test('install.sh: upgrades keep one stable launcher, pin VIBEAD_VERSION, keep two versions', { skip: !linuxX64 && 'Linux x64 only' }, () => {
+  const box = sandbox();
+  for (const v of ['0.1.0-beta.97', '0.1.0-beta.98', '0.1.0-beta.99']) {
+    release(box.rel, v);
+    assert.equal(runSh(box, { VIBEAD_VERSION: v }).status, 0);
+  }
+  const link = join(box.home, '.local/bin/vibead');
+  assert.equal(execFileSync(link, ['--version'], { encoding: 'utf8' }).trim(), '0.1.0-beta.99');
+  assert.deepEqual(readdirSync(join(box.home, '.vibead/versions')).sort(), ['0.1.0-beta.98-linux-x64', '0.1.0-beta.99-linux-x64']);
+  // Pinning an older version works and the link path stays the same.
+  assert.equal(runSh(box, { VIBEAD_VERSION: 'v0.1.0-beta.98' }).status, 0);
+  assert.equal(execFileSync(link, ['--version'], { encoding: 'utf8' }).trim(), '0.1.0-beta.98');
+  assert.equal(readlinkSync(link), join(box.home, '.vibead/bin/vibead'));
+});
+
+test('install.sh: never replaces a vibead it did not install (for example an npm one)', { skip: !linuxX64 && 'Linux x64 only' }, () => {
+  const box = sandbox();
+  release(box.rel, '0.1.0-beta.99');
+  mkdirSync(join(box.home, '.local/bin'), { recursive: true });
+  writeFileSync(join(box.home, '.local/bin/vibead'), '#!/bin/sh\necho npm\n');
+  const r = runSh(box);
+  assert.equal(r.status, 0, r.stderr);
+  assert.match(r.stderr, /left it alone/);
+  assert.equal(readFileSync(join(box.home, '.local/bin/vibead'), 'utf8'), '#!/bin/sh\necho npm\n');
+});
+
+// --- Windows installer, exercised with PowerShell 7 on Linux/macOS -------------
+const ps = (box, env = {}) => spawnSync(pwsh, ['-NoProfile', '-NonInteractive', '-File', installPs1], {
+  encoding: 'utf8',
+  env: { HOME: box.home, PATH: process.env.PATH, VIBEAD_RELEASE_BASE: box.base, VIBEAD_PLATFORM: 'win32-x64', VIBEAD_INSTALL_DIR: join(box.home, 'vibead'), VIBEAD_NO_ENABLE: '1', VIBEAD_NO_MODIFY_PATH: '1', ...env },
+});
+
+test('install.ps1: parses without errors', { skip: !pwsh && 'pwsh not installed' }, () => {
+  const r = spawnSync(pwsh, ['-NoProfile', '-Command', `$e=$null; [System.Management.Automation.Language.Parser]::ParseFile('${installPs1}',[ref]$null,[ref]$e) | Out-Null; $e.Count`], { encoding: 'utf8' });
+  assert.equal(r.stdout.trim(), '0', r.stderr);
+});
+
+test('install.ps1: installs a verified Windows zip and a stable vibead.cmd launcher', { skip: !pwsh && 'pwsh not installed' }, () => {
+  const box = sandbox();
+  release(box.rel, '0.1.0-beta.99', { platform: 'win32-x64', zip: true });
+  const r = ps(box);
+  assert.equal(r.status, 0, r.stdout + r.stderr);
+  assert.match(r.stdout, /Checksum verified\./);
+  const exe = join(box.home, 'vibead/versions/0.1.0-beta.99-win32-x64/vibead-beta.exe');
+  assert.ok(existsSync(exe));
+  const cmd = readFileSync(join(box.home, 'vibead/bin/vibead.cmd'), 'utf8');
+  assert.ok(cmd.includes(`"${exe}" %*`));
+  assert.ok(cmd.includes('echo 0.1.0-beta.99'));
+  assert.match(r.stdout, /Next: vibead enable/);
+});
+
+test('install.ps1: a checksum mismatch installs nothing', { skip: !pwsh && 'pwsh not installed' }, () => {
+  const box = sandbox();
+  release(box.rel, '0.1.0-beta.99', { platform: 'win32-x64', zip: true, corrupt: true });
+  const r = ps(box);
+  assert.match(r.stdout, /checksum mismatch/);
+  assert.ok(!existsSync(join(box.home, 'vibead/bin/vibead.cmd')));
+});
+
+test('install.ps1: no Windows build yet gives the npm and WSL one-liners, not an error dump', { skip: !pwsh && 'pwsh not installed' }, () => {
+  const box = sandbox();
+  release(box.rel, '0.1.0-beta.99');
+  const r = ps(box);
+  assert.equal(r.status, 0, r.stderr);
+  assert.match(r.stdout, /no Windows build for win32-x64 yet/);
+  assert.match(r.stdout, /npm i -g @vibead\/cli/);
+  assert.match(r.stdout, /curl -fsSL https:\/\/www\.vibead\.ai\/install \| sh/);
+});
+
+// --- Every channel is one command, npm first -------------------------------------
+test('README: npm is listed first and every install channel is a single command', () => {
+  const readme = readFileSync(join(root, 'README.md'), 'utf8');
+  const channels = [
+    'npm i -g @vibead/cli && vibead enable',
+    'curl -fsSL https://www.vibead.ai/install | sh',
+    'irm https://www.vibead.ai/install.ps1 | iex',
+    'brew install vibead/tap/vibead && vibead enable',
+  ];
+  const lines = readme.split('\n');
+  const at = channels.map(c => lines.findIndex(l => l.trim().startsWith(c)));
+  channels.forEach((c, i) => assert.ok(at[i] >= 0, `README has no single-line command: ${c}`));
+  assert.ok(at.every(i => at[0] <= i), 'npm must come first');
+});
