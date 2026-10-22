@@ -1,20 +1,102 @@
-Fixes #
+<!-- The PR body opens with the Spec, then this block. Tick each applicable line and add its evidence, or write "N/A - <reason>".
+     Line definitions: docs/quality/definition-of-done.md. A PR without this block, ticked with evidence, is a fast QA FAIL (DoD-miss: MERGE-0). -->
 
 ## Spec
 **User outcome:** 
-**Audiences affected:** AI users: … · Sponsors/advertisers: … · Admins: …
+**Audiences affected:** AI users: … · Sponsors/advertisers (all brands): … · Admins: …
 **Acceptance criteria:**
 - [ ] 
-
-## Definition of done
-- [ ] DoD checklist pasted with evidence ([`docs/quality/definition-of-done.md`](https://github.com/vibead/cli/blob/main/docs/quality/definition-of-done.md), "PR evidence template"), self-verified end to end before QA handoff.
+**Risks:** 
 
 ## What and why
 
-## Tests
+## Definition of Done
 
-## Docs
-- [ ] Behaviour, install, release channels, flags or pricing changed: this PR updates the affected docs here (`README.md`, `BETA.md`, `install/README.md`, `npm/README.md`), and the Live / In review / Planned status in vibead-ai `docs/system-design/README.md` (linked vibead-ai PR).
-- [ ] Or nothing user-visible changed, and the body has a line `docs: n/a - <why>`.
+Fixes #
+Head SHA handed to QA: `<sha>`
+Cost impact (SAFE-5): <none | details>
+Docs (DOC-1): <files changed | docs: n/a - why>
 
-The **Docs check** workflow fails a PR that changes code paths without either one ([vibead-ai#143](https://github.com/vibead/vibead-ai/issues/143)).
+### Merge
+- [ ] MERGE-0 this block is complete: every applicable line ticked with evidence, the rest `N/A - <reason>` (missing = fast FAIL, `DoD-miss: MERGE-0`)
+- [ ] MERGE-7 the body opens with the spec above: outcome, audiences, acceptance criteria as checks, risks
+- [ ] MERGE-8 self-verified end to end on the handed-off head before handoff: <sha>
+- [ ] MERGE-1 `PR tests` green on head: <run url> @ <sha>
+- [ ] MERGE-2 every required check ran (none path-skipped): <gh pr checks output>
+- [ ] MERGE-3 clean merge with current main plus the suite green on the merge result: <merge-tree + counts>
+- [ ] MERGE-5 carry-over only: merge-only head, `scripts/pr-own-diff.sh <passed> <new>` output: <paste>; conflict fixes only in LESSONS/docs
+- [ ] MERGE-6 true 2-parent merges, earlier QA'd head is an ancestor, no force-push: <cat-file / merge-base output>
+
+### Tests
+- [ ] TEST-1 full suite on head: <counts; skips explained>
+- [ ] TEST-2 mutants killed for every new guard/fix: <mutant → failing test>
+- [ ] TEST-3 rendered/behavioural test for UI show/hide/route: <test + killed mutant>
+
+### Docs
+- [ ] DOC-1 matching docs updated, or `docs: n/a - <why>`
+- [ ] DOC-2 `docs/system-design/README.md` updated for flow/role/component/infra/auth change; diagrams render (<n>/<n>); unbuilt parts marked Planned: <lines>
+- [ ] DOC-3 status only Live or Planned; no stale self-labels (In review / this PR / once merged / once deployed …): <empty grep output>
+- [ ] DOC-4 legal/privacy/terms claims true of live config for the serving env; `legal-claims.test.mjs` passes: <claim → file:line table> → in vibead/cli: N/A unless the PR changes what is collected or sent: legal pages live in vibead-ai
+- [ ] DOC-5 `check-design-doc` gate exit 0; whitespace-only doc edits don't satisfy it: <output> → in vibead/cli: N/A — `scripts/check-design-doc.mjs` isn't in this repo
+- [ ] DOC-6 doc claims checked against current main merged with this head: <base sha, refs>
+
+### UI (www)
+- [ ] UI-1 390px + 1280px screenshots: <links> → in vibead/cli: N/A — no web pages here
+- [ ] UI-2 homepage → sign-in and install in 1 tap, mobile + desktop: <screenshots> → in vibead/cli: N/A — no web pages here
+- [ ] UI-3 every sponsor CTA → sign-in → sponsor home in ≤ 2 taps @390px: <table> → in vibead/cli: N/A — no web pages here
+- [ ] UI-4 sponsors isolated (test + probe): <test, mutant> → in vibead/cli: N/A — no web pages here
+- [ ] UI-5 one account holds user + sponsor roles: <steps/screenshots> → in vibead/cli: N/A — no web pages here
+- [ ] UI-6 roles server-set only (test pins it): <test, mutant> → in vibead/cli: N/A — no web pages here
+- [ ] UI-7 JS-off works where relevant: <evidence> → in vibead/cli: N/A — no web pages here
+- [ ] UI-8 no dead ends or fake buttons: <link check> → in vibead/cli: N/A — no web pages here
+- [ ] UI-9 no founder/platform names; `npm run check:copy` passes: <output> → in vibead/cli: N/A — no web pages here
+- [ ] UI-10 one sign-in (`/login?as=sponsor`); flagged-off features hidden: <hrefs + flag value> → in vibead/cli: N/A — no web pages here
+
+### CLI / agents
+- [ ] CLI-1 fresh install from the exact release artefact: <version, sha256>
+- [ ] CLI-2 `vibead enable` with no prompts
+- [ ] CLI-3 3+ turns each in claude, codex and opencode
+- [ ] CLI-4 gold [Ad] line visible on every turn while thinking (native line, not a pop-up): <screenshots>
+- [ ] CLI-5 ads rotate (ad per turn per agent): <table>
+- [ ] CLI-6 no harness/debug text or escape codes (`0;0m`, lone `1`), exit screens included: <grep output>
+- [ ] CLI-7 `vibead login` frictionless (no codes to copy)
+- [ ] CLI-8 `vibead disable` restores config hashes; no hooks or leftover dirs: <before/after sha256, ls>
+- [ ] CLI-9 NO_COLOR=1 / TERM=dumb / VIBEAD_SHIMMER=0 give the plain static ad: <captures>
+- [ ] CLI-10 revoked-key recovery is silent; queued impressions flush: <steps, masked prefixes>
+- [ ] CLI-11 screenshots attached: <links>
+- [ ] CLI-12 model inputs/outputs untouched; no prompts or code collected: <code lines, request fields>
+- [ ] CLI-13 hosted machine paused; test keys revoked: <hashes only>
+- [ ] CLI-14 installers: idempotent profile edit, `file://` fake-release tests: <tests>
+
+### Safety / infra
+- [ ] SAFE-1 explicit env guard; wrong/missing env refused: <code line + refusal output>
+- [ ] SAFE-2 plans show 0 to destroy for every root/env; apply only after a clean plan: <plan lines, run url> → in vibead/cli: N/A — no Terraform here
+- [ ] SAFE-3 workflow-only change ran plan-only: <run url> → in vibead/cli: N/A — workflows here test and sign releases
+- [ ] SAFE-4 no secrets or partial secrets in output; sensitive values via `secrets.*`: <grep = 0 hits>
+- [ ] SAFE-5 cost impact stated (above)
+- [ ] SAFE-6 QA/test installs on the internal list: <hashes only>
+- [ ] SAFE-7 per-env flag, default off; prod only via reviewed config + guard test: <flag, values, test>
+- [ ] SAFE-8 `VIBEAD_AWS_*` → `AWS_*`, VibeAd account only, Terraform 1.10.5, > ~US$20/month held for the Chief of Staff: <evidence> → in vibead/cli: N/A — no AWS commands or Terraform here
+
+### Data / privacy
+- [ ] DATA-1 retention/TTL proven and pinned by tests: <tests, mutants> → in vibead/cli: N/A — retention and TTL live in vibead-ai
+- [ ] DATA-2 revoke/delete purges and fails closed (proven on a QA install): <before/after reads, hash only> → in vibead/cli: N/A — the server-side purge lives in vibead-ai
+
+### Release
+- [ ] REL-1 fresh, never-used version: <release list + npm versions>
+- [ ] REL-2 SHA256SUMS + Sigstore signature cover every artefact (kit + npm tgz): <verify output>
+- [ ] REL-3 provenance from the named commit: <verify output>
+- [ ] REL-4 prerelease until QA PASS
+- [ ] REL-5 npm `latest` untouched: <dist-tags before/after>
+- [ ] REL-6 `/install` with VIBEAD_VERSION verifies: <output>
+- [ ] REL-7 npm via trusted publishing only, no npm token: <run url, provenance>
+- [ ] REL-8 version agrees in package.json, releases.json, tag and /install manifest: <values>
+- [ ] REL-9 installers read pinned install.json, never GitHub latest: <check:install-release output>
+- [ ] REL-10 kit built with Node 22.19.0 builder: <manifest node field> → in vibead/cli: N/A — kits are built in vibead/vibead
+
+### Bugs
+- [ ] BUG-2 `Fixes #N` in body and commit
+- [ ] BUG-3 root cause: <one line>; regression test: <name>
+- [ ] BUG-4 recurring class → LESSONS entry + automated check + DoD line: <links>
+- [ ] BUG-5 one `lessons/` file per QA FAIL: <path>
+- [ ] BUG-6 QA round n of 3 (escalate to the Chief of Staff after the third FAIL)

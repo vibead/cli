@@ -1,100 +1,262 @@
-# Definition of done (vibead/cli: npm launcher, installers, release)
+# Definition of Done (DoD): vibead/cli
 
-**Co-owned by engineering and QA.** A change to this file needs review from both an engineer and QA before it merges.
+Owners: VibeAd QA Tester and VibeAd Core Engineer (co-owned). **A change to this file needs review from both QA and the Engineer**, and is made in all three repos together.
 
-This is the standing checklist for every PR in this repo. The engineer ticks it, with evidence, in the PR body **before** handing off to QA. QA verifies against the same list, so a QA run confirms the work instead of discovering gaps. Goal: one QA cycle per PR.
+One DoD with the same stable line IDs lives in [vibead/vibead-ai](https://github.com/vibead/vibead-ai/blob/main/docs/quality/definition-of-done.md), [vibead/vibead](https://github.com/vibead/vibead/blob/main/docs/quality/definition-of-done.md) and [vibead/cli](https://github.com/vibead/cli/blob/main/docs/quality/definition-of-done.md). This copy is for **vibead/cli** (npm launcher, installers and release). Lines that don't apply here are marked N/A (or conditional) under *In vibead/cli* with the reason, never deleted.
 
-Sister files: [vibead/vibead-ai](https://github.com/vibead/vibead-ai/blob/main/docs/quality/definition-of-done.md) (site, infra, auth) and [vibead/vibead](https://github.com/vibead/vibead/blob/main/docs/quality/definition-of-done.md) (launcher, kits, agent integrations).
+**How it works**
+- The Engineer runs every applicable line **before handoff** and pastes the checklist from the PR template ([`.github/pull_request_template.md`](../../.github/pull_request_template.md)) into the PR body. Each line is ticked with its evidence (link, command output, screenshot, run URL) or marked `N/A - <reason>`.
+- QA verifies against these same lines. A PR that arrives **without the ticked checklist and evidence is a fast FAIL** (`DoD-miss: MERGE-0`), and QA does not do a full run.
+- Line IDs are stable. Never renumber a line. Retire it with ~~strikethrough~~ and add a new ID.
+- The PR body **opens with the spec** (MERGE-7), and the Engineer **self-verifies** every applicable line before handoff (MERGE-8).
+- A new standing check goes here first (QA + Engineer), then into the PR checklist.
+- Keys, tokens and URLs in evidence: install keys masked to 6 characters (`vik_ab…`). No presigned or checkout URLs, no email codes, no tokens, and no secret values or partial secrets.
 
-Mark a line `N/A — <reason>` when it doesn't apply. An unticked line with no reason is not done.
+## This repo: vibead/cli
 
-## 1. Spec first
+- **www.vibead.ai is served by the dev stack**, so a test run against dev is live traffic (SAFE-1, SAFE-6).
+- **TEST-1:** `node --test install/test/*.test.mjs` (needs `shellcheck`, `pwsh` and `script`; a skip for a missing tool must be explained) and `cd npm && node --test`. Same commands as the **Installer tests** workflow.
+- **CLI-1 to CLI-11:** run from the exact release artefact (the packed tgz or the release archive), never the source tree.
+- **REL-2:** the **Sign release** workflow (run from main on a draft release) writes `SHA256SUMS` over the `vibead-beta-*` archives and signs it with cosign keyless. The npm tgz is not in that pattern, so REL-2 needs it added before it can pass.
+- **DOC-1:** the **Docs check** workflow (`.github/docs-check/check-docs.mjs`, self-test `node --test .github/docs-check/*.test.mjs`); doc paths are `docs/`, `README.md`, `BETA.md`, `install/README.md`, `npm/README.md`.
+- **DOC-2:** this repo has no `docs/system-design/`; the design doc is vibead-ai's, updated in a linked PR.
+- **MERGE-5:** this repo has no `scripts/pr-own-diff.sh`; run vibead-ai's copy from this checkout (`bash <vibead-ai>/scripts/pr-own-diff.sh <passed> <new>`; it uses the current repo's git).
+- **BUG-5:** this repo has no `lessons/` folder on main; the first lesson creates it, following vibead-ai's [lessons/README.md](https://github.com/vibead/vibead-ai/blob/main/lessons/README.md).
 
-The PR body opens with these, written before any code:
+---
 
-- [ ] **User outcome:** what changes for the person installing or running VibeAd, in one or two sentences.
-- [ ] **Audiences affected:** AI users on every supported agent (Claude Code, Codex, OpenCode) and every install channel (npm, `curl | sh`, `irm | iex`, Homebrew), sponsors and advertisers (every kind of brand, whose ads the launcher shows), admins. Say "none" for an audience explicitly.
-- [ ] **Acceptance criteria written as checks** (`- [ ]` lines), including the standing checks below that apply.
-- [ ] **Risks named:** anything touching the user's shell profile or agent config, signing, the published package, or third-party output.
-- [ ] `Fixes #N` for every issue it closes, and the right epic in vibead/vibead-ai (#177 for releases) is linked.
+## MERGE: merge gate
 
-## 2. Launcher and agent integrations (npm/, install/, packaging/)
+- **MERGE-0** The PR body has this DoD checklist, every applicable line ticked with evidence, and the others marked `N/A - <reason>`.
+  *Evidence:* the PR body itself.
+- **MERGE-1** The required `PR tests` check is green on the **exact head SHA** being handed off.
+  *Evidence:* run URL plus the SHA it ran on (`gh pr checks <n>` output).
+- **MERGE-2** Every required check actually **ran** on the head (none skipped by a path filter) and its run is green.
+  *Evidence:* the `gh pr checks <n>` list, which shows no required check as missing, skipped or expected.
+- **MERGE-3** The head merges cleanly with **current main**, and the full test suite passes on that merge result, not only on the PR's base.
+  *Evidence:* `git merge-tree --write-tree origin/main <head>` (clean) plus the suite summary on a local merge.
+- **MERGE-4** Merging needs `QA PASS @<head sha>` posted on that exact head. A merge without it is not allowed.
+  *Evidence:* the QA comment URL (QA posts it).
+- **MERGE-5** Carry-over of an earlier PASS is allowed **only** when all of these hold:
+  - the new head is a merge-only head;
+  - `scripts/pr-own-diff.sh <passed-sha> <new-sha>` reports an identical own diff, with its output posted in the PR;
+  - any conflict resolution touched only `LESSONS.md` or `lessons/` and docs.
 
-Any change to what the launcher installs or runs needs a **real run on claude, codex AND opencode**, each over **3 or more turns**, from the packed tgz or the release archive (not the source tree), with screenshots or terminal recordings per agent:
+  Otherwise a fresh QA run is needed.
+  *Evidence:* the pasted `pr-own-diff.sh` output plus `git show --stat <merge>` of the resolution.
+- **MERGE-6** History is true merges only.
+  - Main is merged in with 2-parent merges (`git cat-file -p <merge>` shows two `parent` lines).
+  - The previously QA'd head is an ancestor of the new head (`git merge-base --is-ancestor <qa-sha> <head>`).
+  - There is no force-push and no rebase of a head QA has seen.
 
-- [ ] **Creatives rotate** across turns on every agent, the same way on each.
-- [ ] The **gold `[Ad]` label** shows from the **first spinner frame** of turn 1 on every agent. Where an agent's UI can't show it (for example an OpenCode toast), the limit is documented honestly in `README.md` and `npm/README.md`.
-- [ ] **No harness or debug text** in user-facing output; diagnostics only behind `--debug`.
-- [ ] **No escape garbage** in the agent's screen.
-- [ ] **Install, enable, disable and uninstall restore everything cleanly**: agent config and shell profiles back to their prior state, profile edits idempotent (marker block), no leftover folders.
-- [ ] Sign-in is frictionless: the browser opens by itself where there is one; the device code flow stays for headless machines.
-- [ ] **Never alter model inputs or outputs.** Never collect prompts, code or agent output.
-- [ ] Installers are tested against `file://` fake releases in a temp HOME, never the real `~/.vibead` or the network.
-- [ ] Hosted run kept brief and cost-aware; the test machine is paused afterwards and test install keys are revoked (list them).
+  *Evidence:* the `cat-file` and `merge-base` output, or "no earlier QA'd head".
+- **MERGE-7** **Spec first.** The PR body **opens** with a spec written before any code:
+  - the user outcome, in one or two sentences;
+  - the audiences affected, each named or marked "none": AI users (every supported agent and install channel), sponsors and advertisers (brands of every kind), admins;
+  - acceptance criteria written as `- [ ]` checks, including the DoD lines that apply;
+  - the risks: anything touching www.vibead.ai, money, sign-in, data retention or third-party output.
 
-## 3. Docs
+  Every entry point of one flow ships in the same PR, so QA doesn't find the missing half.
+  *Evidence:* the top of the PR body.
+- **MERGE-8** **Self-verified before handoff.** The Engineer ran every applicable line and every acceptance criterion end to end, in the real environment where possible, on the head handed to QA. Hand off only when you expect a PASS: QA is verification, not discovery.
+  *Evidence:* the ticked checklist (MERGE-0) and the head SHA it was run on.
 
-- [ ] User docs (`README.md`, `BETA.md`, `install/README.md`, `npm/README.md`) are updated in the same PR. Otherwise the PR body has `docs: n/a - <why>` (the **Docs check** workflow enforces this).
-- [ ] The system design is updated for any change to install channels, release, the launcher or sign-in, with mermaid diagrams and Live / Planned status: in this repo's `docs/system-design/README.md` where it exists, and in vibead-ai [`docs/system-design/README.md`](https://github.com/vibead/vibead-ai/blob/main/docs/system-design/README.md) (linked vibead-ai PR). Otherwise the PR body has `Design doc: N/A — <reason>`.
-- [ ] Every claim is true of the shipped package and release. Current-state wording only: no "in review", "this PR", "once merged" or "once deployed" self-labels; write e.g. "merged, not released".
-- [ ] Any QA FAIL fixed here has one new lesson file in `lessons/` (one file per lesson; LESSONS.md takes no new lines).
+## TEST: tests that really guard the change
 
-## 4. Safety
+- **TEST-1** The full suite passes on the head: `npm run test:all` or the repo equivalent (node, Python suites, every touched Terraform root's `terraform test`).
+  *Evidence:* the pass/fail/skip counts, with every skip explained.
+- **TEST-2** Every new guard, fix or invariant has a test that **fails when the code is reverted or mutated**, and none of the listed mutants survives. That includes switch branches like `"none"`, retry bounds, flags read ungated, and allowlists that may only shrink.
+  *Evidence:* the mutant list with killed/survived for each and the failing test name.
+- **TEST-3** A rendered or behavioural test, not only a static string check, for anything that hides, shows or routes user-facing UI.
+  *Evidence:* the test name and a mutant it kills.
 
-- [ ] Explicit environment guards: no script, test or workflow can send traffic, keys or impressions to the www stack by accident. **The dev environment serves www.vibead.ai to live users.** Test-only overrides such as `VIBEAD_RELEASE_BASE` never change what a default install does.
-- [ ] Every `VIBEAD_*` option has a safe default and a test for both the default and the flagged behaviour.
-- [ ] No secrets or partial secrets (install keys, tokens, `s=` values) in output, logs, commits or PR text. No npm token anywhere.
-- [ ] **Cost impact stated** (for example hosted-run minutes, or "none").
+## DOC: docs and design
 
-## 5. Release
+- **DOC-1** Matching doc updates are in the same PR (READMEs, `docs/`, `infra/*/README.md`, `functions/*/README.md`, `distribution/public/`, BETA/install docs), or the body has an explicit `docs: n/a - <why>`.
+  *Evidence:* the list of doc files changed, or the `docs: n/a` line.
+- **DOC-2** Any change to a flow, role, component, infra or auth updates vibead-ai `docs/system-design/README.md` in the same PR, or in a linked vibead-ai PR for vibead and cli. The update includes:
+  - the diagrams for the change, which must render (Mermaid);
+  - anything not built yet marked **Planned**.
 
-- [ ] A **fresh, never-used version string**: check tags, GitHub releases (including drafts and unpublished ones), the npm registry and any private kits. A version once used is never reused.
-- [ ] `npm/package.json` version, `npm/releases.json` and the release tag agree, and `releases.json` has a SHA-256 for every platform archive.
-- [ ] **Checksums and signatures cover every shipped artefact**: every kit archive AND the launcher tgz are in `SHA256SUMS`, signed by the **Sign release** workflow (cosign keyless, run from main) and verified as the installers verify.
-- [ ] The installers read the pinned version from `https://www.vibead.ai/install.json`, never GitHub "latest"; the pinned release has `SHA256SUMS` and every archive.
-- [ ] It's a **prerelease** (GitHub prerelease, npm `next` tag) **until QA PASS**; only then promote to `latest`.
-- [ ] npm is published **only via trusted publishing** (GitHub OIDC), never with an npm token.
+  *Evidence:* the README diff lines plus a render check (the diagram count that renders, e.g. "7/7 diagrams render").
+- **DOC-3** There are no self-referential labels that go stale on merge, such as "In review", "this PR", "in this PR", "applies once deployed", "once deployed", "once merged", "pending merge" or "after this merges". Status is only **Live** (merged and deployed, with the env named) or **Planned**. The design doc must also describe current main correctly after this PR merges, not before.
+  *Evidence:* the output of
+  `git diff origin/main...HEAD -- '*.md' ':!docs/quality/definition-of-done.md' ':!.github/pull_request_template.md' | grep -inE '^\+.*(in review|this pr|once deployed|once merged|applies once|pending merge|after this merges)'`,
+  which must be empty. (This file and the PR template are excluded because they quote the banned labels.)
+- **DOC-4** Legal, privacy and terms claims are true of the **running code and live config for the env that serves the page**. www.vibead.ai is served by the dev stack. This covers sign-in methods, which emails are sent, retention and TTL, data collected, and payment and earnings statements. `scripts/legal-claims.test.mjs` passes, and `scripts/data/legal-claims-pending.json` is updated when needed.
+  *In vibead/cli:* N/A unless the PR changes what is collected or sent: legal pages live in vibead-ai; if the PR changes what the launcher collects or sends, the legal update is a linked vibead-ai PR and this line applies there.
+  *Evidence:* a claim → code/tfvars file:line table plus the test output.
+- **DOC-5** The design-doc gate (`scripts/check-design-doc.mjs`) passes on the head, and the PR does not weaken it.
+  - Its watched paths cover every component the PR touches: workflows, packaging, scripts and new top-level dirs.
+  - Whitespace-only, blank-line, rename-only and delete-only doc edits, empty `.md` files and non-`.md` files do **not** satisfy it.
 
-## 6. Self-verify before handoff
+  *In vibead/cli:* N/A — `scripts/check-design-doc.mjs` isn't in this repo; the Docs check (DOC-1) is the automated gate here and DOC-2 is checked by hand.
+  *Evidence:* the gate exit code on the head, plus, if the gate changed, `node --test scripts/check-design-doc.test.mjs` and a whitespace-only mutant → exit 1.
+- **DOC-6** Every factual claim in the changed docs, including claims about other PRs or main, is checked against **current main merged with this head**, not against a stale base.
+  *Evidence:* file:line references for each claim, plus the base SHA used.
 
-- [ ] The full checklist above and every acceptance criterion were run end to end by the engineer, including the real 3-agent run in section 2.
-- [ ] Tests run and pasted (exit codes and counts), the same commands as the **Installer tests** workflow:
-  - `node --test install/test/*.test.mjs` (needs `shellcheck`, `pwsh` and `script`; tests must not silently skip)
-  - `cd npm && node --test`
-  - `node --test .github/docs-check/*.test.mjs` when the docs gate changed
-- [ ] Evidence pasted in the PR: test output, per-agent screenshots or recordings, `SHA256SUMS` listing and signature verification, and this checklist with each line ticked and proven.
-- [ ] Hand off to QA only when you expect a PASS.
+## UI: web (www.vibead.ai)
 
-## 7. QA FAILs, retries and measurement
+- **UI-1** Works at **390px and 1280px**: no hidden, overlapped or clipped controls, and no horizontal scroll.
+  *In vibead/cli:* N/A — no web pages here; the site is vibead/vibead-ai.
+  *Evidence:* screenshots at both widths of every changed page.
+- **UI-2** A new visitor reaches **sign-in and install in one tap** from the www.vibead.ai homepage, on both mobile (390px) and desktop.
+  *In vibead/cli:* N/A — no web pages here; the site is vibead/vibead-ai.
+  *Evidence:* a screenshot for each width, with the tap target named.
+- **UI-3** **Every** sponsor CTA reaches sign-in and then a sponsor home in **≤ 2 taps at 390px**.
+  *In vibead/cli:* N/A — no web pages here; the site is vibead/vibead-ai.
+  *Evidence:* a table of CTA → taps → landing URL, with screenshots.
+- **UI-4** Multiple sponsors are isolated. Sponsor A cannot read or change sponsor B's data or ads. A test pins this.
+  *In vibead/cli:* N/A — no web pages here; the site is vibead/vibead-ai.
+  *Evidence:* the test name, a killed mutant, and a two-account probe.
+- **UI-5** One account can hold both the **user and sponsor** roles, and switching roles needs no second account.
+  *In vibead/cli:* N/A — no web pages here; the site is vibead/vibead-ai.
+  *Evidence:* the steps and screenshots for one account in both homes.
+- **UI-6** Roles are **set on the server only**. A client-sent role or field is ignored, and a test pins this.
+  *In vibead/cli:* N/A — no web pages here; the site is vibead/vibead-ai.
+  *Evidence:* the test name plus a mutant (trusting the client role) that it kills.
+- **UI-7** Pages work with **JS off** where relevant: sign-in links, install instructions and legal pages.
+  *In vibead/cli:* N/A — no web pages here; the site is vibead/vibead-ai.
+  *Evidence:* a JS-off screenshot or a curl of the HTML showing the links.
+- **UI-8** There are no dead ends or fake buttons. Every link and button on changed pages resolves (no 404, no no-op), and every error state offers a way forward.
+  *In vibead/cli:* N/A — no web pages here; the site is vibead/vibead-ai.
+  *Evidence:* a link-check output plus a list of clicked controls.
+- **UI-9** Public pages name no founders and no platforms. Copy speaks to all AI users and to advertisers of every kind of brand. `npm run check:copy` passes.
+  *In vibead/cli:* N/A — no web pages here; the site is vibead/vibead-ai.
+  *Evidence:* the `check:copy` output.
+- **UI-10** One sign-in for users and sponsors: every sponsor entry point uses the shared `/login?as=sponsor`, never a separate sponsor sign-in. A feature switched off by a per-env flag is hidden on that env, not shown broken.
+  *In vibead/cli:* N/A — no web pages here; the site is vibead/vibead-ai.
+  *Evidence:* the CTA hrefs, plus the flag value for the env that serves the page.
 
-- [ ] Each QA FAIL gets a **root cause** (not just the symptom), a **regression test** and **one lessons file**.
-- [ ] A bug class seen twice gets an automated check (a test, a lint or a CI gate) so it can't come back.
-- [ ] At most **3 retries** per PR. After the third FAIL, escalate to the Chief of Staff with options and a recommendation.
-- A QA PASS is for one head; a rebase never carries it over (see vibead-ai CONTRIBUTING.md, "QA PASS carry-over").
-- The **first-pass QA rate** is tracked weekly by the Chief of Staff, with a target of **80% or more**. When it drops, find the missing standing check and add it here.
+## CLI: CLI and agent integrations (release candidates and any CLI change that affects output)
 
-## PR evidence template
+Run this on a clean Linux cloud test machine with a fresh `$HOME`. **Any user friction is a FAIL.**
 
-Copy this into the PR body, tick each line and add the evidence after it (or `N/A — <reason>`).
+- **CLI-1** Fresh install from the **exact release artefact** (the version and checksum handed to QA), not a local build.
+  *Evidence:* the install command, `vibead --version`, and the artefact sha256 matching `SHA256SUMS`.
+- **CLI-2** `vibead enable` succeeds with no prompts or manual steps.
+  *Evidence:* the terminal output.
+- **CLI-3** **3+ turns in each of claude, codex and opencode.**
+  *Evidence:* a turn log for each agent.
+- **CLI-4** The **gold `[Ad]` line** is visible while thinking on **every turn** in every agent, from the first moment of turn 1. It is the native gold line, not a pop-up, "Sponsored" box or other substitute.
+  *Evidence:* a screenshot of each turn for each agent.
+- **CLI-5** Ads **rotate** across turns in every agent wherever multiple creatives are eligible.
+  *Evidence:* the ad id or text for each turn and agent (must differ).
+- **CLI-6** No harness, debug or test text appears in user-facing output, including on agent exit. Examples are hook-trust prompts and "results report" lines. There are also no escape-code fragments such as `0;0m` or a lone `1`.
+  *Evidence:* a scrollback capture plus `grep -nE '0;0m|^1$|\x1b\[' <capture>` that comes back empty, with each agent's exit screen included.
+- **CLI-7** `vibead login` is frictionless: the browser opens or the URL is printed, and there are no codes to copy or paste.
+  *Evidence:* the terminal output plus a screenshot.
+- **CLI-8** `vibead disable` restores each agent's config to its **pre-enable hash**. It leaves no hooks and no leftover dirs, such as `~/.vibead-beta`.
+  *Evidence:* sha256 of the configs before enable and after disable (equal) plus `ls -la ~ | grep -i vibead` coming back empty.
+- **CLI-9** `NO_COLOR=1`, `TERM=dumb` and `VIBEAD_SHIMMER=0` each give the plain static ad, with no colour codes or animation.
+  *Evidence:* the capture for each variable.
+- **CLI-10** A revoked key recovers silently. A new key is issued, and queued impressions flush under it. The user sees no error and does nothing.
+  *Evidence:* the steps, plus key prefixes masked to 6 characters.
+- **CLI-11** The screenshots for CLI-3 to CLI-9 are attached to the PR or release issue. A run without screenshots is not evidence.
+  *Evidence:* the links.
+- **CLI-12** VibeAd never alters model inputs or outputs, and never collects prompts, code or agent output. Hooks and plugins print nothing that reaches the model; the only data sent is what the privacy page lists.
+  *Evidence:* the hook/plugin code lines, plus the fields of one captured request (keys masked).
+- **CLI-13** Hosted test runs are brief and cost-aware. The cloud test machine is paused afterwards, and every install key the run issued is revoked.
+  *Evidence:* the machine state after the run, plus the revoked install hashes (hashes only, never keys).
+- **CLI-14** Installers (`curl | sh`, `irm | iex`, the npm launcher) edit shell profiles idempotently (one marker-delimited block) and are tested against `file://` fake releases in a temp `$HOME`, never the real `~/.vibead` or the network.
+  *Evidence:* the test names, plus a second install run showing no second profile edit.
 
-```markdown
-## Spec
-**User outcome:** 
-**Audiences affected:** AI users (claude/codex/opencode; npm/curl/irm/brew): … · Sponsors/advertisers: … · Admins: …
-**Acceptance criteria:**
-- [ ] 
-**Risks:** 
-**Cost impact:** 
+## SAFE: safety and infra
 
-## Definition of done (docs/quality/definition-of-done.md)
-- [ ] Real run from the packed tgz, 3+ turns each — claude: … · codex: … · opencode: …
-  - [ ] creatives rotate · [ ] gold [Ad] from first spinner frame · [ ] no harness/debug text · [ ] no escape garbage · [ ] install/disable/uninstall restore cleanly, no leftovers
-- [ ] No model input/output altered; no prompts or code collected — evidence:
-- [ ] Docs: README/BETA/install/npm docs (or `docs: n/a - …`); system design + linked vibead-ai PR (or `Design doc: N/A — …`); current-state wording — evidence:
-- [ ] Safety: env guard (nothing can target the www stack); no secrets or npm token; cost stated — evidence:
-- [ ] Release: fresh version …; package.json/releases.json/tag agree; SHA256SUMS + signature cover kit AND launcher tgz; prerelease/next until QA PASS; trusted publishing only — evidence:
-- [ ] Tests: `node --test install/test/*.test.mjs` …; `cd npm && node --test` … — output:
-- [ ] Test keys revoked / hosted machine paused — list:
-- [ ] QA FAIL follow-up (if any): root cause, regression test, lessons file — links:
-- [ ] Retry count: n of 3
+- **SAFE-1** No script can target prod or another env by accident. It needs an **explicit environment guard**, an `--env` argument that must match the account and stack, and that refuses prod unless explicitly confirmed. A delete guard alone is not enough.
+  *Evidence:* the guard code line plus the output of a run with the wrong or missing env, showing the refusal.
+- **SAFE-2** Terraform plans show **0 to destroy**, and apply happens only after a clean plan is reviewed.
+  *In vibead/cli:* N/A — no Terraform here.
+  *Evidence:* the `Plan: X to add, Y to change, 0 to destroy` line for every root and env, plus the deploy run URL.
+- **SAFE-3** Changes to workflows only (`.github/workflows/`, `.github/actions/`) run **plan-only** and never apply.
+  *In vibead/cli:* N/A — workflows here test and sign releases; none applies infra.
+  *Evidence:* a run URL showing plan-only.
+- **SAFE-4** No secrets or partial secrets appear in logs, CI output or the PR.
+  - Sensitive values come from `secrets.*`, never `vars.*`; for example, `INTERNAL_INSTALL_HASHES` must be a secret.
+  - Install keys are masked to 6 characters.
+
+  *Evidence:* a grep of the CI logs and plan for the values (0 hits), plus the plan showing `(sensitive value)`.
+- **SAFE-5** The cost impact is stated: new resources, expected monthly cost, or "none".
+  *Evidence:* one line in the PR body.
+- **SAFE-6** Every QA or test install used is on the **internal install list**, so it is never billed or credited.
+  *Evidence:* install hashes, never keys, plus confirmation that they are on the list.
+- **SAFE-7** Features ship behind **per-env flags** that default off. Prod changes only through reviewed config (tfvars or server config) with a guard test. Test-only clients and QA allowlists can't be enabled from prod config at all.
+  *Evidence:* the flag declaration, its value per env, and the guard test name.
+- **SAFE-8** AWS commands map `VIBEAD_AWS_*` to `AWS_*` per command and use only the VibeAd account, never another profile. Terraform is 1.10.5. Anything over about US$20/month waits for the Chief of Staff before apply.
+  *In vibead/cli:* N/A — no AWS commands or Terraform here.
+  *Evidence:* the command lines (no values), `terraform version`, and the SAFE-5 cost line.
+
+## DATA: data and privacy
+
+- **DATA-1** Retention and TTL behaviour is proven and pinned by tests. For example, running totals survive TTL sweeps, and event rows expire as documented.
+  *In vibead/cli:* N/A — retention and TTL live in vibead-ai.
+  *Evidence:* the test names, killed mutants, and the TTL attribute and config line.
+- **DATA-2** Key revocation and account deletion **purge** the install's data and fail closed: if a step fails, the account is kept and a `503` is returned. This is proven on one QA install (seed → revoke or delete → read shows the data purged) and pinned by tests.
+  *In vibead/cli:* N/A — the server-side purge lives in vibead-ai; the client side is CLI-10.
+  *Evidence:* the before and after reads (hash only) plus the test names.
+
+## REL: release
+
+- **REL-1** The version string is **fresh and never used** before, in GitHub releases, the npm registry or `releases.json`.
+  *Evidence:* `gh release list` plus `npm view vibead versions --json` showing it is absent before publishing.
+- **REL-2** `SHA256SUMS` and the Sigstore signature (`SHA256SUMS.sigstore.json`) cover **every** shipped artefact, including the kit and the npm tgz.
+  *Evidence:* `sha256sum -c` output plus the signature verify output, with the list of artefacts.
+- **REL-3** Provenance points to the **named commit** and workflow.
+  *Evidence:* the attestation or provenance verify output showing the SHA.
+- **REL-4** It stays a **prerelease** until QA PASS.
+  *Evidence:* the `gh release view <tag> --json isPrerelease` output.
+- **REL-5** npm `latest` is **untouched** before approval, and the RC is published only under a non-latest tag.
+  *Evidence:* `npm view vibead dist-tags` before and after.
+- **REL-6** `/install` with `VIBEAD_VERSION=<rc>` and signature checking required installs and verifies.
+  *Evidence:* the terminal output.
+- **REL-7** npm is published **only via trusted publishing** (GitHub OIDC). No npm token is created, stored or used anywhere.
+  *Evidence:* the publish run URL plus the registry's provenance for the version.
+- **REL-8** The version agrees everywhere it appears: `npm/package.json`, `npm/releases.json` (with a SHA-256 for every platform archive), the git tag and the `/install` manifest.
+  *Evidence:* the four values side by side.
+- **REL-9** Installers read the pinned version from `https://www.vibead.ai/install.json`, never GitHub "latest", and the pinned release has `SHA256SUMS` and every archive.
+  *Evidence:* the vibead-ai `npm run check:install-release` output.
+- **REL-10** Kits are built with the qualified Node 22.19.0 builder (`distribution/build-beta.mjs`).
+  *In vibead/cli:* N/A — kits are built in vibead/vibead.
+  *Evidence:* the `node` field of the kit's `manifest.json`.
+
+## BUG: bugs and learning
+
+- **BUG-1** Every QA FAIL has its own GitHub issue, which QA files after a duplicate check.
+  *Evidence:* the issue link in the QA comment.
+- **BUG-2** Every fix references its issue with `Fixes #N` in the PR body and the commit.
+  *Evidence:* the PR body plus `git log --format=%B`.
+- **BUG-3** Every fix names its root cause and adds a regression test (see TEST-2).
+  *Evidence:* a one-line root cause plus the test name.
+- **BUG-4** A defect class seen **twice** gets an entry in `LESSONS.md` or `lessons/`, an **automated check** (test, lint or gate), and a new or updated DoD line here.
+  *Evidence:* the lesson file, the check, and the DoD line ID.
+- **BUG-5** Every QA FAIL, even a first one, gets **one new file** in `lessons/` (`lessons/YYYY-MM-DD-<slug>.md`: the gotcha, what to do instead, the issue). `LESSONS.md` takes no new lines.
+  *Evidence:* the lesson file path.
+- **BUG-6** At most **3 QA rounds** per PR. After a third FAIL the Engineer escalates to the Chief of Staff with options and a recommendation instead of a fourth handoff.
+  *Evidence:* the round number in the QA verdict, plus the escalation message.
+
+---
+
+## QA verdict format
+
+QA posts one comment per head:
+
 ```
+QA PASS|FAIL @<head sha>   (round N; fresh | carry-over via MERGE-5)
+
+| DoD line | Result | Evidence |
+|----------|--------|----------|
+| MERGE-1  | PASS   | run <url> on <sha> |
+| DOC-3    | FAIL   | README.md:L120 "In review" → #NNN |
+| UI-7     | N/A    | no page change |
+
+FAILs:
+- #NNN <title>: DoD-miss: DOC-3
+- #MMM <title>: DoD-gap: proposed UI-9 "<new line text>"
+```
+
+- A verdict is given for **each applicable DoD line**: PASS, FAIL or N/A with a reason.
+- Every FAIL links its issue (BUG-1) and carries exactly one tag:
+  - **`DoD-miss: <line id>`**: a line existed and should have caught the problem before handoff.
+  - **`DoD-gap`**: no line covers it. QA proposes the new line text, and QA and the Engineer add it here.
+- Missing checklist or evidence: `QA FAIL @<sha>: DoD-miss: MERGE-0`, with no full run.
+- QA logs every verdict in its verdict log (date, repo, PR, SHA, round, verdict, first_pass, dod_tag, comment URL). Each Friday the **first-pass PASS rate** is reported: the share of PRs whose first QA verdict was PASS. The target is ≥ 80%.
