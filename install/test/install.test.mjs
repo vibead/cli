@@ -47,16 +47,16 @@ function release(base, version, { platform = PLATFORM, extra = null, corrupt = f
   const digest = corrupt ? '0'.repeat(64) : sha(archive);
   writeFileSync(join(dir, 'SHA256SUMS'), `${digest}  ${name}\n`);
   rmSync(work, { recursive: true, force: true });
-  const latest = join(base, 'latest', 'download');
-  mkdirSync(latest, { recursive: true });
-  copyFileSync(join(dir, 'SHA256SUMS'), join(latest, 'SHA256SUMS'));
+  // The site's pinned manifest names the newest fake release. There is
+  // deliberately no latest/download: the installers must never use it.
+  writeFileSync(join(base, 'install.json'), `{\n  "version": "${version}"\n}\n`);
   return { dir, name };
 }
 
 function sandbox() {
   const home = mkdtempSync(join(tmpdir(), 'vibead-home-'));
   const rel = join(home, 'release');
-  return { home, rel, base: pathToFileURL(rel).href };
+  return { home, rel, base: pathToFileURL(rel).href, manifest: pathToFileURL(join(rel, 'install.json')).href };
 }
 const basePath = '/usr/local/bin:/usr/bin:/bin';
 
@@ -65,7 +65,7 @@ const basePath = '/usr/local/bin:/usr/bin:/bin';
 function runSh(box, env = {}, { detached = true } = {}) {
   return spawnSync('sh', [installSh], {
     encoding: 'utf8', detached,
-    env: { HOME: box.home, PATH: basePath, SHELL: '/bin/bash', VIBEAD_RELEASE_BASE: box.base, ...env },
+    env: { HOME: box.home, PATH: basePath, SHELL: '/bin/bash', VIBEAD_RELEASE_BASE: box.base, VIBEAD_MANIFEST_URL: box.manifest, ...env },
   });
 }
 
@@ -74,7 +74,7 @@ test('install.sh: shellcheck finds no issues', { skip: !which('shellcheck') && '
   assert.equal(r.status, 0, r.stdout + r.stderr);
 });
 
-test('install.sh: installs the latest release into a temp HOME without sudo', { skip: !linuxX64 && 'Linux x64 only' }, () => {
+test('install.sh: installs the release pinned in the site manifest into a temp HOME without sudo', { skip: !linuxX64 && 'Linux x64 only' }, () => {
   const box = sandbox();
   release(box.rel, '0.1.0-beta.99');
   const r = runSh(box);
@@ -99,7 +99,7 @@ test('install.sh: installs the latest release into a temp HOME without sudo', { 
 test('install.sh: with a terminal, runs `vibead enable` (same setup as npm) with the stable launcher on PATH', { skip: (!linuxX64 || !which('script')) && 'needs Linux x64 and script(1)' }, () => {
   const box = sandbox();
   release(box.rel, '0.1.0-beta.99');
-  const env = { HOME: box.home, PATH: `${join(box.home, '.local/bin')}:${basePath}`, SHELL: '/bin/bash', VIBEAD_RELEASE_BASE: box.base };
+  const env = { HOME: box.home, PATH: `${join(box.home, '.local/bin')}:${basePath}`, SHELL: '/bin/bash', VIBEAD_RELEASE_BASE: box.base, VIBEAD_MANIFEST_URL: box.manifest };
   const r = spawnSync('script', ['-qec', `sh '${installSh}'`, '/dev/null'], { encoding: 'utf8', env, input: '' });
   assert.equal(r.status, 0, r.stdout + r.stderr);
   const log = readFileSync(join(box.home, 'kit.log'), 'utf8');
@@ -110,7 +110,7 @@ test('install.sh: with a terminal, runs `vibead enable` (same setup as npm) with
 // Run the installer under script(1) so it has a real terminal; `answers` is
 // typed into that terminal (the PATH prompt reads /dev/tty).
 function runTty(box, answers, env = {}) {
-  const full = { HOME: box.home, PATH: basePath, SHELL: '/bin/bash', VIBEAD_RELEASE_BASE: box.base, ...env };
+  const full = { HOME: box.home, PATH: basePath, SHELL: '/bin/bash', VIBEAD_RELEASE_BASE: box.base, VIBEAD_MANIFEST_URL: box.manifest, ...env };
   return spawnSync('script', ['-qec', `sh '${installSh}'`, '/dev/null'], { encoding: 'utf8', env: full, input: answers });
 }
 
@@ -196,7 +196,7 @@ test('install.sh: never replaces a vibead it did not install (for example an npm
 // --- Windows installer, exercised with PowerShell 7 on Linux/macOS -------------
 const ps = (box, env = {}) => spawnSync(pwsh, ['-NoProfile', '-NonInteractive', '-File', installPs1], {
   encoding: 'utf8',
-  env: { HOME: box.home, PATH: process.env.PATH, VIBEAD_RELEASE_BASE: box.base, VIBEAD_PLATFORM: 'win32-x64', VIBEAD_INSTALL_DIR: join(box.home, 'vibead'), VIBEAD_NO_ENABLE: '1', VIBEAD_NO_MODIFY_PATH: '1', ...env },
+  env: { HOME: box.home, PATH: process.env.PATH, VIBEAD_RELEASE_BASE: box.base, VIBEAD_MANIFEST_URL: box.manifest, VIBEAD_PLATFORM: 'win32-x64', VIBEAD_INSTALL_DIR: join(box.home, 'vibead'), VIBEAD_NO_ENABLE: '1', VIBEAD_NO_MODIFY_PATH: '1', ...env },
 });
 
 test('install.ps1: parses without errors', { skip: !pwsh && 'pwsh not installed' }, () => {
@@ -234,6 +234,82 @@ test('install.ps1: no Windows build yet gives the npm and WSL one-liners, not an
   assert.match(r.stdout, /no Windows build for win32-x64 yet/);
   assert.match(r.stdout, /npm i -g @vibead\/cli/);
   assert.match(r.stdout, /curl -fsSL https:\/\/www\.vibead\.ai\/install \| sh/);
+});
+
+test('install.sh: uses the pinned manifest version, not a newer release (cli#27)', { skip: !linuxX64 && 'Linux x64 only' }, () => {
+  const box = sandbox();
+  release(box.rel, '0.1.0-beta.98');
+  release(box.rel, '0.1.0-beta.99');
+  writeFileSync(join(box.rel, 'install.json'), '{"version":"0.1.0-beta.98","repo":"vibead/cli"}');
+  const r = runSh(box);
+  assert.equal(r.status, 0, r.stderr);
+  assert.match(r.stdout, /Installed VibeAd 0\.1\.0-beta\.98/);
+});
+
+test('install.sh: an unreachable or empty manifest fails clearly with the npm command, installing nothing', { skip: !linuxX64 && 'Linux x64 only' }, () => {
+  for (const [manifest, message] of [[null, /Could not read the current version/], ['{}', /has no version/]]) {
+    const box = sandbox();
+    release(box.rel, '0.1.0-beta.99');
+    if (manifest === null) rmSync(join(box.rel, 'install.json'));
+    else writeFileSync(join(box.rel, 'install.json'), manifest);
+    const r = runSh(box);
+    assert.notEqual(r.status, 0);
+    assert.match(r.stderr, message);
+    assert.match(r.stderr, /Use npm instead: npm i -g @vibead\/cli && vibead enable/);
+    assert.doesNotMatch(r.stdout, /Downloading/, 'stops before any release download');
+    assert.ok(!existsSync(join(box.home, '.vibead/bin/vibead')));
+  }
+});
+
+// A release whose SHA256SUMS names another version (a mis-uploaded or copied
+// file) must be refused, whether the version came from the manifest or VIBEAD_VERSION.
+function mismatchedRelease(box) {
+  release(box.rel, '0.1.0-beta.24');
+  const dir = join(box.rel, 'download', 'v0.1.0-beta.25');
+  mkdirSync(dir, { recursive: true });
+  copyFileSync(join(box.rel, 'download', 'v0.1.0-beta.24', 'SHA256SUMS'), join(dir, 'SHA256SUMS'));
+  writeFileSync(join(box.rel, 'install.json'), '{"version": "0.1.0-beta.25"}');
+}
+
+test('install.sh: refuses SHA256SUMS for a different version, installing nothing', { skip: !linuxX64 && 'Linux x64 only' }, () => {
+  for (const env of [{}, { VIBEAD_VERSION: '0.1.0-beta.25' }]) {
+    const box = sandbox();
+    mismatchedRelease(box);
+    const r = runSh(box, env);
+    assert.notEqual(r.status, 0);
+    assert.match(r.stderr, /Checksums are for 0\.1\.0-beta\.24, not 0\.1\.0-beta\.25\./);
+    assert.ok(!existsSync(join(box.home, '.vibead')));
+  }
+});
+
+test('install.ps1: refuses SHA256SUMS for a different version, installing nothing', { skip: !pwsh && 'pwsh not installed' }, () => {
+  const box = sandbox();
+  release(box.rel, '0.1.0-beta.24', { platform: 'win32-x64', zip: true });
+  const dir = join(box.rel, 'download', 'v0.1.0-beta.25');
+  mkdirSync(dir, { recursive: true });
+  copyFileSync(join(box.rel, 'download', 'v0.1.0-beta.24', 'SHA256SUMS'), join(dir, 'SHA256SUMS'));
+  writeFileSync(join(box.rel, 'install.json'), '{"version": "0.1.0-beta.25"}');
+  const r = ps(box);
+  assert.match(r.stdout, /checksums are for 0\.1\.0-beta\.24, not 0\.1\.0-beta\.25/);
+  assert.ok(!existsSync(join(box.home, 'vibead/bin/vibead.cmd')));
+});
+
+test('installers never fall back to GitHub "latest"', () => {
+  for (const f of [installSh, installPs1]) assert.doesNotMatch(readFileSync(f, 'utf8'), /latest\/download/, f);
+});
+
+test('install.ps1: uses the pinned manifest version; no manifest gives the npm one-liner', { skip: !pwsh && 'pwsh not installed' }, () => {
+  const box = sandbox();
+  release(box.rel, '0.1.0-beta.98', { platform: 'win32-x64', zip: true });
+  release(box.rel, '0.1.0-beta.99', { platform: 'win32-x64', zip: true });
+  writeFileSync(join(box.rel, 'install.json'), '{"version":"0.1.0-beta.98"}');
+  const r = ps(box);
+  assert.equal(r.status, 0, r.stdout + r.stderr);
+  assert.ok(existsSync(join(box.home, 'vibead/versions/0.1.0-beta.98-win32-x64/vibead-beta.exe')));
+  rmSync(join(box.rel, 'install.json'));
+  const none = ps(sandbox());
+  assert.match(none.stdout, /could not read the current version/);
+  assert.match(none.stdout, /npm i -g @vibead\/cli/);
 });
 
 // --- Every channel is one command, npm first -------------------------------------

@@ -2,7 +2,8 @@
 #
 #   irm https://www.vibead.ai/install.ps1 | iex
 #
-# Downloads the Windows release from GitHub Releases, verifies its SHA-256
+# Reads the pinned version from https://www.vibead.ai/install.json (never
+# GitHub's "latest"), downloads that Windows release, verifies its SHA-256
 # against the release's SHA256SUMS, installs it under %LOCALAPPDATA%\vibead
 # (no admin rights), then runs `vibead enable`, which lists every file it will
 # change and asks before touching anything.
@@ -27,9 +28,20 @@ function Install-VibeAd {
   $tmp = Join-Path ([System.IO.Path]::GetTempPath()) ("vibead-" + [System.Guid]::NewGuid().ToString('N'))
   New-Item -ItemType Directory -Path $tmp | Out-Null
   try {
+    # The version comes from VIBEAD_VERSION or the site's pinned manifest, never GitHub's "latest".
     $version = $env:VIBEAD_VERSION
-    if ($version) { $version = $version.TrimStart('v'); $sumsUrl = "$releaseBase/download/v$version/SHA256SUMS" }
-    else { $sumsUrl = "$releaseBase/latest/download/SHA256SUMS" }
+    if (-not $version) {
+      $manifestUrl = if ($env:VIBEAD_MANIFEST_URL) { $env:VIBEAD_MANIFEST_URL } else { 'https://www.vibead.ai/install.json' }
+      $manifestFile = Join-Path $tmp 'install.json'
+      try { Get-VibeAdFile $manifestUrl $manifestFile; $version = [string](Get-Content -Raw $manifestFile | ConvertFrom-Json).version } catch { $version = $null }
+      if (-not $version) {
+        Write-Host "vibead install: could not read the current version ($manifestUrl)." -ForegroundColor Red
+        Write-Host "Use npm instead:  npm i -g @vibead/cli; vibead enable"
+        return
+      }
+    }
+    $version = $version.TrimStart('v')
+    $sumsUrl = "$releaseBase/download/v$version/SHA256SUMS"
     $sumsFile = Join-Path $tmp 'SHA256SUMS'
     try { Get-VibeAdFile $sumsUrl $sumsFile } catch { Write-Host "vibead install: could not download the release checksums ($sumsUrl)." -ForegroundColor Red; return }
 
@@ -44,7 +56,7 @@ function Install-VibeAd {
     $expected = $match.Groups[1].Value
     $archive = $match.Groups[2].Value
     $found = $match.Groups[3].Value
-    if ($version -and $found -ne $version) { Write-Host "vibead install: checksums are for $found, not $version." -ForegroundColor Red; return }
+    if ($found -ne $version) { Write-Host "vibead install: checksums are for $found, not $version." -ForegroundColor Red; return }
     $version = $found
 
     Write-Host "Downloading VibeAd $version for $platform..."

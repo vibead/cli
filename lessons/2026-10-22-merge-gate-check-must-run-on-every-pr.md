@@ -1,0 +1,1 @@
+- Map MERGE-1/2 to a check that really runs on every PR. Here the only test check, **Installer tests**, is path-filtered and nothing is required by branch protection, so it was skipped on a docs-only PR and QA had no green run to read. Until the workflow runs on every PR, the evidence is a local installer test run on the head (cli#36).
