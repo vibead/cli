@@ -22,21 +22,22 @@ flowchart LR
     NPM["npm/: @vibead/cli launcher<br/>bin/vibead.mjs, lib/install.mjs,<br/>releases.json (per-platform SHA-256)"]
     SH["install/install.sh"]
     PS["install/install.ps1"]
-    Sign["sign-release.yml<br/>SHA256SUMS + Sigstore bundle"]
+    Sign["sign-release.yml<br/>SHA256SUMS (kits + launcher tgz)<br/>+ Sigstore bundle"]
     Cask["packaging/homebrew<br/>official cask candidate (not submitted)"]
   end
   Src["vibead/vibead<br/>builds the release archives"]
-  Rel["GitHub Releases<br/>archive + .sha256 per platform,<br/>SHA256SUMS, SHA256SUMS.sigstore.json"]
+  Rel["GitHub Releases<br/>archive + .sha256 per platform,<br/>vibead-cli-&lt;v&gt;.tgz + .sha256,<br/>SHA256SUMS, SHA256SUMS.sigstore.json"]
   Reg["npm registry<br/>@vibead/cli"]
   Tap["vibead/homebrew-tap"]
   Site["www.vibead.ai<br/>/install, /install.ps1 (copies of install/),<br/>/install.json (pinned version)"]
   User["User's machine<br/>~/.vibead/versions/&lt;v&gt;, ~/.local/bin/vibead"]
-  TP["release workflow with npm Trusted Publishing<br/>(Merged, not released, cli#30)"]
+  TP["release.yml with npm Trusted Publishing<br/>publishes the signed launcher tgz"]
 
   Src --> Rel
   Sign --> Rel
-  NPM -- "npm publish (by hand today)" --> Reg
-  TP -.-> Reg
+  NPM -- "npm pack (draft asset, checked by release.yml)" --> Rel
+  Rel -- "signed vibead-cli-&lt;v&gt;.tgz" --> TP
+  TP --> Reg
   Reg --> User
   NPM -- "downloads + checks SHA-256" --> Rel
   Site -- "curl | sh, irm | iex" --> User
@@ -67,24 +68,26 @@ sequenceDiagram
   participant N as npm
   participant Site as vibead-ai install.json
   Src->>R: archives + .sha256 per platform
-  S->>R: check every .sha256, write SHA256SUMS, cosign keyless (GitHub OIDC)
+  Note over R: plus vibead-cli-<v>.tgz + .sha256 (npm pack of npm/ at the release commit)
   Note over R,N: release.yml (manual, from main, cli#30): check, sign, then publish-release
+  Note over R: check: the draft tgz's tar is npm pack of npm/ on main
+  S->>R: check every .sha256, write SHA256SUMS over the kits AND the tgz (exactly one, same version), cosign keyless (GitHub OIDC)
   alt npm_tag latest
     Note over R: published and marked Latest
   else npm_tag next or beta (default next)
     Note over R: published as a pre-release, not Latest (releases/latest and /install stay put)
   end
-  R->>N: npm publish --provenance --tag npm_tag (Trusted Publishing, OIDC, environment npm, no token)
+  R->>N: download the signed tgz, check it against SHA256SUMS, npm publish ./vibead-cli-<v>.tgz --provenance --tag npm_tag (Trusted Publishing, OIDC, environment npm, no token)
   Note over N: tap job (Homebrew, a Live channel) runs only for npm_tag latest
   R->>Site: bump install.json in a vibead-ai PR (CI refuses a pin without SHA256SUMS or an archive)
 ```
 
 - **Live:** release signing (`sign-release.yml`, run by hand on a draft release from `main`); the installers trust only that workflow's identity on `main`.
 - **Live:** npm package access requires 2FA and disallows tokens.
-- **Merged, not released:** release workflow `release.yml` with npm Trusted Publishing ([cli#30](https://github.com/vibead/cli/pull/30), [cli#29](https://github.com/vibead/cli/issues/29)). The GitHub Release is marked Latest only when `npm_tag` is `latest`; a `next` or `beta` run makes a pre-release that is not Latest, so `releases/latest`, npm `latest`, the `/install` pin and Homebrew keep the promoted version (the tap job runs only for `latest`). Every job that reads the draft release (check, sign, publish-release) runs with `contents: write`, because GitHub shows drafts only to tokens with push access; the workflow default stays `contents: read` (cli#37, QA R2-1). Release never creates or moves the tag: publishing keeps an existing tag, and uses the release's `target_commitish` only when the tag is missing. Until its first run, npm publishes stay by hand.
+- **Merged, not released:** release workflow `release.yml` with npm Trusted Publishing ([cli#30](https://github.com/vibead/cli/pull/30), [cli#29](https://github.com/vibead/cli/issues/29)). The GitHub Release is marked Latest only when `npm_tag` is `latest`; a `next` or `beta` run makes a pre-release that is not Latest, so `releases/latest`, npm `latest`, the `/install` pin and Homebrew keep the promoted version (the tap job runs only for `latest`). Every job that reads the draft release (check, sign, publish-release) runs with `contents: write`, because GitHub shows drafts only to tokens with push access; the workflow default stays `contents: read` (cli#37, QA R2-1). Release never creates or moves the tag: publishing keeps an existing tag, and uses the release's `target_commitish` only when the tag is missing. Its first run published 0.1.0-beta.30 to npm `next`.
 - **Merged, not released (pre-release v0.1.0-beta.30):** the npm launcher at 0.1.0-beta.30 (`npm/package.json`, publishes under the `next` dist-tag) with the beta.30 darwin-arm64, darwin-x64 and linux-x64 kits in `npm/releases.json`, all built from vibead/vibead main @ 607fb1f ([cli#37](https://github.com/vibead/cli/pull/37)). The installers ask no question of their own (no PATH prompt, no profile edit; the one consent is `vibead enable`'s). Known gap: no ad on the very first Claude turn of a fresh install ([vibead#164](https://github.com/vibead/vibead/issues/164)); Claude is judged from turn 2, and #164 blocks promotion to Latest. The draft release's `SHA256SUMS` is signed by release.yml's sign step (sign-release.yml) at publish. Live stays 0.1.0-beta.25 (npm `latest`, the `/install` pin and Homebrew).
 - **Merged, not released:** lessons folder and the QA carry-over rule (`lessons/`, `scripts/pr-own-diff.sh`, [cli#31](https://github.com/vibead/cli/pull/31)); these are repo tooling, not a user channel.
-- **Planned:** launcher tgz in signed `SHA256SUMS` (sign-release.yml).
+- **Merged, not released:** launcher tgz in the signed `SHA256SUMS` ([cli#39](https://github.com/vibead/cli/pull/39)). sign-release.yml refuses to sign without exactly one `vibead-cli-<version>.tgz` matching its `.sha256`, and lists it with the kits; release.yml's check requires the draft tgz to be `npm pack` of `npm/` on main (the tar inside is compared, since gzip bytes vary with zlib), and its npm job publishes that signed tgz byte for byte after checking it against `SHA256SUMS`, so the npm tarball is the signed one. vibead-ai's `/install` release guard accepts that line ([vibead-ai#212](https://github.com/vibead/vibead-ai/issues/212)); the installers' anchored patterns ignore it. Releases up to v0.1.0-beta.30 list the kits only.
 - **Planned:** the Homebrew tap update from the release workflow needs a `HOMEBREW_TAP_TOKEN` secret; a local cached house ad in the CLI ([cli#25](https://github.com/vibead/cli/issues/25)); OpenClaw as a fourth agent ([cli#20](https://github.com/vibead/cli/issues/20)). These are tracked in the vibead-ai launch epics.
 
 ## CI

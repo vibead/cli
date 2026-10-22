@@ -1,14 +1,17 @@
 name: Release
 
 # One manual run ships a version to every channel, in this order:
-#   1. check the draft GitHub Release and the npm launcher files
-#   2. sign SHA256SUMS (sign-release.yml)
+#   1. check the draft GitHub Release and the npm launcher files; the draft's
+#      vibead-cli-X.tgz must be npm pack of npm/ at this commit
+#   2. sign SHA256SUMS over the kits AND vibead-cli-X.tgz (sign-release.yml)
 #   3. publish the Release: Latest only when npm_tag is latest; otherwise a
 #      pre-release that is not Latest, so releases/latest and /install stay put
-#   4. npm publish via Trusted Publishing (OIDC + provenance; no token, no OTP)
+#   4. npm publish of that signed vibead-cli-X.tgz, byte for byte, via Trusted
+#      Publishing (OIDC + provenance; no token, no OTP)
 #   5. bump the Homebrew tap (npm_tag latest only)
 # Before running: the draft release vX exists with every archive and its
-# .sha256 (from the vibead/vibead build), and main has npm/package.json at X
+# .sha256 (from the vibead/vibead build) plus vibead-cli-X.tgz (npm pack in
+# npm/) and its .sha256, and main has npm/package.json at X
 # and npm/releases.json listing the same SHA-256s. Then bump install.json in
 # vibead/vibead-ai so `curl | sh` follows. See install/README.md "Releasing".
 on:
@@ -62,7 +65,7 @@ jobs:
           [ "$(jq -r .version npm/package.json)" = "$VERSION" ] || { echo "npm/package.json is not $VERSION"; exit 1; }
           [ "$(jq -r .version npm/releases.json)" = "$VERSION" ] || { echo "npm/releases.json is not $VERSION"; exit 1; }
           mkdir assets
-          gh release download "$tag" --repo "$GITHUB_REPOSITORY" --dir assets --pattern '*.sha256'
+          gh release download "$tag" --repo "$GITHUB_REPOSITORY" --dir assets --pattern '*.sha256' --pattern "vibead-cli-$VERSION.tgz"
           for p in darwin-arm64 darwin-x64 linux-x64; do
             f="assets/vibead-beta-$VERSION-$p.tar.gz.sha256"
             [ -f "$f" ] || { echo "draft has no $p archive"; exit 1; }
@@ -70,6 +73,27 @@ jobs:
             [ "$(cut -d' ' -f1 "$f")" = "$want" ] || { echo "npm/releases.json $p does not match the release"; exit 1; }
           done
           echo "tag=$tag" >> "$GITHUB_OUTPUT"
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: '22'
+      # Same npm as the npm job and the documented `npm pack` (README step 1).
+      - run: npm install -g 'npm@^11.5.1' && npm --version
+      # The launcher tarball is signed in SHA256SUMS and then published to npm
+      # byte for byte, so it must be exactly npm/ at this commit. The tar inside
+      # is compared, not the gzip bytes (gzip output varies with the zlib build).
+      - name: Launcher tarball on the draft is npm pack of npm/
+        env:
+          VERSION: ${{ inputs.version }}
+        run: |
+          set -euo pipefail
+          tgz="vibead-cli-$VERSION.tgz"
+          [ -f "assets/$tgz" ] && [ -f "assets/$tgz.sha256" ] || { echo "draft has no $tgz and $tgz.sha256"; exit 1; }
+          (cd assets && sha256sum -c "$tgz.sha256")
+          mkdir -p packed
+          (cd npm && npm pack --ignore-scripts --silent --pack-destination ../packed > /dev/null)
+          [ -f "packed/$tgz" ] || { echo "npm pack did not make $tgz"; exit 1; }
+          [ "$(gzip -dc "assets/$tgz" | sha256sum)" = "$(gzip -dc "packed/$tgz" | sha256sum)" ] || { echo "$tgz on the draft is not npm pack of npm/ at this commit"; exit 1; }
+          echo "launcher tarball matches npm/: $tgz"
 
   sign:
     needs: check
@@ -102,7 +126,7 @@ jobs:
 
   npm:
     name: npm publish (Trusted Publishing, provenance)
-    needs: publish-release
+    needs: [check, publish-release]
     runs-on: ubuntu-latest
     timeout-minutes: 10
     # Optional protection: add required reviewers to the "npm" environment in
@@ -124,10 +148,33 @@ jobs:
       - run: npm install -g 'npm@^11.5.1' && npm --version
       - working-directory: npm
         run: npm test
-      - working-directory: npm
+      # Publish the tarball that SHA256SUMS signs, not a fresh pack, so the npm
+      # tarball is the signed one (REL-2). The release is public by now.
+      - name: Download the signed launcher tarball
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ needs.check.outputs.tag }}
+          VERSION: ${{ inputs.version }}
+        run: |
+          set -euo pipefail
+          mkdir signed
+          gh release download "$TAG" --repo "$GITHUB_REPOSITORY" --dir signed --pattern SHA256SUMS --pattern "vibead-cli-$VERSION.tgz"
+      - name: Check it against the signed SHA256SUMS
+        working-directory: signed
+        env:
+          VERSION: ${{ inputs.version }}
+        run: |
+          set -euo pipefail
+          tgz="vibead-cli-$VERSION.tgz"
+          line=$(awk -v n="$tgz" '$2 == n' SHA256SUMS)
+          [ "$(printf '%s\n' "$line" | grep -c .)" -eq 1 ] || { echo "SHA256SUMS must list $tgz exactly once"; exit 1; }
+          printf '%s\n' "$line" | sha256sum -c -
+          [ "$(tar -xOzf "$tgz" package/package.json | jq -r '.name + "@" + .version')" = "@vibead/cli@$VERSION" ] || { echo "$tgz is not @vibead/cli@$VERSION"; exit 1; }
+      - working-directory: signed
         env:
           NPM_TAG: ${{ inputs.npm_tag }}
-        run: npm publish --provenance --access public --tag "$NPM_TAG"
+          VERSION: ${{ inputs.version }}
+        run: npm publish "./vibead-cli-$VERSION.tgz" --provenance --access public --tag "$NPM_TAG"
 
   tap:
     name: Bump the Homebrew tap (npm_tag latest only)
