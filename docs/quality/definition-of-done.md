@@ -154,9 +154,11 @@ Run this on a clean Linux cloud test machine with a fresh `$HOME`. **Any user fr
   *Consent exemption (Chief of Staff (Nina)):* exactly one explicit opt-in consent at enable time is allowed, because sponsored placements are opt-in: one screen that lists every change and one yes/no question, default no, with `--yes` to accept it non-interactively. Anything else fails CLI-2: a second question, an installer PATH question, an agent's hook-trust or folder-trust dialog, or any step the user has to do by hand.
   *Evidence:* the terminal output.
 - **CLI-3** **3+ turns in each of claude, codex and opencode.**
+  *RC handoff self-check ([vibead/vibead#174](https://github.com/vibead/vibead/issues/174)):* before any RC is handed to QA, the Engineer runs **5+ consecutive Claude turns through the status line**, including **one long turn with a background subagent**, and attaches frame evidence: captured frames showing the `[Ad]` line throughout every turn, the long subagent turn included. Without it the RC handoff fails CLI-3 and CLI-4.
   *Evidence:* a turn log for each agent.
 - **CLI-4** The **gold `[Ad]` line** is visible while thinking on **every turn** in every agent, from the first moment of turn 1. It is the native gold line, not a pop-up, "Sponsored" box or other substitute.
   *opencode:* the toast is pending [vibead#141](https://github.com/vibead/vibead/issues/141). Nina's ruling sets the order of preference: the native gold line, else a plain native status line shown for at least 3 s, else a documented toast exception. Until #141 is closed, record CLI-4 for opencode as FAIL (pending vibead#141), not as a new bug.
+  *RC handoff:* the CLI-3 Claude self-check (5+ consecutive status-line turns, one long turn with a background subagent, frame evidence; [vibead/vibead#174](https://github.com/vibead/vibead/issues/174)) is also CLI-4 evidence: every frame shows the `[Ad]` line.
   *Evidence:* a screenshot of each turn for each agent.
 - **CLI-5** Ads **rotate** across turns in every agent wherever multiple creatives are eligible.
   *Evidence:* the ad id or text for each turn and agent (must differ).

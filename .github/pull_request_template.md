@@ -56,8 +56,8 @@ Docs (DOC-1): <files changed | docs: n/a - why>
 ### CLI / agents
 - [ ] CLI-1 fresh install from the exact release artefact: <version, sha256>
 - [ ] CLI-2 `vibead enable` with no prompts apart from the one opt-in consent
-- [ ] CLI-3 3+ turns each in claude, codex and opencode
-- [ ] CLI-4 gold [Ad] line visible on every turn while thinking (native line, not a pop-up): <screenshots>
+- [ ] CLI-3 3+ turns each in claude, codex and opencode (before RC handoff: 5+ consecutive Claude status-line turns incl. one long turn with a background subagent, frame evidence, vibead/vibead#174)
+- [ ] CLI-4 gold [Ad] line visible on every turn while thinking (native line, not a pop-up): <screenshots> (incl. the Claude RC self-check frames, vibead/vibead#174)
 - [ ] CLI-5 ads rotate (ad per turn per agent): <table>
 - [ ] CLI-6 no harness/debug text or escape codes (`0;0m`, lone `1`), exit screens included: <grep output>
 - [ ] CLI-7 `vibead login` frictionless (no codes to copy)
