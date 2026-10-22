@@ -16,4 +16,4 @@ Docs stay in line with the code, features, issues and the business ([vibead-ai#1
 - It also updates the Live / In review / Planned status in vibead-ai [`docs/system-design/README.md`](https://github.com/vibead/vibead-ai/blob/main/docs/system-design/README.md), in a linked vibead-ai PR.
 - If nothing user-visible changed (refactor, tests, CI), put a line `docs: n/a - <why>` in the PR body.
 - The **Docs check** workflow (`.github/workflows/docs-check.yml`) enforces this. It's a path check only: code paths are listed in `.github/docs-check/config.json` (`install/`, `npm/`, `packaging/`, `.github/workflows/`), and test-only changes don't count. Editing the PR body re-runs it.
-
+- **Design-doc gate:** a PR that changes how VibeAd is installed, released or launched updates [`docs/system-design/README.md`](docs/system-design/README.md) in the same PR (diagrams, unbuilt pieces marked planned) or says `Design doc: N/A — <reason>`; `scripts/check-design-doc.mjs` checks `install/` and `npm/`.
