@@ -1,0 +1,54 @@
+name: TEMP cli#39 signing dry run (remove before merge)
+
+# Runs cli#39's new release steps, extracted verbatim from sign-release.yml and
+# release.yml, on the public v0.1.0-beta.30 assets. No signing, no upload, no
+# publish: contents:read only, no id-token, npm publish only as --dry-run to an
+# unreachable registry with no npm config.
+on:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  dryrun:
+    name: Signed SHA256SUMS would list the launcher tgz (beta.30 assets)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      GH_TOKEN: ${{ github.token }}
+      V: 0.1.0-beta.30
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: '22'
+      - run: npm install -g 'npm@^11.5.1' && npm --version
+      - name: Dry run
+        run: |
+          set -euo pipefail
+          repo=$GITHUB_WORKSPACE
+          step() { node --input-type=module -e "import {readFileSync} from 'node:fs'; import {stepRun} from '$repo/install/test/workflow-steps.mjs'; process.stdout.write(stepRun(readFileSync('$repo/.github/workflows/'+process.argv[1],'utf8'), process.argv[2]))" "$1" "$2"; }
+          work=$RUNNER_TEMP/dry && mkdir -p "$work/assets" && cd "$work"
+          gh release download "v$V" --repo "$GITHUB_REPOSITORY" --dir assets --pattern 'vibead-beta-*' --pattern 'vibead-cli-*.tgz*'
+          echo "== 1. sign-release.yml verify step (TAG=v$V)"
+          (cd assets && TAG="v$V" bash -c "$(step sign-release.yml 'Verify each archive and the launcher tarball, write SHA256SUMS')")
+          echo "== SHA256SUMS the sign step would sign ($(wc -l < SHA256SUMS) lines):"; cat SHA256SUMS
+          grep -qx "[0-9a-f]\{64\}  vibead-cli-$V.tgz" SHA256SUMS && echo "tgz line present: yes"
+          echo "== 2. release.yml check: draft tgz is npm pack of npm/ @ $(git -C "$repo" rev-parse --short HEAD) (npm $(npm --version))"
+          cp -r "$repo/npm" npm
+          VERSION=$V bash -c "$(step release.yml 'Launcher tarball on the draft is npm pack of npm/')"
+          echo "== 3. release.yml npm job check against that SHA256SUMS"
+          mkdir signed && cp SHA256SUMS "assets/vibead-cli-$V.tgz" signed/
+          (cd signed && VERSION=$V bash -c "$(step release.yml 'Check it against the signed SHA256SUMS')") && echo "npm-job check: PASS"
+          echo "== 3b. the SHA256SUMS beta.30 published (kits only) is refused"
+          mkdir old && gh release download "v$V" --repo "$GITHUB_REPOSITORY" --dir old --pattern SHA256SUMS && cp "assets/vibead-cli-$V.tgz" old/
+          if (cd old && VERSION=$V bash -c "$(step release.yml 'Check it against the signed SHA256SUMS')"); then echo "UNEXPECTED PASS"; exit 1; else echo "refused as expected"; fi
+          echo "== 4. registry tarball vs the SHA256SUMS line"
+          curl -sSfo registry.tgz "https://registry.npmjs.org/@vibead/cli/-/cli-$V.tgz"
+          a=$(sha256sum registry.tgz | cut -d' ' -f1); b=$(awk -v n="vibead-cli-$V.tgz" '$2==n{print $1}' SHA256SUMS)
+          echo "registry: $a"; echo "signed:   $b"; [ "$a" = "$b" ]
+          echo "== 5. npm publish of the signed tgz: --dry-run, unreachable registry, no npm config"
+          (cd signed && npm publish "./vibead-cli-$V.tgz" --dry-run --access public --tag next --registry http://127.0.0.1:9/ --userconfig /dev/null --fetch-retries=0 2>&1 | grep -E 'notice (name|version|shasum|integrity):|dry-run' | sort -u)
