@@ -68,7 +68,7 @@ sequenceDiagram
   participant Site as vibead-ai install.json
   Src->>R: archives + .sha256 per platform
   S->>R: check every .sha256, write SHA256SUMS, cosign keyless (GitHub OIDC)
-  Note over R,N: release.yml (manual, from main; cli#30): check, sign, then publish-release
+  Note over R,N: release.yml (manual, from main, cli#30): check, sign, then publish-release
   alt npm_tag latest
     Note over R: published and marked Latest
   else npm_tag next or beta (default next)
