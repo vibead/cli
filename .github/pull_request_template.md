@@ -83,6 +83,9 @@ Docs (DOC-1): <files changed | docs: n/a - why>
 - [ ] DATA-1 retention/TTL proven and pinned by tests: <tests, mutants> → in vibead/cli: N/A — retention and TTL live in vibead-ai
 - [ ] DATA-2 revoke/delete purges and fails closed (proven on a QA install): <before/after reads, hash only> → in vibead/cli: N/A — the server-side purge lives in vibead-ai
 
+### Money
+- [ ] MONEY-1 billed-click reconciliation: sponsor debit = user credit + VibeAd share (micro-cent, rates read back at test time); 24 h duplicate unbilled both sides; dashboard and earnings = ledger sums; sponsor A never changes B: <reconcile output, hashes only> → in vibead/cli: N/A unless the launcher or installers change ad requests, click links or impression reports
+
 ### Release
 - [ ] REL-1 fresh, never-used version: <release list + npm versions>
 - [ ] REL-2 SHA256SUMS + Sigstore signature cover every artefact (kit + npm tgz): <verify output>

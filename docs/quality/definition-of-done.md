@@ -213,6 +213,11 @@ Run this on a clean Linux cloud test machine with a fresh `$HOME`. **Any user fr
   *In vibead/cli:* N/A — the server-side purge lives in vibead-ai; the client side is CLI-10.
   *Evidence:* the before and after reads (hash only) plus the test names.
 
+## MONEY: billing, ledger and earnings
+
+- MONEY-1: Any change touching billing, clicks, the ledger, balances or earnings includes a reconciliation check with evidence: for every billed click, sponsor debit = user credit + VibeAd share to the micro-cent at the rates read back at test time; a duplicate within 24 h is unbilled on both sides; each sponsor's dashboard balance = its ledger sum; each user's earnings page = their ledger sum; a click on sponsor A's ad never changes sponsor B.
+  *In vibead/cli:* N/A unless the change affects how the launcher or installers request ads, open click links or report impressions; billing and the ledger live in vibead-ai.
+
 ## REL: release
 
 - **REL-1** The version string is **fresh and never used** before, in GitHub releases, the npm registry or `releases.json`.
