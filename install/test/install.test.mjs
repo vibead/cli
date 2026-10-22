@@ -5,7 +5,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { createHash } from 'node:crypto';
 import { spawnSync, execFileSync } from 'node:child_process';
-import { chmodSync, existsSync, lstatSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, readlinkSync, rmSync, writeFileSync } from 'node:fs';
+import { chmodSync, existsSync, lstatSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, readlinkSync, rmSync, writeFileSync, copyFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
@@ -247,16 +247,51 @@ test('install.sh: uses the pinned manifest version, not a newer release (cli#27)
 });
 
 test('install.sh: an unreachable or empty manifest fails clearly with the npm command, installing nothing', { skip: !linuxX64 && 'Linux x64 only' }, () => {
-  for (const manifest of [null, '{}']) {
+  for (const [manifest, message] of [[null, /Could not read the current version/], ['{}', /has no version/]]) {
     const box = sandbox();
     release(box.rel, '0.1.0-beta.99');
     if (manifest === null) rmSync(join(box.rel, 'install.json'));
     else writeFileSync(join(box.rel, 'install.json'), manifest);
     const r = runSh(box);
     assert.notEqual(r.status, 0);
+    assert.match(r.stderr, message);
     assert.match(r.stderr, /Use npm instead: npm i -g @vibead\/cli && vibead enable/);
+    assert.doesNotMatch(r.stdout, /Downloading/, 'stops before any release download');
     assert.ok(!existsSync(join(box.home, '.vibead/bin/vibead')));
   }
+});
+
+// A release whose SHA256SUMS names another version (a mis-uploaded or copied
+// file) must be refused, whether the version came from the manifest or VIBEAD_VERSION.
+function mismatchedRelease(box) {
+  release(box.rel, '0.1.0-beta.24');
+  const dir = join(box.rel, 'download', 'v0.1.0-beta.25');
+  mkdirSync(dir, { recursive: true });
+  copyFileSync(join(box.rel, 'download', 'v0.1.0-beta.24', 'SHA256SUMS'), join(dir, 'SHA256SUMS'));
+  writeFileSync(join(box.rel, 'install.json'), '{"version": "0.1.0-beta.25"}');
+}
+
+test('install.sh: refuses SHA256SUMS for a different version, installing nothing', { skip: !linuxX64 && 'Linux x64 only' }, () => {
+  for (const env of [{}, { VIBEAD_VERSION: '0.1.0-beta.25' }]) {
+    const box = sandbox();
+    mismatchedRelease(box);
+    const r = runSh(box, env);
+    assert.notEqual(r.status, 0);
+    assert.match(r.stderr, /Checksums are for 0\.1\.0-beta\.24, not 0\.1\.0-beta\.25\./);
+    assert.ok(!existsSync(join(box.home, '.vibead')));
+  }
+});
+
+test('install.ps1: refuses SHA256SUMS for a different version, installing nothing', { skip: !pwsh && 'pwsh not installed' }, () => {
+  const box = sandbox();
+  release(box.rel, '0.1.0-beta.24', { platform: 'win32-x64', zip: true });
+  const dir = join(box.rel, 'download', 'v0.1.0-beta.25');
+  mkdirSync(dir, { recursive: true });
+  copyFileSync(join(box.rel, 'download', 'v0.1.0-beta.24', 'SHA256SUMS'), join(dir, 'SHA256SUMS'));
+  writeFileSync(join(box.rel, 'install.json'), '{"version": "0.1.0-beta.25"}');
+  const r = ps(box);
+  assert.match(r.stdout, /checksums are for 0\.1\.0-beta\.24, not 0\.1\.0-beta\.25/);
+  assert.ok(!existsSync(join(box.home, 'vibead/bin/vibead.cmd')));
 });
 
 test('installers never fall back to GitHub "latest"', () => {

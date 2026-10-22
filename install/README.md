@@ -42,6 +42,8 @@ After the run, bump `apps/static-web/install.json` in vibead/vibead-ai. That man
 
 Trusted Publishing only publishes. Moving another dist-tag (for example `beta`) still needs a signed-in maintainer, so pick the tag in the run instead.
 
+Then deploy the site so `/install` and `/install.ps1` serve this commit's scripts.
+
 ## Tests
 
 `node --test install/test/*.test.mjs` runs shellcheck, the shell installer in a temp HOME against a local fake release (manifest version, manifest missing or empty, pinned, upgrade, checksum mismatch, unsafe archive, missing platform, with and without a terminal, existing non-installer `vibead`), the PowerShell installer under `pwsh`, and checks that the README lists npm first with every channel as one command.
