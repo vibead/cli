@@ -17,11 +17,20 @@
 #   VIBEAD_NO_ENABLE=1             install only; run `vibead enable` yourself
 #   VIBEAD_NO_MODIFY_PATH=1        accepted for older scripts; the installer never edits profiles
 #   VIBEAD_REQUIRE_SIGNATURE=1     fail unless cosign verifies SHA256SUMS
+#   VIBEAD_ZERO_STEP=1             opt in to zero-step setup (see below)
+#
+# Zero-step setup (vibead/vibead-ai#235) wires every detected agent without a
+# question, the same kit command as the npm postinstall. It stays off until
+# the install-notice wording has legal sign-off: ZERO_STEP_CONSENT_APPROVED=0
+# keeps `vibead enable`, which asks. With it on, CI, no terminal or root
+# installs wire nothing here; the first `vibead` run does it as the user.
 #
 # The whole script is a function called on the last line, so a partial
 # download runs nothing.
 
 set -u
+
+ZERO_STEP_CONSENT_APPROVED=0
 
 main() {
   release_base=${VIBEAD_RELEASE_BASE:-https://github.com/vibead/cli/releases}
@@ -123,6 +132,15 @@ LAUNCHER
 
   if [ -n "${VIBEAD_NO_ENABLE:-}" ]; then
     say "Next: vibead enable"
+  elif zero_step; then
+    say ""
+    if ci_set || ! has_tty || [ "$(id -u)" = 0 ]; then
+      say "Setup finishes the first time you run vibead."
+    else
+      # Prints the install notice and `vibead disable`; a re-install changes
+      # no byte. Never reads the terminal.
+      PATH="$install_dir/bin:$PATH" "$launcher" __wrapperless wire --announce < /dev/null || say "Setup finishes the first time you run vibead."
+    fi
   elif has_tty; then
     say ""
     # A non-zero exit is almost always a deliberate "n" at the consent prompt
@@ -142,6 +160,11 @@ fetch() {
 }
 
 has_tty() { (: < /dev/tty) 2>/dev/null; }
+
+zero_step() { [ "$ZERO_STEP_CONSENT_APPROVED" = 1 ] || [ "${VIBEAD_ZERO_STEP:-}" = 1 ]; }
+
+# Same rule as the npm postinstall: CI set to anything but empty, 0 or false.
+ci_set() { case "${CI:-}" in ''|0|false|FALSE|False) return 1 ;; *) return 0 ;; esac; }
 
 detect_platform() {
   os=$(uname -s); arch=$(uname -m)

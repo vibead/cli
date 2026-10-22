@@ -41,7 +41,7 @@ Works with **Claude Code, Codex and OpenCode** on **macOS (Apple Silicon, Intel)
 
 `vibead enable` lists every file it will change and asks before touching anything. Use `--dry-run` to preview only.
 
-- **Claude Code:** adds a status line, spinner tips and turn hooks to `~/.claude/settings.json`. The hooks print nothing, so nothing reaches the model.
+- **Claude Code:** adds a status line and turn hooks to `~/.claude/settings.json`. The hooks print nothing, so nothing reaches the model.
 - **OpenCode:** adds a plugin that shows a labelled toast when a turn starts.
 - **Codex:** an optional shell alias, `codex` → `vibead codex`.
 
