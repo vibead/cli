@@ -1,0 +1,1 @@
+- npm publishing is Trusted Publishing only (release.yml, OIDC with --provenance): never `npm login` or a publish token on the box. It needs npm 11.5.1 or newer and a public repo whose URL matches package.json `repository`. It can't move dist-tags, so choose the tag at publish time. (cli#30)

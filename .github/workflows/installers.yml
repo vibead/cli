@@ -2,13 +2,13 @@ name: Installer tests
 
 # Linux only. Runs on every pull request, so it can serve as MERGE-1/MERGE-2 in
 # docs/quality/definition-of-done.md (cli#36); pushes to main still run only when
-# the installers, npm launcher or README change. The PowerShell installer is exercised with pwsh on Linux (preinstalled on
+# the installers, npm launcher, README or workflows change. The PowerShell installer is exercised with pwsh on Linux (preinstalled on
 # ubuntu-latest); no Windows or macOS minutes are used.
 on:
   pull_request:
   push:
     branches: [main]
-    paths: ['install/**', 'npm/**', 'README.md', '.github/workflows/installers.yml']
+    paths: ['install/**', 'npm/**', 'README.md', '.github/workflows/**']
 
 permissions:
   contents: read
