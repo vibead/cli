@@ -23,7 +23,7 @@ Before the run:
 2. Merge a PR that sets `npm/package.json` `version` and `npm/releases.json` (version and the three SHA-256s) to that release.
 3. QA the draft from a local mirror (`VIBEAD_RELEASE_BASE=file:///path/to/mirror`, laid out as `download/vX/…`, plus `VIBEAD_MANIFEST_URL=file:///path/to/install.json`) on Claude Code, Codex and OpenCode.
 
-Then run **Release** with `version` (no `v`) and the npm dist-tag. It:
+Then run **Release** with `version` (no `v`) and the npm dist-tag (default `next`; choose `latest` only when QA promotes the release). It:
 
 1. **check:** fails unless the draft has all three archives and `npm/` on main matches them exactly.
 2. **sign:** calls `sign-release.yml`, which adds `SHA256SUMS` and `SHA256SUMS.sigstore.json`. The Sigstore identity stays `sign-release.yml@refs/heads/main`, which the installers verify. This writes a public transparency-log entry, so only run it for a release you mean to ship.
