@@ -196,8 +196,8 @@ Run this on a clean Linux cloud test machine with a fresh `$HOME`. **Any user fr
   *Evidence:* a grep of the CI logs and plan for the values (0 hits), plus the plan showing `(sensitive value)`.
 - **SAFE-5** The cost impact is stated: new resources, expected monthly cost, or "none".
   *Evidence:* one line in the PR body.
-- **SAFE-6** Every QA or test install used is on the **internal install list**, so it is never billed or credited.
-  *Evidence:* install hashes, never keys, plus confirmation that they are on the list.
+- **SAFE-6** Every QA or test install used is on the **internal install list**, so it is never billed or credited, **except the one billable test install on staging, flagged `billable_test` and refused outside staging (design vibead/vibead-ai#230 A1), whose spend is tagged `billable_test` and reported separately** (it is what MONEY-1 reconciles against).
+  *Evidence:* install hashes, never keys, plus confirmation that they are on the list; for the billable test install, its hash prefix, the `billable_test` flag read back on staging, and the separately reported spend.
 - **SAFE-7** Features ship behind **per-env flags** that default off. Prod changes only through reviewed config (tfvars or server config) with a guard test. Test-only clients and QA allowlists can't be enabled from prod config at all.
   *Evidence:* the flag declaration, its value per env, and the guard test name.
 - **SAFE-8** AWS commands map `VIBEAD_AWS_*` to `AWS_*` per command and use only the VibeAd account, never another profile. Terraform is 1.10.5. Any change costing US$20/month or more is held for the Chief of Staff before apply.
@@ -212,6 +212,11 @@ Run this on a clean Linux cloud test machine with a fresh `$HOME`. **Any user fr
 - **DATA-2** Key revocation and account deletion **purge** the install's data and fail closed: if a step fails, the account is kept and a `503` is returned. This is proven on one QA install (seed → revoke or delete → read shows the data purged) and pinned by tests.
   *In vibead/cli:* N/A — the server-side purge lives in vibead-ai; the client side is CLI-10.
   *Evidence:* the before and after reads (hash only) plus the test names.
+
+## MONEY: billing, ledger and earnings
+
+- MONEY-1: Any change touching billing, clicks, the ledger, balances or earnings includes a reconciliation check with evidence: for every billed click, sponsor debit = user credit + VibeAd share to the micro-cent at the rates read back at test time; a duplicate within 24 h is unbilled on both sides; each sponsor's dashboard balance = its ledger sum; each user's earnings page = their ledger sum; a click on sponsor A's ad never changes sponsor B.
+  *In vibead/cli:* N/A unless the change affects how the launcher or installers request ads, open click links or report impressions; billing and the ledger live in vibead-ai.
 
 ## REL: release
 

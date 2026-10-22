@@ -75,13 +75,16 @@ Docs (DOC-1): <files changed | docs: n/a - why>
 - [ ] SAFE-3 workflow-only change ran plan-only: <run url> → in vibead/cli: N/A — workflows here test and sign releases
 - [ ] SAFE-4 no secrets or partial secrets in output; sensitive values via `secrets.*`: <grep = 0 hits>
 - [ ] SAFE-5 cost impact stated (above)
-- [ ] SAFE-6 QA/test installs on the internal list: <hashes only>
+- [ ] SAFE-6 QA/test installs on the internal list (only exception: the one staging `billable_test` install, #230 A1): <hashes only>
 - [ ] SAFE-7 per-env flag, default off; prod only via reviewed config + guard test: <flag, values, test>
 - [ ] SAFE-8 `VIBEAD_AWS_*` → `AWS_*`, VibeAd account only, Terraform 1.10.5, ≥ US$20/month held for the Chief of Staff: <evidence> → in vibead/cli: N/A — no AWS commands or Terraform here
 
 ### Data / privacy
 - [ ] DATA-1 retention/TTL proven and pinned by tests: <tests, mutants> → in vibead/cli: N/A — retention and TTL live in vibead-ai
 - [ ] DATA-2 revoke/delete purges and fails closed (proven on a QA install): <before/after reads, hash only> → in vibead/cli: N/A — the server-side purge lives in vibead-ai
+
+### Money
+- [ ] MONEY-1 billed-click reconciliation: sponsor debit = user credit + VibeAd share (micro-cent, rates read back at test time); 24 h duplicate unbilled both sides; dashboard and earnings = ledger sums; sponsor A never changes B: <reconcile output, hashes only> → in vibead/cli: N/A unless the launcher or installers change ad requests, click links or impression reports
 
 ### Release
 - [ ] REL-1 fresh, never-used version: <release list + npm versions>
