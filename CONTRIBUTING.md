@@ -27,7 +27,6 @@ Docs stay in line with the code, features, issues and the business ([vibead-ai#1
 - The **Docs check** workflow (`.github/workflows/docs-check.yml`) enforces this. It's a path check only: code paths are listed in `.github/docs-check/config.json` (`install/`, `npm/`, `packaging/`, `.github/workflows/`), and test-only changes don't count. Editing the PR body re-runs it.
 - **Design-doc gate:** a PR that changes how VibeAd is installed, released or launched updates [`docs/system-design/README.md`](docs/system-design/README.md) in the same PR (diagrams, unbuilt pieces marked planned) or says `Design doc: N/A — <reason>`; `scripts/check-design-doc.mjs` checks `install/`, `npm/`, `packaging/` and `.github/workflows/` (Markdown files there don't count), and an empty doc file doesn't satisfy it.
 
-
 ## Lessons
 
 - Read [LESSONS.md](LESSONS.md) and [lessons/](lessons/) before changing code. New lessons go in `lessons/`, one file each (see [lessons/README.md](lessons/README.md)); LESSONS.md takes no new lines.
