@@ -56,3 +56,18 @@ test('release.yml: manual only, OIDC in the npm environment, next by default, no
   const tap = y.slice(y.indexOf('\n  tap:'));
   assert.match(tap.split('\n    steps:')[0], /^    if: inputs\.npm_tag == 'latest'$/m, 'tap job gated on npm_tag latest');
 });
+
+// Drafts are visible only to tokens with push access (cli#37 QA R2-1): every job
+// that reads the DRAFT release must run with contents:write, or gh says
+// "release not found" and nothing publishes. The workflow default stays read.
+test('release.yml: jobs that read the draft have contents:write; the default stays read', () => {
+  const y = readFileSync(join(dir, 'release.yml'), 'utf8');
+  assert.match(y.slice(y.indexOf('\npermissions:'), y.indexOf('\nconcurrency:')), /^  contents: read$/m);
+  const job = (a, b) => y.slice(y.indexOf(`\n  ${a}:`), b ? y.indexOf(`\n  ${b}:`) : undefined);
+  for (const [name, next] of [['check', 'sign'], ['sign', 'publish-release'], ['publish-release', 'npm']]) {
+    const head = job(name, next).split('\n    steps:')[0];
+    assert.match(head, /^    permissions:\n(?:      .*\n)*?      contents: write$/m, `${name} needs contents:write to see the draft`);
+  }
+  const sign = readFileSync(join(dir, 'sign-release.yml'), 'utf8');
+  assert.match(sign.slice(sign.indexOf('\npermissions:'), sign.indexOf('\nconcurrency:')), /^  contents: write$/m);
+});

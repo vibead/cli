@@ -8,8 +8,8 @@
 # (no admin rights), then runs `vibead enable`, which lists every file it will
 # change and asks before touching anything.
 #
-# Optional environment: VIBEAD_VERSION, VIBEAD_INSTALL_DIR, VIBEAD_NO_ENABLE,
-# VIBEAD_NO_MODIFY_PATH (same meaning as the macOS/Linux installer).
+# Optional environment: VIBEAD_VERSION, VIBEAD_INSTALL_DIR, VIBEAD_NO_ENABLE.
+# VIBEAD_NO_MODIFY_PATH is accepted for older scripts; the installer never changes the user PATH.
 # Everything runs inside a function and uses `return`, never `exit`, so a
 # failure doesn't close the PowerShell window that ran `iex`.
 
@@ -92,17 +92,10 @@ function Install-VibeAd {
 
     $userPath = [Environment]::GetEnvironmentVariable('Path', 'User')
     if (-not (($userPath -split ';') -contains $binDir)) {
-      $add = $false
-      if (-not $env:VIBEAD_NO_MODIFY_PATH -and [Environment]::UserInteractive -and -not [Console]::IsInputRedirected) {
-        $answer = Read-Host "Add $binDir to your user PATH? [Y/n]"
-        $add = ($answer -eq '' -or $answer -match '^(y|yes)$')
-      }
-      if ($add) {
-        [Environment]::SetEnvironmentVariable('Path', ($(if ($userPath) { "$userPath;" } else { '' }) + $binDir), 'User')
-        Write-Host 'Added. New terminals will find `vibead`.'
-      } else {
-        Write-Host "To use ``vibead`` in new terminals, add $binDir to your PATH."
-      }
+      # No question here (CLI-2: the one consent is `vibead enable`'s) and no
+      # change to the user PATH: print the command that adds it.
+      Write-Host "To use ``vibead`` in new terminals, add $binDir to your user PATH:"
+      Write-Host "  [Environment]::SetEnvironmentVariable('Path', [Environment]::GetEnvironmentVariable('Path', 'User') + ';$binDir', 'User')"
     }
     $env:Path = "$binDir;$env:Path"
 

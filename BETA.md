@@ -1,5 +1,7 @@
 # Beta test with your existing AI agent setup
 
+**Release candidate, Merged, not released:** 0.1.0-beta.30 is a GitHub [pre-release](https://github.com/vibead/cli/releases/tag/v0.1.0-beta.30) (not Latest) for macOS (Apple Silicon, Intel) and Linux x64; Live stays 0.1.0-beta.25 (npm `latest`, `/install`, Homebrew). Fixes: duplicate install keys ([vibead#162](https://github.com/vibead/vibead/issues/162), [vibead#166](https://github.com/vibead/vibead/issues/166)); Codex impressions counted only when the ad was really shown ([vibead#163](https://github.com/vibead/vibead/issues/163)); the Codex ad from its first Working frame ([vibead#165](https://github.com/vibead/vibead/issues/165)). **Known gap:** no ad on the very first Claude turn of a fresh install ([vibead#164](https://github.com/vibead/vibead/issues/164)); Claude is judged from turn 2, and #164 blocks promotion to Latest. The beta.17 guide below is unchanged.
+
 **Official distribution:** [vibead/cli](https://github.com/vibead/cli). Beta.17 archives are unchanged from their original publication. Their bundled guide can contain older repository links; use this online guide for current downloads and known issues.
 
 **Beta.17 keeps the setup you already use:** your home directory, saved login, model/provider configuration, custom configuration directories, project files, settings, plugins and exported environment. You launch through Vibead from your usual project, and it adds local mock advertisements during supported thinking states.
