@@ -1,8 +1,6 @@
 {
-  "version": "0.1.0-beta.25",
+  "version": "0.1.0-beta.29",
   "platforms": {
-    "darwin-arm64": "49ef5e57623b3710e52ef159c82e0f7c29bbfbe481de5aa6fd4fa5f2fb7d4c07",
-    "darwin-x64": "3efd2d0eb8f71d0305c8c1421005de50d2ecb25412ed731d859ca29fc43937be",
-    "linux-x64": "267cd47a7a8aab34003b4c945530688c0e394babe72de7c6b652ad238424f185"
+    "linux-x64": "9b6eed5980431569c9713a68c05e98c8d332c4fc3ded5badd0499f6ccacefb99"
   }
 }
