@@ -79,7 +79,7 @@ One DoD with the same stable line IDs lives in [vibead/vibead-ai](https://github
   - anything not built yet marked **Planned**.
 
   *Evidence:* the README diff lines plus a render check (the diagram count that renders, e.g. "7/7 diagrams render").
-- **DOC-3** There are no self-referential labels that go stale on merge, such as "In review", "this PR", "in this PR", "applies once deployed", "once deployed", "once merged", "pending merge" or "after this merges". Status is only **Live** (merged and deployed, with the env named) or **Planned**. The design doc must also describe current main correctly after this PR merges, not before.
+- **DOC-3** There are no self-referential labels that go stale on merge, such as "In review", "this PR", "in this PR", "applies once deployed", "once deployed", "once merged", "pending merge" or "after this merges". There are exactly **three statuses**: **Live** (merged and deployed or published, with the env or channel named), **Merged, not released** (on `main`, not in a published release or deploy yet) and **Planned** (tracked in an issue or an open PR, not on `main`). "In review" is not a status; an open PR is Planned. The design doc must also describe current main correctly after this PR merges, not before.
   *Evidence:* the output of
   `git diff origin/main...HEAD -- '*.md' ':!docs/quality/definition-of-done.md' ':!.github/pull_request_template.md' | grep -inE '^\+.*(in review|this pr|once deployed|once merged|applies once|pending merge|after this merges)'`,
   which must be empty. (This file and the PR template are excluded because they quote the banned labels.)

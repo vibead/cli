@@ -35,7 +35,7 @@ Docs (DOC-1): <files changed | docs: n/a - why>
 ### Docs
 - [ ] DOC-1 matching docs updated, or `docs: n/a - <why>`
 - [ ] DOC-2 `docs/system-design/README.md` updated for flow/role/component/infra/auth change; diagrams render (<n>/<n>); unbuilt parts marked Planned: <lines>
-- [ ] DOC-3 status only Live or Planned; no stale self-labels (In review / this PR / once merged / once deployed …): <empty grep output>
+- [ ] DOC-3 status only Live, Merged, not released or Planned (no "In review"); no stale self-labels (this PR / once merged / once deployed …): <empty grep output>
 - [ ] DOC-4 legal/privacy/terms claims true of live config for the serving env; `legal-claims.test.mjs` passes: <claim → file:line table> → in vibead/cli: N/A unless the PR changes what is collected or sent: legal pages live in vibead-ai
 - [ ] DOC-5 `check-design-doc` gate exit 0; whitespace-only doc edits don't satisfy it: <output> → in vibead/cli: N/A — `scripts/check-design-doc.mjs` isn't in this repo
 - [ ] DOC-6 doc claims checked against current main merged with this head: <base sha, refs>

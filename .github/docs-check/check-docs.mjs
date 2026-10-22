@@ -35,6 +35,6 @@ if (import.meta.url === pathToFileURL(process.argv[1] ?? "").href) {
   const result = checkDocs(changedFiles(REPO, PR_NUMBER), PR_BODY, config);
   if (result.ok) { console.log(`Docs check passed: ${result.reason}.`); process.exit(0); }
   const shown = result.code.slice(0, 10).join(", ") + (result.code.length > 10 ? `, and ${result.code.length - 10} more` : "");
-  console.log(`::error title=Docs not updated::This PR changes code (${shown}) but no docs. Update ${config.docs.join(" or ")} in this PR (including the Live / Planned status in vibead-ai docs/system-design/README.md), or add a line "docs: n/a - <why>" to the PR body.`);
+  console.log(`::error title=Docs not updated::This PR changes code (${shown}) but no docs. Update ${config.docs.join(" or ")} in this PR (including the status in vibead-ai docs/system-design/README.md: Live, Merged, not released or Planned), or add a line "docs: n/a - <why>" to the PR body.`);
   process.exit(1);
 }
