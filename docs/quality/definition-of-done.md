@@ -151,7 +151,7 @@ Run this on a clean Linux cloud test machine with a fresh `$HOME`. **Any user fr
 - **CLI-1** Fresh install from the **exact release artefact** (the version and checksum handed to QA), not a local build.
   *Evidence:* the install command, `vibead --version`, and the artefact sha256 matching `SHA256SUMS`.
 - **CLI-2** `vibead enable` succeeds with no prompts or manual steps, apart from the one opt-in consent below.
-  *Consent exemption (Gaurav):* exactly one explicit opt-in consent at enable time is allowed, because sponsored placements are opt-in: one screen that lists every change and one yes/no question, default no, with `--yes` to accept it non-interactively. Anything else fails CLI-2: a second question, an installer PATH question, an agent's hook-trust or folder-trust dialog, or any step the user has to do by hand.
+  *Consent exemption (Chief of Staff (Nina)):* exactly one explicit opt-in consent at enable time is allowed, because sponsored placements are opt-in: one screen that lists every change and one yes/no question, default no, with `--yes` to accept it non-interactively. Anything else fails CLI-2: a second question, an installer PATH question, an agent's hook-trust or folder-trust dialog, or any step the user has to do by hand.
   *Evidence:* the terminal output.
 - **CLI-3** **3+ turns in each of claude, codex and opencode.**
   *Evidence:* a turn log for each agent.
