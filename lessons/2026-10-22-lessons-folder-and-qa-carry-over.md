@@ -1,0 +1,1 @@
+- Parallel PRs that each appended to LESSONS.md conflicted with every merge of main, and each conflict cost a fresh QA pass. New lessons go in lessons/, one file each; LESSONS.md has `merge=union`. A QA PASS carries over a merge of main only when `scripts/pr-own-diff.sh <passed> <new>` passes (CONTRIBUTING.md, "QA PASS carry-over").

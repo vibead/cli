@@ -114,21 +114,25 @@ function runTty(box, answers, env = {}) {
   return spawnSync('script', ['-qec', `sh '${installSh}'`, '/dev/null'], { encoding: 'utf8', env: full, input: answers });
 }
 
-test('install.sh: re-running from a shell without ~/.local/bin on PATH adds one PATH block and asks once (cli#24)', { skip: (!linuxX64 || !which('script')) && 'needs Linux x64 and script(1)' }, () => {
+// CLI-2: the only question in an install is `vibead enable`'s consent. With
+// ~/.local/bin off PATH the installer prints the export line; it never asks and
+// never edits a profile. A profile with an earlier installer's block (cli#24)
+// is recognised and left alone.
+test('install.sh: off PATH it asks nothing and edits no profile, printing the export line; an earlier PATH block is recognised', { skip: (!linuxX64 || !which('script')) && 'needs Linux x64 and script(1)' }, () => {
   const box = sandbox();
   release(box.rel, '0.1.0-beta.99');
   const first = runTty(box, 'y\n');
   assert.equal(first.status, 0, first.stdout + first.stderr);
-  assert.match(first.stdout, /Add .*\.local\/bin to your PATH in .*\.bashrc\? \[Y\/n\]/);
+  assert.doesNotMatch(first.stdout, /\[Y\/n\]|to your PATH in .*\?/, 'no PATH question');
+  const exportLine = `export PATH="${join(box.home, '.local/bin')}:$PATH"`;
+  assert.ok(first.stdout.includes(`  ${exportLine}`), first.stdout);
+  assert.ok(!existsSync(join(box.home, '.bashrc')), 'no profile written');
+  writeFileSync(join(box.home, '.bashrc'), `# mine\n\n# >>> vibead installer PATH >>>\n${exportLine}\n# <<< vibead installer PATH <<<\n`);
+  const before = readFileSync(join(box.home, '.bashrc'), 'utf8');
   const second = runTty(box, 'y\n');
   assert.equal(second.status, 0, second.stdout + second.stderr);
-  assert.doesNotMatch(second.stdout, /to your PATH in/, 'no second prompt');
-  assert.match(second.stdout, /already in .*\.bashrc/);
-  const rc = readFileSync(join(box.home, '.bashrc'), 'utf8');
-  const exportLine = `export PATH="${join(box.home, '.local/bin')}:$PATH"`;
-  assert.equal(rc.split('\n').filter(l => l === exportLine).length, 1, rc);
-  assert.equal(rc.split('\n').filter(l => l === '# >>> vibead installer PATH >>>').length, 1, rc);
-  assert.equal(rc.split('\n').filter(l => l === '# <<< vibead installer PATH <<<').length, 1, rc);
+  assert.match(second.stdout, /already in your PATH in .*\.bashrc/);
+  assert.equal(readFileSync(join(box.home, '.bashrc'), 'utf8'), before, 'profile untouched');
 });
 
 test('install.sh: answering n at the enable consent prints a neutral "Setup skipped" line', { skip: (!linuxX64 || !which('script')) && 'needs Linux x64 and script(1)' }, () => {
@@ -325,4 +329,43 @@ test('README: npm is listed first and every install channel is a single command'
   const at = channels.map(c => lines.findIndex(l => l.trim().startsWith(c)));
   channels.forEach((c, i) => assert.ok(at[i] >= 0, `README has no single-line command: ${c}`));
   assert.ok(at.every(i => at[0] <= i), 'npm must come first');
+});
+
+// Since beta.29 SHA256SUMS also covers the npm launcher tarball (signed with
+// the kits). Its line comes first here on purpose: the installers must still
+// pick their platform's kit line and install exactly as before.
+function addLauncherLine(dir, version) {
+  const tgz = join(dir, `vibead-cli-${version}.tgz`);
+  writeFileSync(tgz, 'fake launcher tarball\n');
+  writeFileSync(join(dir, 'SHA256SUMS'), `${sha(tgz)}  vibead-cli-${version}.tgz\n` + readFileSync(join(dir, 'SHA256SUMS'), 'utf8'));
+}
+
+test('install.sh: a SHA256SUMS that also lists the launcher tarball installs the kit as before', { skip: !linuxX64 && 'Linux x64 only' }, () => {
+  const box = sandbox();
+  const { dir } = release(box.rel, '0.1.0-beta.99');
+  addLauncherLine(dir, '0.1.0-beta.99');
+  const r = runSh(box);
+  assert.equal(r.status, 0, r.stderr);
+  assert.match(r.stdout, /Checksum verified\./);
+  assert.match(r.stdout, /Installed VibeAd 0\.1\.0-beta\.99/);
+  assert.ok(existsSync(join(box.home, '.vibead/versions/0.1.0-beta.99-linux-x64/vibead-beta')));
+});
+
+test('install.ps1: a SHA256SUMS that also lists the launcher tarball installs the kit as before', { skip: !pwsh && 'pwsh not installed' }, () => {
+  const box = sandbox();
+  const { dir } = release(box.rel, '0.1.0-beta.99', { platform: 'win32-x64', zip: true });
+  addLauncherLine(dir, '0.1.0-beta.99');
+  const r = ps(box);
+  assert.equal(r.status, 0, r.stdout + r.stderr);
+  assert.match(r.stdout, /Checksum verified\./);
+  assert.ok(existsSync(join(box.home, 'vibead/versions/0.1.0-beta.99-win32-x64/vibead-beta.exe')));
+});
+
+test('install.ps1: asks no PATH question and leaves the user PATH alone, printing how to add it', { skip: !pwsh && 'pwsh not installed' }, () => {
+  const box = sandbox();
+  release(box.rel, '0.1.0-beta.99', { platform: 'win32-x64', zip: true });
+  const r = ps(box);
+  assert.equal(r.status, 0, r.stdout + r.stderr);
+  assert.doesNotMatch(r.stdout, /\[Y\/n\]/);
+  assert.match(r.stdout, /add .*vibead.bin to your user PATH:/);
 });

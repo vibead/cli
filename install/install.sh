@@ -15,7 +15,7 @@
 #   VIBEAD_INSTALL_DIR=~/.vibead   where versions and the launcher live
 #   VIBEAD_BIN_DIR=~/.local/bin    where the `vibead` command is linked
 #   VIBEAD_NO_ENABLE=1             install only; run `vibead enable` yourself
-#   VIBEAD_NO_MODIFY_PATH=1        never offer to add the bin dir to PATH
+#   VIBEAD_NO_MODIFY_PATH=1        accepted for older scripts; the installer never edits profiles
 #   VIBEAD_REQUIRE_SIGNATURE=1     fail unless cosign verifies SHA256SUMS
 #
 # The whole script is a function called on the last line, so a partial
@@ -186,22 +186,14 @@ ensure_path() {
   case "${SHELL:-}" in */zsh) rc="$HOME/.zshrc" ;; */bash) rc="$HOME/.bashrc"; [ "$(uname -s)" = Darwin ] && rc="$HOME/.bash_profile" ;; */fish) rc="" ;; *) rc="$HOME/.profile" ;; esac
   line="export PATH=\"$bin_dir:\$PATH\""
   begin='# >>> vibead installer PATH >>>'
-  end='# <<< vibead installer PATH <<<'
-  # Idempotent (cli#24): if this profile already has our block, or the exact
-  # line from an earlier installer, don't ask again or append a second copy.
+  # A profile that already has the block or the exact line from an earlier
+  # installer (cli#24) needs nothing.
   if [ -n "$rc" ] && [ -f "$rc" ] && { grep -qxF "$begin" "$rc" || grep -qxF "$line" "$rc"; }; then
     say "$bin_dir is already in your PATH in $rc. Open a new terminal to use \`vibead\`."
     return 0
   fi
-  if [ -n "$rc" ] && [ -z "${VIBEAD_NO_MODIFY_PATH:-}" ] && has_tty; then
-    printf 'Add %s to your PATH in %s? [Y/n] ' "$bin_dir" "$rc"
-    read -r answer < /dev/tty || answer=n
-    case "$answer" in
-      ""|y|Y|yes|YES)
-        printf '\n%s\n%s\n%s\n' "$begin" "$line" "$end" >> "$rc" && say "Added. Open a new terminal to use \`vibead\`."
-        return 0 ;;
-    esac
-  fi
+  # No question here (CLI-2: the one consent is `vibead enable`'s) and no
+  # profile edit: print the line to add.
   say "To use \`vibead\` in new terminals, add this to your shell profile:"
   say "  $line"
 }
