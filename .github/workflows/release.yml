@@ -1,0 +1,158 @@
+name: Release
+
+# One manual run ships a version to every channel, in this order:
+#   1. check the draft GitHub Release and the npm launcher files
+#   2. sign SHA256SUMS (sign-release.yml)
+#   3. publish the Release: Latest only when npm_tag is latest; otherwise a
+#      pre-release that is not Latest, so releases/latest and /install stay put
+#   4. npm publish via Trusted Publishing (OIDC + provenance; no token, no OTP)
+#   5. bump the Homebrew tap (npm_tag latest only)
+# Before running: the draft release vX exists with every archive and its
+# .sha256 (from the vibead/vibead build), and main has npm/package.json at X
+# and npm/releases.json listing the same SHA-256s. Then bump install.json in
+# vibead/vibead-ai so `curl | sh` follows. See install/README.md "Releasing".
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: Version without the v, for example 0.1.0-beta.28
+        required: true
+      npm_tag:
+        description: npm dist-tag to publish under (next until QA promotes a release)
+        type: choice
+        options: [next, beta, latest]
+        default: next
+
+permissions:
+  contents: read
+
+concurrency:
+  group: release-${{ inputs.version }}
+  cancel-in-progress: false
+
+jobs:
+  check:
+    name: Check draft release and npm launcher
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      tag: ${{ steps.check.outputs.tag }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - id: check
+        env:
+          GH_TOKEN: ${{ github.token }}
+          VERSION: ${{ inputs.version }}
+        run: |
+          set -euo pipefail
+          [[ "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.]+)?$ ]] || { echo "bad version"; exit 1; }
+          tag="v$VERSION"
+          [ "$(gh release view "$tag" --repo "$GITHUB_REPOSITORY" --json isDraft --jq .isDraft)" = true ] || { echo "$tag must be a draft release"; exit 1; }
+          [ "$(jq -r .version npm/package.json)" = "$VERSION" ] || { echo "npm/package.json is not $VERSION"; exit 1; }
+          [ "$(jq -r .version npm/releases.json)" = "$VERSION" ] || { echo "npm/releases.json is not $VERSION"; exit 1; }
+          mkdir assets
+          gh release download "$tag" --repo "$GITHUB_REPOSITORY" --dir assets --pattern '*.sha256'
+          for p in darwin-arm64 darwin-x64 linux-x64; do
+            f="assets/vibead-beta-$VERSION-$p.tar.gz.sha256"
+            [ -f "$f" ] || { echo "draft has no $p archive"; exit 1; }
+            want=$(jq -r --arg p "$p" '.platforms[$p] | if type == "string" then . else .sha256 end' npm/releases.json)
+            [ "$(cut -d' ' -f1 "$f")" = "$want" ] || { echo "npm/releases.json $p does not match the release"; exit 1; }
+          done
+          echo "tag=$tag" >> "$GITHUB_OUTPUT"
+
+  sign:
+    needs: check
+    permissions:
+      contents: write
+      id-token: write
+    uses: ./.github/workflows/sign-release.yml
+    with:
+      tag: ${{ needs.check.outputs.tag }}
+
+  publish-release:
+    name: Publish the GitHub Release (Latest only for npm_tag latest)
+    needs: [check, sign]
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: write
+    steps:
+      - env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ needs.check.outputs.tag }}
+          NPM_TAG: ${{ inputs.npm_tag }}
+        run: |
+          gh release view "$TAG" --repo "$GITHUB_REPOSITORY" --json assets --jq '.assets[].name' | grep -qx SHA256SUMS
+          if [ "$NPM_TAG" = latest ]; then
+            gh release edit "$TAG" --repo "$GITHUB_REPOSITORY" --draft=false --prerelease=false --latest
+          else
+            gh release edit "$TAG" --repo "$GITHUB_REPOSITORY" --draft=false --prerelease --latest=false
+          fi
+
+  npm:
+    name: npm publish (Trusted Publishing, provenance)
+    needs: publish-release
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    # Optional protection: add required reviewers to the "npm" environment in
+    # repo settings. The npm trusted-publisher entry must name the same environment.
+    environment: npm
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: '22'
+          registry-url: 'https://registry.npmjs.org'
+      # Trusted Publishing needs npm 11.5.1 or newer. No NODE_AUTH_TOKEN: npm
+      # exchanges this job's OIDC token for a short-lived publish credential.
+      - run: npm install -g 'npm@^11.5.1' && npm --version
+      - working-directory: npm
+        run: npm test
+      - working-directory: npm
+        env:
+          NPM_TAG: ${{ inputs.npm_tag }}
+        run: npm publish --provenance --access public --tag "$NPM_TAG"
+
+  tap:
+    name: Bump the Homebrew tap (npm_tag latest only)
+    needs: [check, npm]
+    # Homebrew is a Live channel: only a promoted (latest) release may bump it, never next or beta.
+    if: inputs.npm_tag == 'latest'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          repository: vibead/homebrew-tap
+          # Fine-grained token: contents read/write on vibead/homebrew-tap only.
+          token: ${{ secrets.HOMEBREW_TAP_TOKEN }}
+      - env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ needs.check.outputs.tag }}
+          VERSION: ${{ inputs.version }}
+          SOURCE: ${{ github.repository }}
+        run: |
+          set -euo pipefail
+          gh release download "$TAG" --repo "$SOURCE" --pattern SHA256SUMS
+          f=Formula/vibead.rb
+          old=$(sed -nE 's/^  version "([^"]+)"$/\1/p' "$f")
+          sed -i "s/${old//./\\.}/$VERSION/g" "$f"
+          for p in darwin-arm64 darwin-x64 linux-x64; do
+            sum=$(awk -v n="vibead-beta-$VERSION-$p.tar.gz" '$2 == n {print $1}' SHA256SUMS)
+            [ -n "$sum" ] || { echo "SHA256SUMS has no $p"; exit 1; }
+            # The sha256 line follows its url line in the formula.
+            sed -i "/vibead-beta-$VERSION-$p.tar.gz\"/{n;s/sha256 \"[0-9a-f]\{64\}\"/sha256 \"$sum\"/}" "$f"
+          done
+          rm SHA256SUMS
+          git diff --stat
+          # Author and committer are the Actions bot, never a person's address.
+          git -c user.name="github-actions[bot]" -c user.email="41898282+github-actions[bot]@users.noreply.github.com" commit -am "vibead $VERSION"
+          git push origin HEAD:main
