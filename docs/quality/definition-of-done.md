@@ -21,7 +21,10 @@ One DoD with the same stable line IDs lives in [vibead/vibead-ai](https://github
 - **DOC-1:** the **Docs check** workflow (`.github/docs-check/check-docs.mjs`, self-test `node --test .github/docs-check/*.test.mjs`); doc paths are `docs/`, `README.md`, `BETA.md`, `install/README.md`, `npm/README.md`.
 - **DOC-2:** this repo has no `docs/system-design/`; the design doc is vibead-ai's, updated in a linked PR.
 - **MERGE-5:** this repo has no `scripts/pr-own-diff.sh`; run vibead-ai's copy from this checkout (`bash <vibead-ai>/scripts/pr-own-diff.sh <passed> <new>`; it uses the current repo's git).
-- **BUG-5:** this repo has no `lessons/` folder on main; the first lesson creates it, following vibead-ai's [lessons/README.md](https://github.com/vibead/vibead-ai/blob/main/lessons/README.md).
+- **BUG-5:** this repo has no `lessons/` folder, `.gitattributes` or `check-lessons.mjs` on main; they are Planned in [cli#31](https://github.com/vibead/cli/pull/31). Until then the first lesson creates `lessons/`, following vibead-ai's [lessons/README.md](https://github.com/vibead/vibead-ai/blob/main/lessons/README.md).
+- **DOC-3 status legend:** `node --test .github/docs-check/status-legend.test.mjs` checks the legend in this file against the pinned SHA-256 shared by all three repos (this repo has no `docs/system-design/README.md`).
+- **MERGE-1 / MERGE-2:** this repo has no `PR tests` check. Its test check is **Installer tests** (`.github/workflows/installers.yml`). There is no branch protection on `main`, so no check is required by GitHub. Installer tests is path-filtered to `install/**`, `npm/**`, `README.md` and its own workflow file, so it is skipped on other PRs. Until the workflow runs on every PR ([cli#36](https://github.com/vibead/cli/issues/36); the change needs a token with `workflow` scope), MERGE-1 for a PR it skips means the Engineer runs the same installer test commands (TEST-1) on the head with `shellcheck` and `pwsh` installed and pastes the counts, and MERGE-2 records Installer tests as path-skipped with that local run as evidence.
+- **CLI-2:** `install/install.sh` and `install.ps1` ask "Add <dir> to your PATH …? [Y/n]" when the bin directory isn't on PATH; that question fails CLI-2 until it is removed.
 
 ---
 
@@ -60,6 +63,8 @@ One DoD with the same stable line IDs lives in [vibead/vibead-ai](https://github
   *Evidence:* the top of the PR body.
 - **MERGE-8** **Self-verified before handoff.** The Engineer ran every applicable line and every acceptance criterion end to end, in the real environment where possible, on the head handed to QA. Hand off only when you expect a PASS: QA is verification, not discovery.
   *Evidence:* the ticked checklist (MERGE-0) and the head SHA it was run on.
+- **MERGE-9** A PR that changes this file lists, for each new or edited line, every existing line it overlaps or contradicts, and resolves each one by amending or retiring the older line (IDs stay stable). The text stays byte-identical in the three repos; only the *In vibead/<repo>* notes and the "This repo" section differ.
+  *Evidence:* the overlap list in the PR body, plus a diff of the three copies with the per-repo lines stripped, which must be empty.
 
 ## TEST: tests that really guard the change
 
@@ -79,10 +84,21 @@ One DoD with the same stable line IDs lives in [vibead/vibead-ai](https://github
   - anything not built yet marked **Planned**.
 
   *Evidence:* the README diff lines plus a render check (the diagram count that renders, e.g. "7/7 diagrams render").
-- **DOC-3** There are no self-referential labels that go stale on merge, such as "In review", "this PR", "in this PR", "applies once deployed", "once deployed", "once merged", "pending merge" or "after this merges". There are exactly **three statuses**: **Live** (merged and deployed or published, with the env or channel named), **Merged, not released** (on `main`, not in a published release or deploy yet) and **Planned** (tracked in an issue or an open PR, not on `main`). "In review" is not a status; an open PR is Planned. The design doc must also describe current main correctly after this PR merges, not before.
-  *Evidence:* the output of
-  `git diff origin/main...HEAD -- '*.md' ':!docs/quality/definition-of-done.md' ':!.github/pull_request_template.md' | grep -inE '^\+.*(in review|this pr|once deployed|once merged|applies once|pending merge|after this merges)'`,
-  which must be empty. (This file and the PR template are excluded because they quote the banned labels.)
+- **DOC-3** There are no self-referential labels that go stale on merge, such as "In review", "this PR", "in this PR", "applies once deployed", "once deployed", "once merged", "when merged", "once this lands", "pending merge", "pending deploy" or "after this merges". There are exactly **three statuses**, defined by the status legend below, which is byte-identical in every copy of this file and in every `docs/system-design/README.md`. "In review" is not a status; an open PR is Planned. The design doc must also describe current main correctly after this PR merges, not before.
+  *Evidence:* the output of this command, run from any directory in the repo, which must be empty (this file and the PR template are excluded because they quote the banned labels):
+  `git diff origin/main...HEAD -- ':(top)*.md' ':(top,exclude)docs/quality/definition-of-done.md' ':(top,exclude).github/pull_request_template.md' | grep -inE '^\+.*(in review|\bthis pr\b|once deployed|once merged|when merged|once this (lands|merges)|applies once|pending merge|pending deploy|after this merges)'`,
+  plus the status-legend check passing (see "This repo").
+
+**Status legend** (DOC-3). Copied byte for byte into every copy of this file and every `docs/system-design/README.md`; the status-legend check compares the text between the markers against one pinned SHA-256.
+
+<!-- status-legend:start -->
+- **Live**: what a real user gets by default. Site: deployed on www.vibead.ai. CLI: served by npm `latest`, the curl `/install` pin AND Homebrew.
+- **Merged, not released**: on `main`, not Live yet. A GitHub pre-release (an RC such as v0.1.0-beta.27) is in this status, optionally with a note naming the RC tag, e.g. "Merged, not released (pre-release v0.1.0-beta.27)".
+- **Planned**: tracked in an issue, or in an open pull request that isn't merged. Not on `main`. In diagrams, planned pieces are dashed.
+
+These are the only three statuses.
+<!-- status-legend:end -->
+
 - **DOC-4** Legal, privacy and terms claims are true of the **running code and live config for the env that serves the page**. www.vibead.ai is served by the dev stack. This covers sign-in methods, which emails are sent, retention and TTL, data collected, and payment and earnings statements. `scripts/legal-claims.test.mjs` passes, and `scripts/data/legal-claims-pending.json` is updated when needed.
   *In vibead/cli:* N/A unless the PR changes what is collected or sent: legal pages live in vibead-ai; if the PR changes what the launcher collects or sends, the legal update is a linked vibead-ai PR and this line applies there.
   *Evidence:* a claim → code/tfvars file:line table plus the test output.
@@ -121,7 +137,7 @@ One DoD with the same stable line IDs lives in [vibead/vibead-ai](https://github
 - **UI-8** There are no dead ends or fake buttons. Every link and button on changed pages resolves (no 404, no no-op), and every error state offers a way forward.
   *In vibead/cli:* N/A — no web pages here; the site is vibead/vibead-ai.
   *Evidence:* a link-check output plus a list of clicked controls.
-- **UI-9** Public pages name no founders and no platforms. Copy speaks to all AI users and to advertisers of every kind of brand. `npm run check:copy` passes.
+- **UI-9** Public pages name no founders and no third-party platform or vendor names. The supported agents (Claude Code, Codex, OpenCode) may be named where a user needs them, such as install instructions. Copy speaks to all AI users and to advertisers of every kind of brand. `npm run check:copy` passes.
   *In vibead/cli:* N/A — no web pages here; the site is vibead/vibead-ai.
   *Evidence:* the `check:copy` output.
 - **UI-10** One sign-in for users and sponsors: every sponsor entry point uses the shared `/login?as=sponsor`, never a separate sponsor sign-in. A feature switched off by a per-env flag is hidden on that env, not shown broken.
@@ -134,11 +150,13 @@ Run this on a clean Linux cloud test machine with a fresh `$HOME`. **Any user fr
 
 - **CLI-1** Fresh install from the **exact release artefact** (the version and checksum handed to QA), not a local build.
   *Evidence:* the install command, `vibead --version`, and the artefact sha256 matching `SHA256SUMS`.
-- **CLI-2** `vibead enable` succeeds with no prompts or manual steps.
+- **CLI-2** `vibead enable` succeeds with no prompts or manual steps, apart from the one opt-in consent below.
+  *Consent exemption (Gaurav):* exactly one explicit opt-in consent at enable time is allowed, because sponsored placements are opt-in: one screen that lists every change and one yes/no question, default no, with `--yes` to accept it non-interactively. Anything else fails CLI-2: a second question, an installer PATH question, an agent's hook-trust or folder-trust dialog, or any step the user has to do by hand.
   *Evidence:* the terminal output.
 - **CLI-3** **3+ turns in each of claude, codex and opencode.**
   *Evidence:* a turn log for each agent.
 - **CLI-4** The **gold `[Ad]` line** is visible while thinking on **every turn** in every agent, from the first moment of turn 1. It is the native gold line, not a pop-up, "Sponsored" box or other substitute.
+  *opencode:* the toast is pending [vibead#141](https://github.com/vibead/vibead/issues/141). Nina's ruling sets the order of preference: the native gold line, else a plain native status line shown for at least 3 s, else a documented toast exception. Until #141 is closed, record CLI-4 for opencode as FAIL (pending vibead#141), not as a new bug.
   *Evidence:* a screenshot of each turn for each agent.
 - **CLI-5** Ads **rotate** across turns in every agent wherever multiple creatives are eligible.
   *Evidence:* the ad id or text for each turn and agent (must differ).
@@ -182,7 +200,7 @@ Run this on a clean Linux cloud test machine with a fresh `$HOME`. **Any user fr
   *Evidence:* install hashes, never keys, plus confirmation that they are on the list.
 - **SAFE-7** Features ship behind **per-env flags** that default off. Prod changes only through reviewed config (tfvars or server config) with a guard test. Test-only clients and QA allowlists can't be enabled from prod config at all.
   *Evidence:* the flag declaration, its value per env, and the guard test name.
-- **SAFE-8** AWS commands map `VIBEAD_AWS_*` to `AWS_*` per command and use only the VibeAd account, never another profile. Terraform is 1.10.5. Anything over about US$20/month waits for the Chief of Staff before apply.
+- **SAFE-8** AWS commands map `VIBEAD_AWS_*` to `AWS_*` per command and use only the VibeAd account, never another profile. Terraform is 1.10.5. Any change costing US$20/month or more is held for the Chief of Staff before apply.
   *In vibead/cli:* N/A — no AWS commands or Terraform here.
   *Evidence:* the command lines (no values), `terraform version`, and the SAFE-5 cost line.
 
@@ -218,6 +236,8 @@ Run this on a clean Linux cloud test machine with a fresh `$HOME`. **Any user fr
 - **REL-10** Kits are built with the qualified Node 22.19.0 builder (`distribution/build-beta.mjs`).
   *In vibead/cli:* N/A — kits are built in vibead/vibead.
   *Evidence:* the `node` field of the kit's `manifest.json`.
+- **REL-11** Each release sweeps the status labels in the same release PR (or its linked vibead-ai PR): every item the release ships moves from **Merged, not released** to **Live** in `docs/system-design/README.md` and the other docs.
+  *Evidence:* the diff lines moving each shipped item to Live, plus `git grep -n 'Merged, not released'` afterwards listing only items not in the release.
 
 ## BUG: bugs and learning
 
@@ -227,9 +247,9 @@ Run this on a clean Linux cloud test machine with a fresh `$HOME`. **Any user fr
   *Evidence:* the PR body plus `git log --format=%B`.
 - **BUG-3** Every fix names its root cause and adds a regression test (see TEST-2).
   *Evidence:* a one-line root cause plus the test name.
-- **BUG-4** A defect class seen **twice** gets an entry in `LESSONS.md` or `lessons/`, an **automated check** (test, lint or gate), and a new or updated DoD line here.
+- **BUG-4** A defect class seen **twice** gets a lesson file in `lessons/` (BUG-5), an **automated check** (test, lint or gate), and a new or updated DoD line here.
   *Evidence:* the lesson file, the check, and the DoD line ID.
-- **BUG-5** Every QA FAIL, even a first one, gets **one new file** in `lessons/` (`lessons/YYYY-MM-DD-<slug>.md`: the gotcha, what to do instead, the issue). `LESSONS.md` takes no new lines.
+- **BUG-5** Every QA FAIL, even a first one, gets **one new file** in `lessons/` (`lessons/YYYY-MM-DD-<slug>.md`: the gotcha, what to do instead, the issue). `LESSONS.md` stays as the index of older lessons, kept with `merge=union` in `.gitattributes`, and takes no new lessons (`.github/docs-check/check-lessons.mjs`).
   *Evidence:* the lesson file path.
 - **BUG-6** At most **3 QA rounds** per PR. After a third FAIL the Engineer escalates to the Chief of Staff with options and a recommendation instead of a fourth handoff.
   *Evidence:* the round number in the QA verdict, plus the escalation message.

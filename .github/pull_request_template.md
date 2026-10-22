@@ -21,7 +21,8 @@ Docs (DOC-1): <files changed | docs: n/a - why>
 - [ ] MERGE-0 this block is complete: every applicable line ticked with evidence, the rest `N/A - <reason>` (missing = fast FAIL, `DoD-miss: MERGE-0`)
 - [ ] MERGE-7 the body opens with the spec above: outcome, audiences, acceptance criteria as checks, risks
 - [ ] MERGE-8 self-verified end to end on the handed-off head before handoff: <sha>
-- [ ] MERGE-1 `PR tests` green on head: <run url> @ <sha>
+- [ ] MERGE-9 DoD edits only: overlaps and contradictions with existing lines listed and resolved; three copies identical apart from per-repo lines: <overlap list, diff>
+- [ ] MERGE-1 `PR tests` green on head (in vibead/cli: Installer tests; when path-skipped, the local installer test run, cli#36): <run url> @ <sha>
 - [ ] MERGE-2 every required check ran (none path-skipped): <gh pr checks output>
 - [ ] MERGE-3 clean merge with current main plus the suite green on the merge result: <merge-tree + counts>
 - [ ] MERGE-5 carry-over only: merge-only head, `scripts/pr-own-diff.sh <passed> <new>` output: <paste>; conflict fixes only in LESSONS/docs
@@ -35,9 +36,9 @@ Docs (DOC-1): <files changed | docs: n/a - why>
 ### Docs
 - [ ] DOC-1 matching docs updated, or `docs: n/a - <why>`
 - [ ] DOC-2 `docs/system-design/README.md` updated for flow/role/component/infra/auth change; diagrams render (<n>/<n>); unbuilt parts marked Planned: <lines>
-- [ ] DOC-3 status only Live, Merged, not released or Planned (no "In review"); no stale self-labels (this PR / once merged / once deployed …): <empty grep output>
+- [ ] DOC-3 status only Live, Merged, not released or Planned (legend identical; no "In review"); no stale self-labels (this PR / once merged / when merged / once deployed / pending deploy …): <empty grep output + status-legend check>
 - [ ] DOC-4 legal/privacy/terms claims true of live config for the serving env; `legal-claims.test.mjs` passes: <claim → file:line table> → in vibead/cli: N/A unless the PR changes what is collected or sent: legal pages live in vibead-ai
-- [ ] DOC-5 `check-design-doc` gate exit 0; whitespace-only doc edits don't satisfy it: <output> → in vibead/cli: N/A — `scripts/check-design-doc.mjs` isn't in this repo
+- [ ] DOC-5 `check-design-doc` gate exit 0; whitespace-only doc edits don't satisfy it; `Design doc: N/A — <reason>` only when no flow, role, component, infra or sign-in changed: <output> → in vibead/cli: N/A — `scripts/check-design-doc.mjs` isn't in this repo
 - [ ] DOC-6 doc claims checked against current main merged with this head: <base sha, refs>
 
 ### UI (www)
@@ -49,12 +50,12 @@ Docs (DOC-1): <files changed | docs: n/a - why>
 - [ ] UI-6 roles server-set only (test pins it): <test, mutant> → in vibead/cli: N/A — no web pages here
 - [ ] UI-7 JS-off works where relevant: <evidence> → in vibead/cli: N/A — no web pages here
 - [ ] UI-8 no dead ends or fake buttons: <link check> → in vibead/cli: N/A — no web pages here
-- [ ] UI-9 no founder/platform names; `npm run check:copy` passes: <output> → in vibead/cli: N/A — no web pages here
+- [ ] UI-9 no founder names or third-party platform/vendor names; `npm run check:copy` passes: <output> → in vibead/cli: N/A — no web pages here
 - [ ] UI-10 one sign-in (`/login?as=sponsor`); flagged-off features hidden: <hrefs + flag value> → in vibead/cli: N/A — no web pages here
 
 ### CLI / agents
 - [ ] CLI-1 fresh install from the exact release artefact: <version, sha256>
-- [ ] CLI-2 `vibead enable` with no prompts
+- [ ] CLI-2 `vibead enable` with no prompts apart from the one opt-in consent
 - [ ] CLI-3 3+ turns each in claude, codex and opencode
 - [ ] CLI-4 gold [Ad] line visible on every turn while thinking (native line, not a pop-up): <screenshots>
 - [ ] CLI-5 ads rotate (ad per turn per agent): <table>
@@ -76,7 +77,7 @@ Docs (DOC-1): <files changed | docs: n/a - why>
 - [ ] SAFE-5 cost impact stated (above)
 - [ ] SAFE-6 QA/test installs on the internal list: <hashes only>
 - [ ] SAFE-7 per-env flag, default off; prod only via reviewed config + guard test: <flag, values, test>
-- [ ] SAFE-8 `VIBEAD_AWS_*` → `AWS_*`, VibeAd account only, Terraform 1.10.5, > ~US$20/month held for the Chief of Staff: <evidence> → in vibead/cli: N/A — no AWS commands or Terraform here
+- [ ] SAFE-8 `VIBEAD_AWS_*` → `AWS_*`, VibeAd account only, Terraform 1.10.5, ≥ US$20/month held for the Chief of Staff: <evidence> → in vibead/cli: N/A — no AWS commands or Terraform here
 
 ### Data / privacy
 - [ ] DATA-1 retention/TTL proven and pinned by tests: <tests, mutants> → in vibead/cli: N/A — retention and TTL live in vibead-ai
@@ -93,10 +94,11 @@ Docs (DOC-1): <files changed | docs: n/a - why>
 - [ ] REL-8 version agrees in package.json, releases.json, tag and /install manifest: <values>
 - [ ] REL-9 installers read pinned install.json, never GitHub latest: <check:install-release output>
 - [ ] REL-10 kit built with Node 22.19.0 builder: <manifest node field> → in vibead/cli: N/A — kits are built in vibead/vibead
+- [ ] REL-11 shipped items swept from Merged, not released to Live in the release PR: <diff lines>
 
 ### Bugs
 - [ ] BUG-2 `Fixes #N` in body and commit
 - [ ] BUG-3 root cause: <one line>; regression test: <name>
-- [ ] BUG-4 recurring class → LESSONS entry + automated check + DoD line: <links>
-- [ ] BUG-5 one `lessons/` file per QA FAIL: <path>
+- [ ] BUG-4 recurring class → `lessons/` file + automated check + DoD line: <links>
+- [ ] BUG-5 one `lessons/` file per QA FAIL; LESSONS.md takes no new lessons: <path>
 - [ ] BUG-6 QA round n of 3 (escalate to the Chief of Staff after the third FAIL)
