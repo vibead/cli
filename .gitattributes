@@ -1,0 +1,2 @@
+# Old lessons are append-only; a local merge of two appends keeps both.
+LESSONS.md merge=union

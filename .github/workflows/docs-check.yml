@@ -27,7 +27,7 @@ jobs:
           persist-credentials: false
           sparse-checkout: .github/docs-check
       - name: Self-test
-        run: node --test .github/docs-check/check-docs.test.mjs
+        run: node --test .github/docs-check/check-docs.test.mjs .github/docs-check/check-lessons.test.mjs
       - name: Check changed paths against the PR body
         env:
           GH_TOKEN: ${{ github.token }}
@@ -35,6 +35,13 @@ jobs:
           PR_NUMBER: ${{ github.event.pull_request.number }}
           PR_BODY: ${{ github.event.pull_request.body }}
         run: node .github/docs-check/check-docs.mjs
+      - name: No new lines in LESSONS.md (new lessons go in lessons/)
+        if: success() || failure()
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+        run: node .github/docs-check/check-lessons.mjs
 
   design-doc:
     name: "Design doc updated (or 'Design doc: N/A — <reason>')"
