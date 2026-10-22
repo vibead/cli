@@ -15,12 +15,36 @@ npm (`npm i -g @vibead/cli && vibead enable`) is the primary channel. These one-
 
 ## Release procedure
 
-1. Create a **draft** release `vX.Y.Z-beta.N` with each `vibead-beta-<version>-<platform>.tar.gz` / `.zip`, the npm launcher tarball `vibead-cli-<version>.tgz` (`npm pack` in `npm/`), and a `.sha256` for each.
-2. Run **Sign release** (`.github/workflows/sign-release.yml`) from `main` with that tag. It checks each kit archive's `.sha256` and adds `SHA256SUMS` (one line per kit archive) and `SHA256SUMS.sigstore.json`. The launcher tarball is checked against its own `vibead-cli-<version>.tgz.sha256`. **Planned:** `SHA256SUMS` also lists the launcher tarball, so the one signature covers it (the `sign-release.yml` change needs a push with the GitHub `workflow` scope); a release is not marked Latest until it does. The installers match only their platform's kit line, so a launcher line doesn't change what they install. Signing writes a public Sigstore transparency-log entry, so only sign a release you intend to publish.
-3. Publish the draft as a **prerelease** (never Latest), so README links and npm `latest` keep the last release that passed QA. QA installs the exact artefact: `npm i -g vibead-cli-<version>.tgz` after `sha256sum -c vibead-cli-<version>.tgz.sha256` (and, for kits, `sha256sum -c` against `SHA256SUMS` plus `cosign verify-blob`, below), or the installers with `VIBEAD_VERSION=<version>`, on Claude Code, Codex and OpenCode.
-4. After QA PASS: mark it Latest, `npm publish` from `npm/` (`publishConfig.tag` is `next`; then `npm dist-tag add @vibead/cli@<version> latest`), and bump `apps/static-web/install.json` in vibead/vibead-ai to the new version: that manifest, not GitHub's "latest", decides what `curl | sh` installs, and vibead-ai CI refuses a pin whose release lacks `SHA256SUMS` or any archive.
-5. Bump `vibead/homebrew-tap` `Formula/vibead.rb` (version, urls, sha256).
-6. Deploy the site so `/install` and `/install.ps1` serve this commit's scripts.
+One manual run of **Release** (`.github/workflows/release.yml`, from `main`) ships every channel in a fixed order. It is the only way to publish, so nobody needs an npm login, token or one-time code.
+
+Before the run:
+
+1. Create a **draft** release `vX.Y.Z-beta.N` with each `vibead-beta-<version>-<platform>.tar.gz` and its `.sha256` (darwin-arm64, darwin-x64, linux-x64), built by the vibead/vibead pipeline.
+2. Merge a PR that sets `npm/package.json` `version` and `npm/releases.json` (version and the three SHA-256s) to that release.
+3. QA the draft from a local mirror (`VIBEAD_RELEASE_BASE=file:///path/to/mirror`, laid out as `download/vX/…`, plus `VIBEAD_MANIFEST_URL=file:///path/to/install.json`) on Claude Code, Codex and OpenCode.
+
+Then run **Release** with `version` (no `v`) and the npm dist-tag (default `next`; choose `latest` only when QA promotes the release). It:
+
+1. **check:** fails unless the draft has all three archives and `npm/` on main matches them exactly.
+2. **sign:** calls `sign-release.yml`, which adds `SHA256SUMS` and `SHA256SUMS.sigstore.json`. The Sigstore identity stays `sign-release.yml@refs/heads/main`, which the installers verify. This writes a public transparency-log entry, so only run it for a release you mean to ship.
+3. **publish-release:** publishes the release. With npm dist-tag `latest` it is marked **Latest**; with `next` or `beta` it is a **pre-release, not Latest** (`--prerelease --latest=false`), so `releases/latest` and `/install` stay on the promoted version.
+4. **npm:** `npm publish --provenance --access public` through npm Trusted Publishing. The job's GitHub OIDC token is exchanged for a short-lived publish credential. There is no `NODE_AUTH_TOKEN` and no OTP, and the npm page shows a provenance badge linking to this run. It runs in the `npm` environment; add required reviewers there to gate it.
+5. **tap** (only when the npm dist-tag is `latest`; a `next` or `beta` run never touches Homebrew): updates `vibead/homebrew-tap` `Formula/vibead.rb` (version, URLs, SHA-256s from `SHA256SUMS`) and pushes to main as `github-actions[bot]` (a test fails if any workflow names a personal email). Its own CI then installs the formula on Linux and both Macs.
+
+After the run, bump `apps/static-web/install.json` in vibead/vibead-ai. That manifest, not GitHub's "latest", decides what `curl | sh` and `irm | iex` install, and vibead-ai CI refuses a pin whose release lacks `SHA256SUMS` or any archive.
+
+**One-time setup:**
+
+- On npmjs.com, open `@vibead/cli` → Settings → Trusted publishing → GitHub Actions, and enter: owner `vibead`, repository `cli`, workflow `release.yml`, environment `npm`.
+- In this repo, create the `npm` environment, with optional required reviewers.
+- Add the `HOMEBREW_TAP_TOKEN` secret: a fine-grained token with Contents read/write on `vibead/homebrew-tap` only.
+- Once the first OIDC publish works, set the package's publishing access to "Require two-factor authentication and disallow tokens", so only this workflow can publish.
+
+Trusted Publishing only publishes. Moving another dist-tag (for example `beta`) still needs a signed-in maintainer, so pick the tag in the run instead.
+
+Then deploy the site so `/install` and `/install.ps1` serve this commit's scripts.
+
+**Release candidate (QA) drafts.** The draft also carries the npm launcher tarball `vibead-cli-<version>.tgz` (`npm pack` in `npm/`) and its `.sha256`, so QA installs the exact artefact (`sha256sum -c vibead-cli-<version>.tgz.sha256 && npm i -g ./vibead-cli-<version>.tgz`) from the draft or a local mirror. `SHA256SUMS` lists the kit archives only; **Planned:** it also lists the launcher tarball, so the one signature covers it (a release is not marked Latest until it does). An RC built for Linux x64 only keeps the macOS entries in `npm/releases.json` as `{ "version", "sha256" }` of the last promoted archives (the launcher supports this). **Release**'s check needs all three archives at the release version, so such an RC needs its macOS kits built and attached before the run.
 
 Verify a downloaded kit archive by hand (the launcher tarball: `sha256sum -c vibead-cli-<version>.tgz.sha256`):
 

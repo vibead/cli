@@ -1,14 +1,14 @@
 name: Installer tests
 
-# Linux only and only when the installers, npm launcher or README change.
-# The PowerShell installer is exercised with pwsh on Linux (preinstalled on
+# Linux only. Runs on every pull request, so it can serve as MERGE-1/MERGE-2 in
+# docs/quality/definition-of-done.md (cli#36); pushes to main still run only when
+# the installers, npm launcher, README or workflows change. The PowerShell installer is exercised with pwsh on Linux (preinstalled on
 # ubuntu-latest); no Windows or macOS minutes are used.
 on:
   pull_request:
-    paths: ['install/**', 'npm/**', 'README.md', '.github/workflows/installers.yml']
   push:
     branches: [main]
-    paths: ['install/**', 'npm/**', 'README.md', '.github/workflows/installers.yml']
+    paths: ['install/**', 'npm/**', 'README.md', '.github/workflows/**']
 
 permissions:
   contents: read
@@ -33,5 +33,5 @@ jobs:
         run: shellcheck --version && pwsh -NoProfile -Command '$PSVersionTable.PSVersion.ToString()' && command -v script
       - name: Tests
         run: |
-          node --test install/test/*.test.mjs
+          node --test install/test/*.test.mjs .github/docs-check/status-legend.test.mjs
           cd npm && node --test

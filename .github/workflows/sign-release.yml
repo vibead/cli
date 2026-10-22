@@ -11,6 +11,13 @@ on:
       tag:
         description: Release tag, for example v0.1.0-beta.28
         required: true
+  # release.yml calls this as its signing step. The Sigstore identity stays
+  # sign-release.yml@refs/heads/main, which is what the installers verify.
+  workflow_call:
+    inputs:
+      tag:
+        type: string
+        required: true
 
 permissions:
   contents: write

@@ -27,7 +27,7 @@ jobs:
           persist-credentials: false
           sparse-checkout: .github/docs-check
       - name: Self-test
-        run: node --test .github/docs-check/check-docs.test.mjs
+        run: node --test .github/docs-check/check-docs.test.mjs .github/docs-check/check-lessons.test.mjs
       - name: Check changed paths against the PR body
         env:
           GH_TOKEN: ${{ github.token }}
@@ -35,3 +35,28 @@ jobs:
           PR_NUMBER: ${{ github.event.pull_request.number }}
           PR_BODY: ${{ github.event.pull_request.body }}
         run: node .github/docs-check/check-docs.mjs
+      - name: No new lines in LESSONS.md (new lessons go in lessons/)
+        if: success() || failure()
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+        run: node .github/docs-check/check-lessons.mjs
+
+  design-doc:
+    name: "Design doc updated (or 'Design doc: N/A — <reason>')"
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+          fetch-depth: 0
+      - name: Self-test
+        run: node --test scripts/check-design-doc.test.mjs
+      - name: Check changed paths against the PR body
+        env:
+          PR_BODY: ${{ github.event.pull_request.body }}
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: node scripts/check-design-doc.mjs --base "$BASE_SHA" --head "$HEAD_SHA"
