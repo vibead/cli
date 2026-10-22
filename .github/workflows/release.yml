@@ -3,7 +3,8 @@ name: Release
 # One manual run ships a version to every channel, in this order:
 #   1. check the draft GitHub Release and the npm launcher files
 #   2. sign SHA256SUMS (sign-release.yml)
-#   3. publish the Release and mark it Latest
+#   3. publish the Release: Latest only when npm_tag is latest; otherwise a
+#      pre-release that is not Latest, so releases/latest and /install stay put
 #   4. npm publish via Trusted Publishing (OIDC + provenance; no token, no OTP)
 #   5. bump the Homebrew tap
 # Before running: the draft release vX exists with every archive and its
@@ -72,7 +73,7 @@ jobs:
       tag: ${{ needs.check.outputs.tag }}
 
   publish-release:
-    name: Publish the GitHub Release as Latest
+    name: Publish the GitHub Release (Latest only for npm_tag latest)
     needs: [check, sign]
     runs-on: ubuntu-latest
     timeout-minutes: 5
@@ -82,9 +83,14 @@ jobs:
       - env:
           GH_TOKEN: ${{ github.token }}
           TAG: ${{ needs.check.outputs.tag }}
+          NPM_TAG: ${{ inputs.npm_tag }}
         run: |
           gh release view "$TAG" --repo "$GITHUB_REPOSITORY" --json assets --jq '.assets[].name' | grep -qx SHA256SUMS
-          gh release edit "$TAG" --repo "$GITHUB_REPOSITORY" --draft=false --prerelease=false --latest
+          if [ "$NPM_TAG" = latest ]; then
+            gh release edit "$TAG" --repo "$GITHUB_REPOSITORY" --draft=false --prerelease=false --latest
+          else
+            gh release edit "$TAG" --repo "$GITHUB_REPOSITORY" --draft=false --prerelease --latest=false
+          fi
 
   npm:
     name: npm publish (Trusted Publishing, provenance)
