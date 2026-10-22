@@ -1,14 +1,14 @@
 name: Installer tests
 
-# Linux only and only when the installers, npm launcher or README change.
+# Linux only and only when the installers, npm launcher, README or workflows change.
 # The PowerShell installer is exercised with pwsh on Linux (preinstalled on
 # ubuntu-latest); no Windows or macOS minutes are used.
 on:
   pull_request:
-    paths: ['install/**', 'npm/**', 'README.md', '.github/workflows/installers.yml']
+    paths: ['install/**', 'npm/**', 'README.md', '.github/workflows/**']
   push:
     branches: [main]
-    paths: ['install/**', 'npm/**', 'README.md', '.github/workflows/installers.yml']
+    paths: ['install/**', 'npm/**', 'README.md', '.github/workflows/**']
 
 permissions:
   contents: read
