@@ -1,5 +1,14 @@
 # Contributing
 
+## Definition of done
+
+Every PR ticks [`docs/quality/definition-of-done.md`](docs/quality/definition-of-done.md) (the standing checks for this repo's npm launcher, installers and release) and pastes the ticked checklist, with evidence, into the PR body before QA handoff.
+
+- The PR body opens with the spec: the user outcome, the audiences affected (AI users, sponsors and advertisers of every kind of brand, admins) and acceptance criteria written as checks.
+- Self-verify the whole checklist end to end first; hand off to QA only when you expect a PASS.
+- Every QA FAIL gets a root cause, a regression test and one lesson file. At most 3 retries, then escalate to the Chief of Staff with options.
+- Engineering and QA co-own the file: a change to it needs review from both.
+
 ## Feature flags
 
 Features such as sign-in providers, house ads and test or QA clients must sit behind **per-environment config flags**, never hard-coded in the launchers or installers here.

@@ -1,5 +1,14 @@
 Fixes #
 
+## Spec
+**User outcome:** 
+**Audiences affected:** AI users: … · Sponsors/advertisers: … · Admins: …
+**Acceptance criteria:**
+- [ ] 
+
+## Definition of done
+- [ ] DoD checklist pasted with evidence ([`docs/quality/definition-of-done.md`](https://github.com/vibead/cli/blob/main/docs/quality/definition-of-done.md), "PR evidence template"), self-verified end to end before QA handoff.
+
 ## What and why
 
 ## Tests
