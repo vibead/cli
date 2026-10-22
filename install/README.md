@@ -16,7 +16,7 @@ npm (`npm i -g @vibead/cli && vibead enable`) is the primary channel. These one-
 ## Release procedure
 
 1. Create a **draft** release `vX.Y.Z-beta.N` with each `vibead-beta-<version>-<platform>.tar.gz` / `.zip` and its `.sha256`.
-2. Run **Sign release** (`.github/workflows/sign-release.yml`) from `main` with that tag. It adds `SHA256SUMS` and `SHA256SUMS.sigstore.json`. Signing writes a public Sigstore transparency-log entry, so only sign a release you intend to publish.
+2. Run **Sign release** (`.github/workflows/sign-release.yml`) from `main` with that tag. It checks every kit archive and the npm launcher tarball `vibead-cli-<version>.tgz` against its `.sha256`, refuses a release without exactly one launcher tarball, and adds `SHA256SUMS` (kits and tgz) and `SHA256SUMS.sigstore.json`. Signing writes a public Sigstore transparency-log entry, so only sign a release you intend to publish.
 3. QA: install from the draft with a local mirror (`VIBEAD_RELEASE_BASE=file:///path/to/mirror`, laid out as `download/vX/…`, plus `VIBEAD_MANIFEST_URL=file:///path/to/install.json`), on Claude Code, Codex and OpenCode.
 4. Publish the release and mark it **latest** (for the README links). Then bump `apps/static-web/install.json` in vibead/vibead-ai to the new version: that manifest, not GitHub's "latest", decides what `curl | sh` installs, and vibead-ai CI refuses a pin whose release lacks `SHA256SUMS` or any archive.
 5. Bump `vibead/homebrew-tap` `Formula/vibead.rb` (version, urls, sha256).

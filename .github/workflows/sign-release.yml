@@ -1,7 +1,8 @@
 name: Sign release
 
-# Run by hand on a DRAFT release before publishing it. Checks every archive
-# against its .sha256, writes SHA256SUMS, signs it with cosign keyless
+# Run by hand on a DRAFT release before publishing it. Checks every kit archive
+# and the npm launcher tarball (vibead-cli-<version>.tgz) against its .sha256,
+# writes SHA256SUMS covering all of them, signs it with cosign keyless
 # (GitHub OIDC -> Sigstore; no keys to store) and uploads SHA256SUMS and
 # SHA256SUMS.sigstore.json to the same release. The installers verify against
 # this workflow's identity on main, so run it from main only.
@@ -9,7 +10,7 @@ on:
   workflow_dispatch:
     inputs:
       tag:
-        description: Release tag, for example v0.1.0-beta.28
+        description: Release tag, for example v0.1.0-beta.29
         required: true
 
 permissions:
@@ -29,24 +30,29 @@ jobs:
       GH_TOKEN: ${{ github.token }}
       TAG: ${{ inputs.tag }}
     steps:
-      - name: Download archives and their .sha256 files
+      - name: Download archives, the launcher tarball and their .sha256 files
         run: |
           case "$TAG" in v[0-9]*) ;; *) echo "bad tag"; exit 1 ;; esac
           mkdir assets && cd assets
-          gh release download "$TAG" --repo "$GITHUB_REPOSITORY" --pattern 'vibead-beta-*'
+          gh release download "$TAG" --repo "$GITHUB_REPOSITORY" --pattern 'vibead-beta-*' --pattern 'vibead-cli-*.tgz*'
           ls -l
-      - name: Verify each archive and write SHA256SUMS
+      - name: Verify each archive and the launcher tarball, write SHA256SUMS
         working-directory: assets
         run: |
           set -eu
+          # The npm launcher users install (npm i -g <tgz>) is signed with the
+          # kits; a release without it, or with one for another version, stops here.
+          tgz="vibead-cli-${TAG#v}.tgz"
+          [ -f "$tgz" ] || { echo "missing $tgz"; exit 1; }
+          [ "$(ls vibead-cli-*.tgz | wc -l)" -eq 1 ] || { echo "more than one launcher tarball"; exit 1; }
           : > ../SHA256SUMS
-          for f in vibead-beta-*.tar.gz vibead-beta-*.zip; do
+          for f in vibead-beta-*.tar.gz vibead-beta-*.zip "$tgz"; do
             [ -e "$f" ] || continue
             [ -f "$f.sha256" ] || { echo "missing $f.sha256"; exit 1; }
             sha256sum -c "$f.sha256"
             sha256sum "$f" >> ../SHA256SUMS
           done
-          [ -s ../SHA256SUMS ] || { echo "no archives"; exit 1; }
+          grep -q "  vibead-beta-" ../SHA256SUMS || { echo "no kit archives"; exit 1; }
           cat ../SHA256SUMS
       - uses: sigstore/cosign-installer@6f9f17788090df1f26f669e9d70d6ae9567deba6 # v4.1.2
       - name: Sign SHA256SUMS (keyless)
