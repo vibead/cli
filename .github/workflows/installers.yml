@@ -4,8 +4,13 @@ name: Installer tests
 # docs/quality/definition-of-done.md (cli#36); pushes to main still run only when
 # the installers, npm launcher, README or workflows change. The PowerShell installer is exercised with pwsh on Linux (preinstalled on
 # ubuntu-latest); no Windows or macOS minutes are used.
+# CI thrift (vibead/vibead-ai#178, docs/quality/ci.md): draft PRs skip the job
+# and it runs on ready_for_review; a newer push to the same PR cancels the
+# older run (main runs are never cancelled). No docs-only skip: the job bills
+# its 1-minute minimum either way and its status-legend test reads README.md.
 on:
   pull_request:
+    types: [opened, ready_for_review, synchronize, reopened]
   push:
     branches: [main]
     paths: ['install/**', 'npm/**', 'README.md', '.github/workflows/**']
@@ -14,14 +19,16 @@ permissions:
   contents: read
 
 concurrency:
-  group: installers-${{ github.event.pull_request.number || github.ref }}
-  cancel-in-progress: true
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
   test:
     name: shellcheck + install.sh/install.ps1 + npm launcher (Linux)
+    if: github.event_name != 'pull_request' || github.event.pull_request.draft == false
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    # October p95 0.4 min (max 0.6); 3 is the floor for any job (docs/quality/ci.md).
+    timeout-minutes: 3
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
