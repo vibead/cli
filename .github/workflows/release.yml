@@ -6,7 +6,7 @@ name: Release
 #   3. publish the Release: Latest only when npm_tag is latest; otherwise a
 #      pre-release that is not Latest, so releases/latest and /install stay put
 #   4. npm publish via Trusted Publishing (OIDC + provenance; no token, no OTP)
-#   5. bump the Homebrew tap
+#   5. bump the Homebrew tap (npm_tag latest only)
 # Before running: the draft release vX exists with every archive and its
 # .sha256 (from the vibead/vibead build), and main has npm/package.json at X
 # and npm/releases.json listing the same SHA-256s. Then bump install.json in
@@ -122,8 +122,10 @@ jobs:
         run: npm publish --provenance --access public --tag "$NPM_TAG"
 
   tap:
-    name: Bump the Homebrew tap
+    name: Bump the Homebrew tap (npm_tag latest only)
     needs: [check, npm]
+    # Homebrew is a Live channel: only a promoted (latest) release may bump it, never next or beta.
+    if: inputs.npm_tag == 'latest'
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:

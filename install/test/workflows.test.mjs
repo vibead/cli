@@ -52,4 +52,7 @@ test('release.yml: manual only, OIDC in the npm environment, next by default, no
   assert.match(branches[2], /--prerelease --latest=false$/);
   assert.equal(pub.match(/gh release edit/g).length, 2, 'no other release edit can mark it Latest');
   assert.doesNotMatch(y.replace(branches[1], ''), /--latest(?!=false)/, '--latest only in the npm_tag latest branch');
+  // Homebrew is a Live channel: the tap job runs only for npm_tag latest, so a `next` run never touches it.
+  const tap = y.slice(y.indexOf('\n  tap:'));
+  assert.match(tap.split('\n    steps:')[0], /^    if: inputs\.npm_tag == 'latest'$/m, 'tap job gated on npm_tag latest');
 });

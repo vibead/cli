@@ -75,12 +75,13 @@ sequenceDiagram
     Note over R: published as a pre-release, not Latest (releases/latest and /install stay put)
   end
   R->>N: npm publish --provenance --tag npm_tag (Trusted Publishing, OIDC, environment npm, no token)
+  Note over N: tap job (Homebrew, a Live channel) runs only for npm_tag latest
   R->>Site: bump install.json in a vibead-ai PR (CI refuses a pin without SHA256SUMS or an archive)
 ```
 
 - **Live:** release signing (`sign-release.yml`, run by hand on a draft release from `main`); the installers trust only that workflow's identity on `main`.
 - **Live:** npm package access requires 2FA and disallows tokens.
-- **Merged, not released:** release workflow `release.yml` with npm Trusted Publishing ([cli#30](https://github.com/vibead/cli/pull/30), [cli#29](https://github.com/vibead/cli/issues/29)). The GitHub Release is marked Latest only when `npm_tag` is `latest`; a `next` or `beta` run makes a pre-release that is not Latest, so `releases/latest`, npm `latest` and the `/install` pin keep the promoted version. Until its first run, npm publishes stay by hand.
+- **Merged, not released:** release workflow `release.yml` with npm Trusted Publishing ([cli#30](https://github.com/vibead/cli/pull/30), [cli#29](https://github.com/vibead/cli/issues/29)). The GitHub Release is marked Latest only when `npm_tag` is `latest`; a `next` or `beta` run makes a pre-release that is not Latest, so `releases/latest`, npm `latest`, the `/install` pin and Homebrew keep the promoted version (the tap job runs only for `latest`). Until its first run, npm publishes stay by hand.
 - **Planned:** lessons folder and QA carry-over ([cli#31](https://github.com/vibead/cli/pull/31)); launcher tgz in signed `SHA256SUMS` (sign-release.yml).
 - **Planned:** the Homebrew tap update from the release workflow needs a `HOMEBREW_TAP_TOKEN` secret; a local cached house ad in the CLI ([cli#25](https://github.com/vibead/cli/issues/25)); OpenClaw as a fourth agent ([cli#20](https://github.com/vibead/cli/issues/20)). These are tracked in the vibead-ai launch epics.
 
