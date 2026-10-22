@@ -36,6 +36,14 @@ jobs:
     if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     timeout-minutes: 5
+    # write, not read: GitHub shows DRAFT releases only to tokens with push
+    # access, so with contents:read `gh release view/download` on the draft
+    # says "release not found". This job only reads; write is for draft
+    # visibility alone (dry run: cli#37). The other jobs that read the draft
+    # (sign, publish-release) already have contents:write; tap reads it after
+    # publish, when it is public.
+    permissions:
+      contents: write
     outputs:
       tag: ${{ steps.check.outputs.tag }}
     steps:

@@ -21,11 +21,12 @@ Before the run:
 
 1. Create a **draft** release `vX.Y.Z-beta.N` with each `vibead-beta-<version>-<platform>.tar.gz` and its `.sha256` (darwin-arm64, darwin-x64, linux-x64), built by the vibead/vibead pipeline.
 2. Merge a PR that sets `npm/package.json` `version` and `npm/releases.json` (version and the three SHA-256s) to that release.
-3. QA the draft from a local mirror (`VIBEAD_RELEASE_BASE=file:///path/to/mirror`, laid out as `download/vX/…`, plus `VIBEAD_MANIFEST_URL=file:///path/to/install.json`) on Claude Code, Codex and OpenCode.
+3. Make sure the tag `vX.Y.Z-beta.N` either does not exist yet or points at the main commit from step 2. Release never creates, moves or checks the tag: publishing a draft whose tag exists keeps that tag (the release's `target_commitish` is used only when the tag is missing), so a tag left on an older commit makes the release's source archives disagree with the npm package.
+4. QA the draft from a local mirror (`VIBEAD_RELEASE_BASE=file:///path/to/mirror`, laid out as `download/vX/…`, plus `VIBEAD_MANIFEST_URL=file:///path/to/install.json`) on Claude Code, Codex and OpenCode.
 
 Then run **Release** with `version` (no `v`) and the npm dist-tag (default `next`; choose `latest` only when QA promotes the release). It:
 
-1. **check:** fails unless the draft has all three archives and `npm/` on main matches them exactly.
+1. **check:** fails unless the draft has all three archives and `npm/` on main matches them exactly. The job runs with `contents: write` although it only reads: GitHub shows a **draft** release only to tokens with push access, so with the default `contents: read` the workflow token gets "release not found" (dry run in cli#37). Every job that reads the draft (check, sign, publish-release) has `contents: write`; the workflow default stays `read`.
 2. **sign:** calls `sign-release.yml`, which adds `SHA256SUMS` and `SHA256SUMS.sigstore.json`. The Sigstore identity stays `sign-release.yml@refs/heads/main`, which the installers verify. This writes a public transparency-log entry, so only run it for a release you mean to ship.
 3. **publish-release:** publishes the release. With npm dist-tag `latest` it is marked **Latest**; with `next` or `beta` it is a **pre-release, not Latest** (`--prerelease --latest=false`), so `releases/latest` and `/install` stay on the promoted version.
 4. **npm:** `npm publish --provenance --access public` through npm Trusted Publishing. The job's GitHub OIDC token is exchanged for a short-lived publish credential. There is no `NODE_AUTH_TOKEN` and no OTP, and the npm page shows a provenance badge linking to this run. It runs in the `npm` environment; add required reviewers there to gate it.
