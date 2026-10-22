@@ -32,10 +32,10 @@ One DoD with the same stable line IDs lives in [vibead/vibead-ai](https://github
 
 - **MERGE-0** The PR body has this DoD checklist, every applicable line ticked with evidence, and the others marked `N/A - <reason>`.
   *Evidence:* the PR body itself.
-- **MERGE-1** The required `PR tests` check is green on the **exact head SHA** being handed off.
-  *Evidence:* run URL plus the SHA it ran on (`gh pr checks <n>` output).
-- **MERGE-2** Every required check actually **ran** on the head (none skipped by a path filter) and its run is green.
-  *Evidence:* the `gh pr checks <n>` list, which shows no required check as missing, skipped or expected.
+- **MERGE-1** The required `PR tests` check is green on the **exact head SHA** being handed off, in the run fired by `ready_for_review` or a later one. A run from while the PR was a draft is not evidence.
+  *Evidence:* run URL plus the SHA it ran on (`gh pr checks <n>` output), from the ready_for_review run or a later one.
+- **MERGE-2** Every required check actually **ran** on the head and its run is green, in the ready_for_review run or a later one. No required check is skipped by a path filter, with one exception: a docs-only lane may skip code suites inside a check that still reports, only when its filter is exact. Exact means every changed path ends in `.md`, a rename counts as a change to both its old and its new path (`git diff --no-renames`), an empty or unreadable diff counts as code, a change to a workflow or to the filter runs everything, and a test with rename cases pins the filter (`docs/quality/ci.md` rule 3).
+  *Evidence:* the `gh pr checks <n>` list, which shows no required check as missing, skipped or expected, from the ready_for_review run or a later one; for a docs-only PR, also the run's "Docs-only PR" step summary.
 - **MERGE-3** The head merges cleanly with **current main**, and the full test suite passes on that merge result, not only on the PR's base.
   *Evidence:* `git merge-tree --write-tree origin/main <head>` (clean) plus the suite summary on a local merge.
 - **MERGE-4** Merging needs `QA PASS @<head sha>` posted on that exact head. A merge without it is not allowed.

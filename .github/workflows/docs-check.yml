@@ -4,22 +4,27 @@ name: Docs check
 # must change a doc too, or say "docs: n/a - <why>" in its body. Path check
 # only (.github/docs-check/config.json); no checkout of the PR code is run.
 # Re-runs when the PR body is edited. One tiny Ubuntu job, no matrix, no secrets.
+# CI thrift (vibead/vibead-ai#178, docs/quality/ci.md): draft PRs skip both
+# jobs and they run on ready_for_review; every later push or body edit re-runs
+# them, and a newer event cancels the older run of the same PR.
 on:
   pull_request:
-    types: [opened, synchronize, reopened, edited]
+    types: [opened, ready_for_review, synchronize, reopened, edited]
 
 permissions:
   contents: read
   pull-requests: read
 
 concurrency:
-  group: docs-check-${{ github.event.pull_request.number }}
+  group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
   docs:
     name: "Docs updated (or 'docs: n/a')"
+    if: github.event.pull_request.draft == false
     runs-on: ubuntu-latest
+    # p95 is under 0.3 min; 3 is the floor for any job (docs/quality/ci.md).
     timeout-minutes: 3
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -45,7 +50,9 @@ jobs:
 
   design-doc:
     name: "Design doc updated (or 'Design doc: N/A — <reason>')"
+    if: github.event.pull_request.draft == false
     runs-on: ubuntu-latest
+    # p95 is under 0.3 min; 3 is the floor for any job (docs/quality/ci.md).
     timeout-minutes: 3
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1

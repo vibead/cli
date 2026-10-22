@@ -22,8 +22,8 @@ Docs (DOC-1): <files changed | docs: n/a - why>
 - [ ] MERGE-7 the body opens with the spec above: outcome, audiences, acceptance criteria as checks, risks
 - [ ] MERGE-8 self-verified end to end on the handed-off head before handoff: <sha>
 - [ ] MERGE-9 DoD edits only: overlaps and contradictions with existing lines listed and resolved; three copies identical apart from per-repo lines: <overlap list, diff>
-- [ ] MERGE-1 `PR tests` green on head (in vibead/cli: Installer tests; when path-skipped, the local installer test run, cli#36): <run url> @ <sha>
-- [ ] MERGE-2 every required check ran (none path-skipped): <gh pr checks output>
+- [ ] MERGE-1 `PR tests` green on head, in the ready_for_review run or later (in vibead/cli: Installer tests, which runs on every PR, cli#36): <run url> @ <sha>
+- [ ] MERGE-2 every required check ran, in the ready_for_review run or later (path skips only via the exact docs-only filter, renames count both paths): <gh pr checks output>
 - [ ] MERGE-3 clean merge with current main plus the suite green on the merge result: <merge-tree + counts>
 - [ ] MERGE-5 carry-over only: merge-only head, `scripts/pr-own-diff.sh <passed> <new>` output: <paste>; conflict fixes only in LESSONS/docs
 - [ ] MERGE-6 true 2-parent merges, earlier QA'd head is an ancestor, no force-push: <cat-file / merge-base output>
