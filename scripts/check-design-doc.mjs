@@ -5,6 +5,8 @@
 // with a real reason. Test-only and Markdown-only changes don't count as code.
 // A design-doc change counts only if a .md file under docs/system-design/ gains at least one
 // added or changed non-blank line, so an empty or whitespace-only file never satisfies the gate.
+// The doc diff ignores whitespace (git diff -w --ignore-blank-lines), so re-indenting or adding
+// trailing spaces or CRLF to an existing line doesn't count either.
 //
 // Usage: node scripts/check-design-doc.mjs --base <ref> --head <ref> [--body-file <file>]
 //        (or the PR body in the PR_BODY env var). Exit 0 pass, 1 fail, 2 usage or git error.
@@ -61,6 +63,7 @@ export function changedFiles(base, head, cwd = process.cwd()) {
 }
 
 // Counts added or changed non-blank lines per design-doc .md file (deleted files count 0).
+// Expects a diff built with -w, so a whitespace-only edit has no + line to count.
 export function countDocLines(diff) {
   const counts = {};
   let file = null, inHunk = false;
@@ -78,7 +81,7 @@ export function countDocLines(diff) {
 }
 
 export function designDocLines(base, head, cwd = process.cwd()) {
-  return countDocLines(git(["diff", "--no-color", "--no-ext-diff", "-U0", "-M", `${base}...${head}`, "--", DESIGN_DOC], cwd));
+  return countDocLines(git(["diff", "--no-color", "--no-ext-diff", "-w", "--ignore-blank-lines", "-U0", "-M", `${base}...${head}`, "--", DESIGN_DOC], cwd));
 }
 
 export function parseArgs(argv) {
@@ -107,7 +110,7 @@ export function main(argv, env = process.env, cwd = process.cwd(), log = console
   const result = checkDesignDoc(files, body, docLines);
   if (result.ok) { log(`Design-doc check passed (${args.base}...${args.head}, ${files.length} files): ${result.reason}.`); return 0; }
   const shown = result.code.slice(0, 10).join(", ") + (result.code.length > 10 ? `, and ${result.code.length - 10} more` : "");
-  const note = result.empty.length ? ` (${result.empty.join(", ")} changed, but with no added non-blank line in a .md file)` : "";
+  const note = result.empty.length ? ` (${result.empty.join(", ")} changed, but with no added non-blank line in a .md file; whitespace-only edits don't count)` : "";
   log(`::error title=Design doc not updated::This PR changes ${shown} but not ${DESIGN_DOC}${note}. Update ${DESIGN_DOC}README.md in this PR (flows, roles, components, infra, build and release, sign-in; diagrams; unbuilt pieces marked planned), or add a line "Design doc: N/A — <reason>" to the PR body.`);
   return 1;
 }

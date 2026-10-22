@@ -181,6 +181,18 @@ test("git: deleting or renaming a design doc without content doesn't count", t =
   assert.equal(run(dir, PR).code, 1);
 });
 
+test("git: a whitespace-only edit to an existing design-doc line doesn't count", t => {
+  const { dir, git, write } = repo(t);
+  write(DOC, "# Design\n\nOne flow.\n"); git("commit", "-qam", "doc line"); git("branch", "-f", "main");
+  write(CODE, "v2\n"); write(DOC, "#   Design\n\nOne flow.  \n"); git("commit", "-qam", "re-indent and trailing spaces");
+  const r = run(dir, PR);
+  assert.equal(r.code, 1); assert.match(r.out, /whitespace-only edits don't count/);
+  write(DOC, "# Design\r\n\r\n\tOne flow.\r\n"); git("commit", "-qam", "CRLF and a tab");
+  assert.equal(run(dir, PR).code, 1);
+  write(DOC, "#   Design\n\nOne flow, revised.\n"); git("commit", "-qam", "real edit");
+  assert.equal(run(dir, PR).code, 0);
+});
+
 test("git: a modified line in the design doc counts", t => {
   const { dir, git, write } = repo(t);
   write(CODE, "v2\n"); write(DOC, "# Design, revised\n"); git("commit", "-qam", "edit");
