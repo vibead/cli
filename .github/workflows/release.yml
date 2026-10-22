@@ -17,10 +17,10 @@ on:
         description: Version without the v, for example 0.1.0-beta.28
         required: true
       npm_tag:
-        description: npm dist-tag to publish under
+        description: npm dist-tag to publish under (next until QA promotes a release)
         type: choice
-        options: [latest, beta]
-        default: latest
+        options: [next, beta, latest]
+        default: next
 
 permissions:
   contents: read
@@ -107,7 +107,7 @@ jobs:
           registry-url: 'https://registry.npmjs.org'
       # Trusted Publishing needs npm 11.5.1 or newer. No NODE_AUTH_TOKEN: npm
       # exchanges this job's OIDC token for a short-lived publish credential.
-      - run: npm install -g npm@11
+      - run: npm install -g 'npm@^11.5.1' && npm --version
       - working-directory: npm
         run: npm test
       - working-directory: npm

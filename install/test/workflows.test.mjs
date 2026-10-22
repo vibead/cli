@@ -24,3 +24,22 @@ test('the check catches a personal address and allows the Actions bot', () => {
   assert.deepEqual(personalEmails('git -c user.email="someone@gmail.com" commit'), ['someone@gmail.com']);
   assert.deepEqual(personalEmails('user.email="41898282+github-actions[bot]@users.noreply.github.com"'), []);
 });
+
+// npm Trusted Publishing (cli#30): release.yml publishes only on a manual run,
+// to `next` by default, through OIDC, never with a token.
+test('release.yml: manual only, OIDC in the npm environment, next by default, no token', () => {
+  const y = readFileSync(join(dir, 'release.yml'), 'utf8');
+  const on = y.slice(y.indexOf('\non:'), y.indexOf('\npermissions:'));
+  assert.match(on, /workflow_dispatch:/);
+  assert.doesNotMatch(on, /^\s+(push|pull_request|release|schedule|workflow_run):/m);
+  const npm = y.slice(y.indexOf('\n  npm:'), y.indexOf('\n  tap:'));
+  assert.match(npm, /environment: npm/);
+  assert.match(npm, /id-token: write/);
+  assert.match(npm, /contents: read/);
+  assert.match(npm, /node-version: '22'/);
+  assert.match(npm, /npm@\^11\.5\.1/);
+  assert.match(npm, /npm publish --provenance/);
+  assert.match(y, /npm_tag:[\s\S]*?default: next/);
+  assert.doesNotMatch(y, /NPM_TOKEN|NODE_AUTH_TOKEN:\s*\$|secrets\.NPM/);
+  assert.equal(JSON.parse(readFileSync(join(dir, '..', '..', 'npm', 'package.json'), 'utf8')).name, '@vibead/cli');
+});
