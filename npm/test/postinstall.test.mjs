@@ -170,3 +170,18 @@ test('package.json declares the postinstall only after sign-off, with plain node
   if (pkg.scripts?.postinstall) assert.equal(pkg.scripts.postinstall, 'node lib/postinstall.mjs');
   assert.ok(pkg.files === undefined || pkg.files.some(f => f.startsWith('lib')), 'lib/ ships in the tarball');
 });
+
+test('install copy never promises install-time wiring: agents connect on install or on the first vibead run', async () => {
+  // npm 12 blocks global install scripts; CI, --ignore-scripts and Homebrew run
+  // none either. No README, quick start or design line may say the install alone wires.
+  const root = new URL('../../', import.meta.url);
+  const files = ['README.md', 'npm/README.md', 'docs/system-design/README.md', 'install/README.md'];
+  for (const file of files) {
+    const text = await readFile(new URL(file, root), 'utf8');
+    assert.doesNotMatch(text, /this is the whole install|is the whole install|wires every detected agent|wired at install time/iu, file);
+  }
+  const design = await readFile(new URL('docs/system-design/README.md', root), 'utf8');
+  const signedOff = design.slice(design.indexOf('After sign-off, the `npm/README.md` quick start becomes'));
+  assert.match(signedOff, /on install, or on your first vibead run/u);
+  assert.match(design, /on install, or on the first `vibead` run, whichever comes first/u);
+});

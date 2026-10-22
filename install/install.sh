@@ -19,7 +19,8 @@
 #   VIBEAD_REQUIRE_SIGNATURE=1     fail unless cosign verifies SHA256SUMS
 #   VIBEAD_ZERO_STEP=1             opt in to zero-step setup (see below)
 #
-# Zero-step setup (vibead/vibead-ai#235) wires every detected agent without a
+# Zero-step setup (vibead/vibead-ai#235) connects every detected agent, on
+# install or on the first `vibead` run, whichever comes first, without a
 # question, the same kit command as the npm postinstall. It stays off until
 # the install-notice wording has legal sign-off: ZERO_STEP_CONSENT_APPROVED=0
 # keeps `vibead enable`, which asks. With it on, CI, no terminal or root
@@ -137,7 +138,7 @@ LAUNCHER
     if ci_set || ! has_tty || [ "$(id -u)" = 0 ]; then
       say "Setup finishes the first time you run vibead."
     else
-      # Prints the install notice and `vibead disable`; a re-install changes
+      # Prints the one-line notice (it names `vibead disable`); a re-install changes
       # no byte. Never reads the terminal.
       PATH="$install_dir/bin:$PATH" "$launcher" __wrapperless wire --announce < /dev/null || say "Setup finishes the first time you run vibead."
     fi

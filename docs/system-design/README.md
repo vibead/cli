@@ -59,7 +59,7 @@ flowchart LR
 
 ## Zero-step install
 
-Founder decision (vibead-ai#235): `npm i -g @vibead/cli` is the whole install, and installing is the consent, given a notice on the npm page and the website and a first-turn notice in each agent that names `vibead disable`. The curl installer uses the same kit command. Homebrew takes the first-run path (below).
+Founder decision (vibead-ai#235): `npm i -g @vibead/cli` is the only install step. It connects the detected agents on install, or on the first `vibead` run, whichever comes first (npm 12, `CI`, `--ignore-scripts`, non-TTY and Homebrew installs run no install-time wiring, so the first run does it). Installing is the consent, given a notice on the npm page and the website and a first-turn notice in each agent that names `vibead disable`. The curl installer uses the same kit command. Homebrew takes the first-run path (below).
 
 **Off until legal sign-off.** The three notice sentences are pending Gaurav's sign-off (batched with vibead-ai#228 and #242). Until then nothing a real user gets by default depends on them: `ZERO_STEP_CONSENT_APPROVED` is `false` in `npm/lib/consent.mjs` and `0` in `install/install.sh`, and the kit (vibead/vibead `beta/lib/notices.mjs`) has the same switch. `npm/package.json` declares no `postinstall` script yet (the code is `npm/lib/postinstall.mjs`; it would return before any download or file change), the curl installer still runs `vibead enable` (which asks), and `npm/README.md` still shows `npm i -g @vibead/cli && vibead enable`. `VIBEAD_ZERO_STEP=1` is the explicit opt-in that QA and the simulations use.
 
@@ -77,7 +77,8 @@ flowchart TD
   Drop -- no --> Kit["npm: download the checked kit, or VIBEAD_KIT"]
   AsUser --> Kit
   Kit --> Wire["kit: __wrapperless wire --announce"]
-  Wire --> Notice["install notice and vibead disable; one Gemini line if gemini is on PATH"]
+  First --> Wire
+  Wire --> Notice["one-line notice naming vibead disable, once per home (install or first run); one Gemini line if gemini is on PATH"]
   Fail["download or wire fails"] --> Later["exit 0; first vibead run finishes setup"]
 ```
 
@@ -107,7 +108,8 @@ VibeAd will show a sponsored [Ad] line here. Turn it off: vibead disable
 After sign-off, the `npm/README.md` quick start becomes:
 
 ```sh
-npm i -g @vibead/cli                    # this is the whole install
+npm i -g @vibead/cli                    # connects your agents on install, or on your first vibead run
+vibead                                  # finishes setup if npm skipped the install script (npm 12, CI)
 claude                                  # or opencode, or codex: use your agent as usual
 vibead disable                          # turn ads off and restore your settings
 ```

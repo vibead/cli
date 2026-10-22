@@ -1,5 +1,7 @@
-// `npm i -g @vibead/cli` wires every detected agent when this script is allowed
-// to run. A failure here never fails the install: the first `vibead` run finishes it.
+// When npm allows this script to run (npm 10 and 11; npm 12 blocks it), it
+// connects every detected agent at install. Otherwise, and on any failure, the
+// first `vibead` run does it: agents connect on install or on the first run,
+// whichever comes first. A failure here never fails the install.
 // Off until the install-notice wording is signed off (./consent.mjs).
 import { spawnSync } from 'node:child_process';
 import { resolve } from 'node:path';
