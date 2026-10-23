@@ -78,6 +78,7 @@ Docs (DOC-1): <files changed | docs: n/a - why>
 - [ ] SAFE-6 QA/test installs on the internal list (only exception: the one staging `billable_test` install, vibead/vibead-ai#230 A1): <hashes only>
 - [ ] SAFE-7 per-env flag, default off; prod only via reviewed config + guard test: <flag, values, test>
 - [ ] SAFE-8 `VIBEAD_AWS_*` → `AWS_*`, VibeAd account only, Terraform 1.10.5, ≥ US$20/month held for the Chief of Staff: <evidence> → in vibead/cli: N/A — no AWS commands or Terraform here
+- [ ] SAFE-9 the package builds and imports for every changed Lambda (the build.py zip, unpacked clean, handler imported): <build-and-import CI test on head + QA's import from each zip> → in vibead/cli: N/A — no Lambda functions here
 
 ### Data / privacy
 - [ ] DATA-1 retention/TTL proven and pinned by tests: <tests, mutants> → in vibead/cli: N/A — retention and TTL live in vibead-ai
