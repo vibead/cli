@@ -74,8 +74,10 @@ jobs:
   dod:
     name: "DoD block complete (MERGE-0)"
     if: github.event.pull_request.draft == false
-    runs-on: ubuntu-latest
-    # Reads the body and the template only (seconds); 3 is the floor for any job (docs/quality/ci.md).
+    # 1-core Linux (Node 24 and git preinstalled) bills a third of ubuntu-latest; the check
+    # reads the body and the template only and takes seconds.
+    runs-on: ubuntu-slim
+    # 3 is the floor for any job (docs/quality/ci.md).
     timeout-minutes: 3
     steps:
       # Cone mode: these two folders plus the files directly in .github (the PR template).

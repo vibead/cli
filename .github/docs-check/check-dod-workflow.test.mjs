@@ -20,10 +20,11 @@ test("runs on body edits, pushes and ready_for_review", () => {
   for (const t of ["opened", "edited", "synchronize", "ready_for_review"]) assert.ok(types?.includes(t), t);
 });
 
-test("skips drafts, has the 3-minute floor, and keeps its check name", () => {
+test("skips drafts, has the 3-minute floor, runs on the 1-core runner, and keeps its check name", () => {
   assert.match(job, /^    name: "DoD block complete \(MERGE-0\)"$/m);
   assert.match(job, /^    if: github\.event\.pull_request\.draft == false$/m);
   assert.match(job, /^    timeout-minutes: 3$/m);
+  assert.match(job, /^    runs-on: ubuntu-slim$/m, "1-core Linux runner: US$0.002/min, a third of ubuntu-latest");
   assert.match(yml, /cancel-in-progress: true/);
 });
 
