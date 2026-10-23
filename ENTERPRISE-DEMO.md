@@ -5,11 +5,13 @@ Download and extract the complete **beta.17** kit: [Mac Apple Silicon](https://g
 From your usual project, run the command for your agent:
 
 ```sh
-"/path/to/vibead-beta" claude --test-publisher
-"/path/to/vibead-beta" codex --test-publisher
-"/path/to/vibead-beta" gemini --test-publisher
-"/path/to/vibead-beta" opencode --test-publisher
+"/path/to/vibead-beta" --test-publisher claude
+"/path/to/vibead-beta" --test-publisher codex
+"/path/to/vibead-beta" --test-publisher gemini
+"/path/to/vibead-beta" --test-publisher opencode
 ```
+
+VibeAd options go before the agent name from 0.1.0-beta.33. With an older kit, such as beta.17, add `--agent` before the agent name, for example `"/path/to/vibead-beta" --test-publisher --agent claude`.
 
 Your existing login, provider, settings and project stay in use. Normal model charges apply. The publisher connection is built in and uses your terminal's existing proxy environment automatically. No installer, local publisher, endpoint configuration or manual signing command is needed.
 
