@@ -53,9 +53,68 @@ flowchart LR
 | Channel | How it works | Status |
 | --- | --- | --- |
 | npm (primary) | `npm i -g @vibead/cli && vibead enable`. The launcher (`npm/bin/vibead.mjs`) picks the archive for this platform from `releases.json`, downloads it from GitHub Releases, checks its SHA-256 and runs it. macOS arm64/x64 and Linux x64. | **Live**, beta.25. |
-| curl | `curl -fsSL https://www.vibead.ai/install \| sh`. `install/install.sh` reads the pinned version from `www.vibead.ai/install.json` (never GitHub "latest", [cli#27](https://github.com/vibead/cli/issues/27)), verifies the archive against the release's `SHA256SUMS` (and its Sigstore signature when `cosign` is installed, required with `VIBEAD_REQUIRE_SIGNATURE=1`), installs under `~/.vibead` with a `vibead` link in `~/.local/bin`, then runs `vibead enable`. The whole script is one function called on the last line, so a truncated download runs nothing. | **Live** ([#28](https://github.com/vibead/cli/pull/28)). vibead-ai serves a byte-identical copy at the commit pinned in its `install.source.json`. |
+| curl | `curl -fsSL https://www.vibead.ai/install \| sh`. `install/install.sh` reads the pinned version from `www.vibead.ai/install.json` (never GitHub "latest", [cli#27](https://github.com/vibead/cli/issues/27)), verifies the archive against the release's `SHA256SUMS` (and its Sigstore signature when `cosign` is installed, required with `VIBEAD_REQUIRE_SIGNATURE=1`), installs under `~/.vibead` with a `vibead` link in `~/.local/bin`, then runs `vibead enable` (zero-step setup is behind a switch that is off until legal sign-off, see Zero-step install). The whole script is one function called on the last line, so a truncated download runs nothing. | **Live** ([#28](https://github.com/vibead/cli/pull/28)). vibead-ai serves a byte-identical copy at the commit pinned in its `install.source.json`. |
 | PowerShell | `irm https://www.vibead.ai/install.ps1 \| iex`. Prints the npm or WSL one-liner until Windows builds ship. | **Live**. |
 | Homebrew | `brew install vibead/tap/vibead` from [vibead/homebrew-tap](https://github.com/vibead/homebrew-tap). `packaging/homebrew` holds an official-cask candidate that is not submitted (needs notarized macOS builds). | **Live** (tap). |
+
+## Zero-step install
+
+Founder decision (vibead-ai#235): `npm i -g @vibead/cli` is the only install step. It connects the detected agents on install, or on the first `vibead` run, whichever comes first (npm 12, `CI`, `--ignore-scripts`, non-TTY and Homebrew installs run no install-time wiring, so the first run does it). Installing is the consent, given a notice on the npm page and the website and a first-turn notice in each agent that names `vibead disable`. The curl installer uses the same kit command. Homebrew takes the first-run path (below).
+
+**Off until legal sign-off.** The three notice sentences are pending Gaurav's sign-off (batched with vibead-ai#228 and #242). Until then nothing a real user gets by default depends on them: `ZERO_STEP_CONSENT_APPROVED` is `false` in `npm/lib/consent.mjs` and `0` in `install/install.sh`, and the kit (vibead/vibead `beta/lib/notices.mjs`) has the same switch. `npm/package.json` declares no `postinstall` script yet (the code is `npm/lib/postinstall.mjs`; it would return before any download or file change), the curl installer still runs `vibead enable` (which asks), and `npm/README.md` still shows `npm i -g @vibead/cli && vibead enable`. `VIBEAD_ZERO_STEP=1` is the explicit opt-in that QA and the simulations use.
+
+```mermaid
+flowchart TD
+  Npm["npm i -g @vibead/cli"] --> Signed{"signed off, or VIBEAD_ZERO_STEP=1?"}
+  Curl["curl /install"] --> Signed
+  Signed -- no --> Today["npm: postinstall does nothing; curl: vibead enable asks"]
+  Signed -- yes --> Gate{"terminal on stdout and CI unset?"}
+  Gate -- "no: CI, non-TTY, or --ignore-scripts" --> First["first vibead run wires"]
+  Brew["brew install vibead/tap/vibead"] --> First
+  Gate -- yes --> Drop{"euid 0?"}
+  Drop -- "npm, SUDO_USER set" --> AsUser["re-exec as SUDO_USER; parent writes nothing"]
+  Drop -- "curl" --> First
+  Drop -- no --> Kit["npm: download the checked kit, or VIBEAD_KIT"]
+  AsUser --> Kit
+  Kit --> Wire["kit: __wrapperless wire --announce"]
+  First --> Wire
+  Wire --> Notice["one-line notice naming vibead disable, once per home (install or first run); one Gemini line if gemini is on PATH"]
+  Fail["download or wire fails"] --> Later["exit 0; first vibead run finishes setup"]
+```
+
+- **Planned** ([vibead-ai#235](https://github.com/vibead/vibead-ai/issues/235)). `npm/lib/postinstall.mjs` is the npm `postinstall` script from the sign-off PR on. After the sign-off switch it skips when `CI` is set to anything other than empty, `0` or `false`, or when `npm_config_ignore_scripts=true` (with `--ignore-scripts` npm does not run it at all). npm pipes the script's own stdout, so the install counts as a terminal when this process or an ancestor has a terminal on stdout; the notice is written to `/dev/tty`. No terminal means no file changes. `sudo` re-execs as `SUDO_USER` before any download (`npm/lib/identity.mjs`), so nothing root-owned lands in the user's home; root with a `SUDO_USER` that cannot be resolved writes nothing. A download or wire failure prints one line and exits 0. `VIBEAD_KIT` points at a local kit for a simulation.
+- **Planned** ([vibead-ai#235](https://github.com/vibead/vibead-ai/issues/235)). `install/install.sh` runs the same `__wrapperless wire --announce` with stdin from `/dev/null` (no question) when zero-step is on and there is a terminal, `CI` is unset and it is not root. Otherwise it prints `Setup finishes the first time you run vibead.` The stable launcher `~/.vibead/bin/vibead` that agent hooks call does not move on upgrade, so beta.N to beta.N+1 needs no manual step: the new kit refreshes the hooks on the install and on every run.
+- **Planned (Homebrew).** A formula cannot write the user's agent files: `post_install` runs sandboxed on macOS with a temporary `HOME`. A Homebrew install therefore gets the first-run path: the first `vibead` run wires, with the same journal and the same byte-for-byte `vibead disable`. The tap formula's caveats (written by `release.yml`) change only after sign-off; the vibead/cli PR for vibead-ai#235 lists the lines.
+- **npm 12 does not run the postinstall.** npm 12 (`latest` on 2026-10-23) blocks install scripts of global packages unless the user passes `--allow-scripts=@vibead/cli` or sets `allow-scripts` in their npm config, and it prints a warning naming the blocked script. npm 10 and 11 (bundled with Node 22 and 24) still run it. On npm 12 a plain `npm i -g @vibead/cli` takes the first-run path: nothing changes until the first `vibead` run. Checked on the box with npm 12.2.1 on 2026-10-23. Because of that warning the script is declared in `npm/package.json` only in the sign-off PR, so the live package gains no warning before the feature can run.
+- Wiring, idempotence (a second run writes no byte), the byte-for-byte restore, `~/.vibead/ads-off`, the first-turn notice and the upgrade refresh live in the kit, in vibead/vibead (`beta/lib/auto-wire.mjs`, design in that repo's `docs/system-design/README.md`).
+- **Gemini CLI is not wired.** There is no documented status or spinner slot, hook context would reach the model, and the Gemini CLI FAQ forbids piggybacking on its OAuth. When `gemini` is on `PATH` the kit prints one line, `Gemini CLI isn't supported yet: VibeAd made no changes for it.`, and touches no Gemini file. The spike is vibead-ai#237.
+
+## LEGAL WORDING - pending Gaurav sign-off
+
+These sentences are the consent. None of them is shown to a real user until sign-off. The npm sentence goes above the install command in `npm/README.md`. The website sentence goes in the install section on www.vibead.ai. The first-turn line is one line in each agent's status area, before any ad.
+
+npm README and npm page, above the install command:
+
+Installing this package turns on a short sponsored line in Claude Code, Codex and OpenCode on this computer. The line is labelled [Ad] and appears in the agent's status area while it works. It does not read or change your prompts, code or replies. Turn it off at any time with: vibead disable
+
+Website install section, where the install command is shown:
+
+Installing VibeAd turns on a short sponsored line in Claude Code, Codex and OpenCode on this computer. The line is labelled [Ad] and appears in the agent's status area while it works. It does not read or change your prompts, code or replies. Turn it off at any time with: vibead disable
+
+First turn of each agent, one line in the status area, before any ad:
+
+VibeAd will show a sponsored [Ad] line here. Turn it off: vibead disable
+
+After sign-off, the `npm/README.md` quick start becomes:
+
+```sh
+npm i -g @vibead/cli                    # connects your agents on install, or on your first vibead run
+vibead                                  # finishes setup if npm skipped the install script (npm 12, CI)
+claude                                  # or opencode, or codex: use your agent as usual
+vibead disable                          # turn ads off and restore your settings
+```
+
+with the npm sentence above it. The same PR adds `"postinstall": "node lib/postinstall.mjs"` to `npm/package.json` and flips the switches above to on.
 
 ## Release flow
 
