@@ -1,12 +1,19 @@
 name: Docs check
 
-# Docs move with code (vibead/vibead-ai#143): a PR that changes a code path
-# must change a doc too, or say "docs: n/a - <why>" in its body. Path check
-# only (.github/docs-check/config.json); no checkout of the PR code is run.
-# Re-runs when the PR body is edited. One tiny Ubuntu job, no matrix, no secrets.
-# CI thrift (vibead/vibead-ai#178, docs/quality/ci.md): draft PRs skip both
-# jobs and they run on ready_for_review; every later push or body edit re-runs
-# them, and a newer event cancels the older run of the same PR.
+# One job, one billed minute per run (SAFE-5, vibead/vibead-ai#293 (d)):
+# - Docs move with code (vibead/vibead-ai#143): a PR that changes a code path
+#   must change a doc too, or say "docs: n/a - <why>" in its body
+#   (.github/docs-check/config.json). Plus the LESSONS.md check.
+# - Design doc gate (scripts/check-design-doc.mjs): "Design doc: N/A — <reason>"
+#   or a docs/system-design change.
+# - DoD block check (QA's MERGE-0 fast-fail, docs/quality/definition-of-done.md).
+#   The checker and template come from the PR's BASE commit and run FIRST, before
+#   any step that runs PR code, under a fresh environment (env -i), so nothing a
+#   PR's test or check script writes to $GITHUB_PATH or $GITHUB_ENV can reach it
+#   (vibead/vibead-ai#293 (a)). It reads only the event's PR body.
+# CI thrift (vibead/vibead-ai#178, docs/quality/ci.md): ubuntu-slim (US$0.002/min,
+# the steps need ~10 s), draft PRs skip and run on ready_for_review, title-only
+# edits skip, and a newer event cancels the older run of the same PR.
 on:
   pull_request:
     types: [opened, ready_for_review, synchronize, reopened, edited]
@@ -16,24 +23,60 @@ permissions:
   pull-requests: read
 
 concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}
+  group: docs-check-${{ github.event.pull_request.number }}
   cancel-in-progress: true
 
 jobs:
   docs:
-    name: "Docs updated (or 'docs: n/a')"
-    if: github.event.pull_request.draft == false
-    runs-on: ubuntu-latest
+    name: "Docs check (docs, design doc, LESSONS, DoD MERGE-0)"
+    # Drafts skip. An `edited` event re-runs only when the body or base changed.
+    if: >-
+      github.event.pull_request.draft == false &&
+      (github.event.action != 'edited' || github.event.changes.body != null || github.event.changes.base != null)
+    runs-on: ubuntu-slim
     # p95 is under 0.3 min; 3 is the floor for any job (docs/quality/ci.md).
     timeout-minutes: 3
     steps:
+      # Full history: the design-doc gate diffs base...head.
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
-          sparse-checkout: .github/docs-check
-      - name: Self-test
-        run: node --test .github/docs-check/check-docs.test.mjs .github/docs-check/check-lessons.test.mjs
-      - name: Check changed paths against the PR body
+          fetch-depth: 0
+      # DoD block (MERGE-0): the checker and PR template from the BASE commit
+      # only (two files, no credentials kept).
+      - name: "DoD check: checker and template from the base commit"
+        timeout-minutes: 1
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.event.pull_request.base.sha }}
+          path: .dod-base
+          persist-credentials: false
+          sparse-checkout-cone-mode: false
+          sparse-checkout: |
+            /.github/docs-check/check-dod.mjs
+            /.github/pull_request_template.md
+      # Runs before any PR code, with a fresh environment: only the runner's own
+      # node (resolved here, before any PR step could add to PATH) and PR_BODY.
+      # Bootstrap: while the base has no checker (only the PR that adds it), use
+      # the PR's own copy and say so.
+      - name: "DoD block complete (MERGE-0): every line ticked with evidence or N/A with a reason"
+        timeout-minutes: 1
+        env:
+          PR_BODY: ${{ github.event.pull_request.body }}
+        run: |
+          node_bin="$(command -v node)"
+          dir=.dod-base
+          if [ ! -f .dod-base/.github/docs-check/check-dod.mjs ]; then
+            dir=.
+            echo "::notice title=DoD check bootstrap::the base commit has no check-dod.mjs yet, so this run uses the PR's own copy"
+          fi
+          env -i PATH=/usr/bin:/bin PR_BODY="$PR_BODY" "$node_bin" "$dir/.github/docs-check/check-dod.mjs"
+      # PR code from here on. Each check runs even when an earlier one failed.
+      - name: "Docs: self-test"
+        if: success() || failure()
+        run: node --test .github/docs-check/*.test.mjs
+      - name: "Docs updated (or 'docs: n/a')"
+        if: success() || failure()
         env:
           GH_TOKEN: ${{ github.token }}
           REPO: ${{ github.repository }}
@@ -47,21 +90,11 @@ jobs:
           REPO: ${{ github.repository }}
           PR_NUMBER: ${{ github.event.pull_request.number }}
         run: node .github/docs-check/check-lessons.mjs
-
-  design-doc:
-    name: "Design doc updated (or 'Design doc: N/A — <reason>')"
-    if: github.event.pull_request.draft == false
-    runs-on: ubuntu-latest
-    # p95 is under 0.3 min; 3 is the floor for any job (docs/quality/ci.md).
-    timeout-minutes: 3
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          persist-credentials: false
-          fetch-depth: 0
-      - name: Self-test
+      - name: "Design doc: self-test"
+        if: success() || failure()
         run: node --test scripts/check-design-doc.test.mjs
-      - name: Check changed paths against the PR body
+      - name: "Design doc updated (or 'Design doc: N/A — <reason>')"
+        if: success() || failure()
         env:
           PR_BODY: ${{ github.event.pull_request.body }}
           BASE_SHA: ${{ github.event.pull_request.base.sha }}
