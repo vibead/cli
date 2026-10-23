@@ -21,17 +21,18 @@
 #
 # Zero-step setup (vibead/vibead-ai#235) connects every detected agent, on
 # install or on the first `vibead` run, whichever comes first, without a
-# question, the same kit command as the npm postinstall. It stays off until
-# the install-notice wording has legal sign-off: ZERO_STEP_CONSENT_APPROVED=0
-# keeps `vibead enable`, which asks. With it on, CI, no terminal or root
-# installs wire nothing here; the first `vibead` run does it as the user.
+# question, the same kit command as the npm postinstall. It is on since the
+# install-notice wording was approved (vibead/vibead-ai#254);
+# ZERO_STEP_CONSENT_APPROVED=0 goes back to `vibead enable`, which asks. CI, no
+# terminal or root installs wire nothing here; the first `vibead` run does it
+# as the user.
 #
 # The whole script is a function called on the last line, so a partial
 # download runs nothing.
 
 set -u
 
-ZERO_STEP_CONSENT_APPROVED=0
+ZERO_STEP_CONSENT_APPROVED=1
 
 main() {
   release_base=${VIBEAD_RELEASE_BASE:-https://github.com/vibead/cli/releases}
