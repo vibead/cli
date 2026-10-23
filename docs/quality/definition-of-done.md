@@ -205,6 +205,9 @@ Run this on a clean Linux cloud test machine with a fresh `$HOME`. **Any user fr
 - **SAFE-8** AWS commands map `VIBEAD_AWS_*` to `AWS_*` per command and use only the VibeAd account, never another profile. Terraform is 1.10.5. Any change costing US$20/month or more is held for the Chief of Staff before apply.
   *In vibead/cli:* N/A — no AWS commands or Terraform here.
   *Evidence:* the command lines (no values), `terraform version`, and the SAFE-5 cost line.
+- **SAFE-9** **The package builds and imports for every changed Lambda.** For each Lambda whose code, imports or shared modules changed, the deploy artifact (the zip `build.py` produces, not the source tree) is built, unpacked into a clean directory, and its handler module is imported with only the runtime's Python and the packaged dependencies. Every module the handler imports (including new shared files such as `dashboard*.py`) must be in the zip. A CI test does this build-and-import for every Lambda in the repo.
+  *Evidence:* the build-and-import test name and its CI run on the head, plus a QA-run `python -c 'import <handler>'` from each unpacked zip (added Oct 23 2026 after the #233 outage: auth-api returned 500 "No module named dashboard" because build.py omitted the new file).
+  *In vibead/cli:* N/A — no Lambda functions or `build.py` packages here.
 
 ## DATA: data and privacy
 
