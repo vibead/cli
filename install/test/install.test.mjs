@@ -87,8 +87,9 @@ test('install.sh: installs the release pinned in the site manifest into a temp H
   assert.equal(readlinkSync(link), join(box.home, '.vibead/bin/vibead'));
   assert.equal(execFileSync(link, ['--version'], { encoding: 'utf8' }).trim(), '0.1.0-beta.99');
   assert.ok(existsSync(join(box.home, '.vibead/versions/0.1.0-beta.99-linux-x64/vibead-beta')));
-  // No terminal: it must not prompt or edit shell profiles; it says what to run next.
-  assert.match(r.stdout, /Next: vibead enable/);
+  // No terminal: it must not prompt or edit shell profiles; zero-step (on since
+  // vibead-ai#254) leaves setup to the first vibead run and says so.
+  assert.match(r.stdout, /Setup finishes the first time you run vibead\./);
   assert.match(r.stdout, /export PATH=/);
   assert.ok(!existsSync(join(box.home, '.bashrc')));
   assert.ok(!existsSync(join(box.home, 'kit.log')), 'enable must not run without a terminal');
@@ -97,11 +98,11 @@ test('install.sh: installs the release pinned in the site manifest into a temp H
   assert.match(readFileSync(join(box.home, 'kit.log'), 'utf8'), /kit=0\.1\.0-beta\.99 args=status/);
 });
 
-test('install.sh: with a terminal, runs `vibead enable` (same setup as npm) with the stable launcher on PATH', { skip: (!linuxX64 || !which('script')) && 'needs Linux x64 and script(1)' }, () => {
+test('install.sh, switch off: with a terminal, runs `vibead enable` with the stable launcher on PATH', { skip: (!linuxX64 || !which('script')) && 'needs Linux x64 and script(1)' }, () => {
   const box = sandbox();
   release(box.rel, '0.1.0-beta.99');
   const env = { HOME: box.home, PATH: `${join(box.home, '.local/bin')}:${basePath}`, SHELL: '/bin/bash', VIBEAD_RELEASE_BASE: box.base, VIBEAD_MANIFEST_URL: box.manifest };
-  const r = spawnSync('script', ['-qec', `sh '${installSh}'`, '/dev/null'], { encoding: 'utf8', env, input: '' });
+  const r = spawnSync('script', ['-qec', `sh '${switchedOff(box)}'`, '/dev/null'], { encoding: 'utf8', env, input: '' });
   assert.equal(r.status, 0, r.stdout + r.stderr);
   const log = readFileSync(join(box.home, 'kit.log'), 'utf8');
   assert.match(log, /kit=0\.1\.0-beta\.99 args=enable tty=yes launcher_on_path=yes/);
@@ -110,9 +111,17 @@ test('install.sh: with a terminal, runs `vibead enable` (same setup as npm) with
 
 // Run the installer under script(1) so it has a real terminal; `answers` is
 // typed into that terminal (the PATH prompt reads /dev/tty).
-function runTty(box, answers, env = {}) {
+function runTty(box, answers, env = {}, script = installSh) {
   const full = { HOME: box.home, PATH: basePath, SHELL: '/bin/bash', VIBEAD_RELEASE_BASE: box.base, VIBEAD_MANIFEST_URL: box.manifest, ...env };
-  return spawnSync('script', ['-qec', `sh '${installSh}'`, '/dev/null'], { encoding: 'utf8', env: full, input: answers });
+  return spawnSync('script', ['-qec', `sh '${script}'`, '/dev/null'], { encoding: 'utf8', env: full, input: answers });
+}
+
+// install.sh with the zero-step switch set back to 0 (vibead-ai#235): the
+// `vibead enable` path, kept tested so the switch can be turned off again.
+function switchedOff(box) {
+  const off = join(box.home, 'install-switch-off.sh');
+  writeFileSync(off, readFileSync(installSh, 'utf8').replace(/^ZERO_STEP_CONSENT_APPROVED=1$/m, 'ZERO_STEP_CONSENT_APPROVED=0'));
+  return off;
 }
 
 // CLI-2: the only question in an install is `vibead enable`'s consent. With
@@ -136,10 +145,10 @@ test('install.sh: off PATH it asks nothing and edits no profile, printing the ex
   assert.equal(readFileSync(join(box.home, '.bashrc'), 'utf8'), before, 'profile untouched');
 });
 
-test('install.sh: answering n at the enable consent prints a neutral "Setup skipped" line', { skip: (!linuxX64 || !which('script')) && 'needs Linux x64 and script(1)' }, () => {
+test('install.sh, switch off: answering n at the enable consent prints a neutral "Setup skipped" line', { skip: (!linuxX64 || !which('script')) && 'needs Linux x64 and script(1)' }, () => {
   const box = sandbox();
   release(box.rel, '0.1.0-beta.99');
-  const r = runTty(box, '', { VIBEAD_NO_MODIFY_PATH: '1', FAKE_DECLINE: '1' });
+  const r = runTty(box, '', { VIBEAD_NO_MODIFY_PATH: '1', FAKE_DECLINE: '1' }, switchedOff(box));
   assert.equal(r.status, 0, r.stdout + r.stderr);
   assert.match(r.stdout, /Setup skipped\. Run `vibead enable` any time\./);
   assert.doesNotMatch(r.stdout + r.stderr, /did not finish/);
@@ -321,7 +330,7 @@ test('install.ps1: uses the pinned manifest version; no manifest gives the npm o
 test('README: npm is listed first and every install channel is a single command', () => {
   const readme = readFileSync(join(root, 'README.md'), 'utf8');
   const channels = [
-    'npm i -g @vibead/cli && vibead enable',
+    'npm i -g @vibead/cli ',
     'curl -fsSL https://www.vibead.ai/install | sh',
     'irm https://www.vibead.ai/install.ps1 | iex',
     'brew install vibead/tap/vibead && vibead enable',
@@ -372,12 +381,25 @@ test('install.ps1: asks no PATH question and leaves the user PATH alone, printin
 });
 
 // vibead/vibead-ai#235: zero-step setup is the same kit command as the npm
-// postinstall, and it stays off until the install-notice wording is signed off.
-test('install.sh: zero-step stays off until legal sign-off (the switch is 0 and the default still runs enable)', { skip: (!linuxX64 || !which('script')) && 'needs Linux x64 and script(1)' }, () => {
-  assert.match(readFileSync(installSh, 'utf8'), /^ZERO_STEP_CONSENT_APPROVED=0$/m);
+// postinstall. The install-notice wording was approved in vibead-ai#254, so the
+// switch is 1; with it set back to 0 the installer runs `vibead enable`.
+test('install.sh: zero-step is on by default (the switch is 1): a terminal install runs the kit wire with no opt-in', { skip: (!linuxX64 || !which('script')) && 'needs Linux x64 and script(1)' }, () => {
+  assert.match(readFileSync(installSh, 'utf8'), /^ZERO_STEP_CONSENT_APPROVED=1$/m);
   const box = sandbox();
   release(box.rel, '0.1.0-beta.99');
   const r = runTty(box, '', { VIBEAD_NO_MODIFY_PATH: '1' });
+  assert.equal(r.status, 0, r.stdout + r.stderr);
+  const log = readFileSync(join(box.home, 'kit.log'), 'utf8');
+  assert.match(log, /args=__wrapperless wire --announce/);
+  assert.doesNotMatch(log, /args=enable/);
+});
+
+test('install.sh: with the switch set back to 0 the default runs `vibead enable` and no zero-step wire', { skip: (!linuxX64 || !which('script')) && 'needs Linux x64 and script(1)' }, () => {
+  const box = sandbox();
+  release(box.rel, '0.1.0-beta.99');
+  const off = switchedOff(box);
+  const env = { HOME: box.home, PATH: basePath, SHELL: '/bin/bash', VIBEAD_RELEASE_BASE: box.base, VIBEAD_MANIFEST_URL: box.manifest, VIBEAD_NO_MODIFY_PATH: '1' };
+  const r = spawnSync('script', ['-qec', `sh '${off}'`, '/dev/null'], { encoding: 'utf8', env, input: '' });
   assert.equal(r.status, 0, r.stdout + r.stderr);
   const log = readFileSync(join(box.home, 'kit.log'), 'utf8');
   assert.match(log, /args=enable tty=yes/);

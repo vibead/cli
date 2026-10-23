@@ -13,5 +13,5 @@
   "os": ["darwin", "linux"],
   "cpu": ["arm64", "x64"],
   "publishConfig": { "access": "public", "registry": "https://registry.npmjs.org/", "tag": "next" },
-  "scripts": { "test": "node --test", "prepublishOnly": "npm test" }
+  "scripts": { "test": "node --test", "prepublishOnly": "npm test", "postinstall": "node lib/postinstall.mjs" }
 }

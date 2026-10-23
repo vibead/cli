@@ -17,17 +17,20 @@
 
 ## Quick start
 
+Installing this package turns on a short sponsored line in Claude Code, Codex and OpenCode on this computer. The line is labelled [Ad] and appears in the agent's status area while it works. It does not read or change your prompts, code or replies. Turn it off at any time with: vibead disable
+
 ```sh
-npm i -g @vibead/cli && vibead enable   # install, then review and approve the changes
-claude                                  # or opencode: use your agent as usual
+npm i -g @vibead/cli                    # connects your agents on install, or on your first vibead run
+vibead                                  # finishes setup if npm skipped the install script (npm 12, CI)
+claude                                  # or opencode, or codex: use your agent as usual
 vibead disable                          # turn ads off and restore your settings
 ```
 
-**Codex** is opt-in: accept the `codex` alias that `vibead enable` offers, or run `vibead codex`.
+**Codex** gets a `codex` alias for `vibead codex`; `vibead disable` removes it.
 
 - A short, labelled `[Ad]` line appears in the status line (Claude Code) or a notification (OpenCode) while your agent thinks.
 - VibeAd never reads or changes your prompts, code or agent output.
-- Asks before changing any file; `vibead disable` restores them exactly.
+- Journals every file it changes; `vibead disable` restores them exactly.
 - Payouts launching soon.
 
 Works with **Claude Code, Codex and OpenCode** on **macOS (Apple Silicon, Intel)** and **Linux x64 (glibc 2.34+)**. Windows is not supported yet.
@@ -37,9 +40,9 @@ Works with **Claude Code, Codex and OpenCode** on **macOS (Apple Silicon, Intel)
 ---
 
 <details>
-<summary><b>What <code>vibead enable</code> changes</b></summary>
+<summary><b>What install (or <code>vibead enable</code>) changes</b></summary>
 
-`vibead enable` lists every file it will change and asks before touching anything. Use `--dry-run` to preview only.
+Install connects the agents it finds. `vibead enable` (to turn ads back on after `vibead disable`) lists every file it will change and asks before touching anything. Use `--dry-run` to preview only.
 
 - **Claude Code:** adds a status line and turn hooks to `~/.claude/settings.json`. The hooks print nothing, so nothing reaches the model.
 - **OpenCode:** adds a plugin that shows a labelled toast when a turn starts.

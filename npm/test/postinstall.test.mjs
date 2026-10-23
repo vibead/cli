@@ -5,7 +5,8 @@ import { installTimeWiringAllowed } from '../lib/identity.mjs';
 import { SETUP_LATER, runPostinstall as runAny } from '../lib/postinstall.mjs';
 import { ZERO_STEP_CONSENT_APPROVED, zeroStepEnabled } from '../lib/consent.mjs';
 
-// Every test below except the sign-off ones runs with zero-step switched on.
+// Tests pass approved: true explicitly so they keep testing the on path if the
+// default switch is ever set back to false; the switch-off tests pass false.
 const runPostinstall = options => runAny({ approved: true, ...options });
 
 const NOTICE = 'Installing this package turns on a short sponsored line in Claude Code, Codex and OpenCode on this computer. The line is labelled [Ad] and appears in the agent\'s status area while it works. It does not read or change your prompts, code or replies. Turn it off at any time with: vibead disable';
@@ -102,29 +103,39 @@ test('VIBEAD_KIT is wired without a download, and a missing kit still exits 0', 
   assert.deepEqual(warnings, [SETUP_LATER]);
 });
 
-test('pending sign-off: the switch is off and the README still shows the asking install', async () => {
-  assert.equal(ZERO_STEP_CONSENT_APPROVED, false, 'flip only with the signed-off wording (vibead/vibead-ai#235)');
-  assert.equal(zeroStepEnabled({}), false);
-  assert.equal(zeroStepEnabled({ VIBEAD_ZERO_STEP: 'true' }), false);
-  assert.equal(zeroStepEnabled({ VIBEAD_ZERO_STEP: '1' }), true);
+test('approved (vibead-ai#254): the switch is on and the npm README shows the approved sentence above the install command', async () => {
+  assert.equal(ZERO_STEP_CONSENT_APPROVED, true, 'Gaurav approved the 2a sentence in vibead/vibead-ai#254');
+  assert.equal(zeroStepEnabled({}), true);
+  assert.equal(zeroStepEnabled({}, false), false);
+  assert.equal(zeroStepEnabled({ VIBEAD_ZERO_STEP: 'true' }, false), false);
+  assert.equal(zeroStepEnabled({ VIBEAD_ZERO_STEP: '1' }, false), true);
+  const { createHash } = await import('node:crypto');
+  assert.equal(createHash('sha256').update(NOTICE).digest('hex').slice(0, 16), 'efa0fa0d7903299a', '2a changed: approved text goes back to Gaurav, never an edit');
   const readme = await readFile(new URL('../README.md', import.meta.url), 'utf8');
-  assert.ok(!readme.includes(NOTICE), 'the unapproved sentence is not on the npm page');
-  assert.match(readme, /npm i -g @vibead\/cli && vibead enable/);
+  const at = readme.indexOf(NOTICE);
+  assert.ok(at >= 0, 'the approved sentence is on the npm page');
+  assert.ok(at < readme.indexOf('npm i -g @vibead/cli'), 'above the install command');
+  assert.doesNotMatch(readme, /npm i -g @vibead\/cli && vibead enable/);
   const design = await readFile(new URL('../../docs/system-design/README.md', import.meta.url), 'utf8');
-  assert.ok(design.includes('LEGAL WORDING - pending Gaurav sign-off'));
+  assert.ok(design.includes('LEGAL WORDING - approved by Gaurav (vibead-ai#254)'));
   assert.ok(design.includes(NOTICE));
   assert.ok(design.includes('VibeAd will show a sponsored [Ad] line here. Turn it off: vibead disable'));
 });
 
-test('pending sign-off: the default postinstall downloads nothing and spawns nothing, even with a terminal', async () => {
+test('approved default: with no opt-in and no approved argument the postinstall passes the consent gate', async () => {
+  // No terminal, so it stops at the next gate ('gated') without touching anything.
+  assert.deepEqual(await runAny({ env: {}, stdoutIsTTY: false, ancestorStdoutIsTTY: false, uid: 1000 }), { code: 0, skipped: 'gated' });
+});
+
+test('switch off: the postinstall downloads nothing and spawns nothing, even with a terminal', async () => {
   let touched = false;
   const touch = () => { touched = true; return { status: 0 }; };
-  const result = await runAny({ env: {}, stdoutIsTTY: true, ancestorStdoutIsTTY: true, uid: 1000, spawn: touch, ensure: async () => { touched = true; return '/kit'; } });
+  const result = await runAny({ env: {}, approved: false, stdoutIsTTY: true, ancestorStdoutIsTTY: true, uid: 1000, spawn: touch, ensure: async () => { touched = true; return '/kit'; } });
   assert.deepEqual(result, { code: 0, skipped: 'pending-sign-off' });
   assert.equal(touched, false);
   const spawned = [];
   const optedIn = await runAny({
-    env: { VIBEAD_ZERO_STEP: '1' }, stdoutIsTTY: true, uid: 1000, kit: '/kit',
+    env: { VIBEAD_ZERO_STEP: '1' }, approved: false, stdoutIsTTY: true, uid: 1000, kit: '/kit',
     spawn: (cmd, args) => { spawned.push([cmd, args]); return { status: 0, stdout: 'notice\nvibead disable\n' }; },
     showNotice: () => {},
   });
@@ -160,7 +171,7 @@ test('a kit that fails or prints nothing leaves the install green and says setup
   }
 });
 
-test('package.json declares the postinstall only after sign-off, with plain node and no shell', async () => {
+test('package.json declares the postinstall exactly when the switch is on, with plain node and no shell', async () => {
   // npm 12 blocks global install scripts by default and warns about each one,
   // and npm 11 lists them for review. A postinstall that does nothing until
   // sign-off would only add that warning, so it is declared in the same PR
@@ -181,7 +192,7 @@ test('install copy never promises install-time wiring: agents connect on install
     assert.doesNotMatch(text, /this is the whole install|is the whole install|wires every detected agent|wired at install time/iu, file);
   }
   const design = await readFile(new URL('docs/system-design/README.md', root), 'utf8');
-  const signedOff = design.slice(design.indexOf('After sign-off, the `npm/README.md` quick start becomes'));
+  const signedOff = design.slice(design.indexOf('With the switch on, the `npm/README.md` quick start is'));
   assert.match(signedOff, /on install, or on your first vibead run/u);
   assert.match(design, /on install, or on the first `vibead` run, whichever comes first/u);
 });
