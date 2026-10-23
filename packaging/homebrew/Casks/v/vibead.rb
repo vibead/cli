@@ -7,7 +7,7 @@ cask "vibead" do
 
   url "https://github.com/vibead/cli/releases/download/v#{version}/vibead-beta-#{version}-darwin-#{arch}.tar.gz"
   name "Vibead"
-  desc "Try test ads and publisher messages in AI coding agents"
+  desc "Clearly labelled sponsored lines while your AI agent works"
   homepage "https://github.com/vibead/cli"
 
   livecheck do
