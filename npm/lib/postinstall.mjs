@@ -2,7 +2,7 @@
 // connects every detected agent at install. Otherwise, and on any failure, the
 // first `vibead` run does it: agents connect on install or on the first run,
 // whichever comes first. A failure here never fails the install.
-// Off until the install-notice wording is signed off (./consent.mjs).
+// On since the install-notice wording was approved (./consent.mjs, vibead-ai#254).
 import { spawnSync } from 'node:child_process';
 import { resolve } from 'node:path';
 import { pathToFileURL } from 'node:url';
