@@ -3,7 +3,10 @@ name: Docs check
 # Docs move with code (vibead/vibead-ai#143): a PR that changes a code path
 # must change a doc too, or say "docs: n/a - <why>" in its body. Path check
 # only (.github/docs-check/config.json); no checkout of the PR code is run.
-# Re-runs when the PR body is edited. One tiny Ubuntu job, no matrix, no secrets.
+# Re-runs when the PR body is edited. Tiny Ubuntu jobs, no matrix, no secrets.
+# The DoD job is QA's MERGE-0 fast-fail: the body must carry the Definition of
+# Done block with every template line ticked or "N/A - <reason>" (it reads only
+# the body and .github/pull_request_template.md; no PR code is checked out).
 # CI thrift (vibead/vibead-ai#178, docs/quality/ci.md): draft PRs skip both
 # jobs and they run on ready_for_review; every later push or body edit re-runs
 # them, and a newer event cancels the older run of the same PR.
@@ -67,3 +70,22 @@ jobs:
           BASE_SHA: ${{ github.event.pull_request.base.sha }}
           HEAD_SHA: ${{ github.event.pull_request.head.sha }}
         run: node scripts/check-design-doc.mjs --base "$BASE_SHA" --head "$HEAD_SHA"
+
+  dod:
+    name: "DoD block complete (MERGE-0)"
+    if: github.event.pull_request.draft == false
+    runs-on: ubuntu-latest
+    # Reads the body and the template only (seconds); 3 is the floor for any job (docs/quality/ci.md).
+    timeout-minutes: 3
+    steps:
+      # Cone mode: .github/docs-check plus the files directly in .github (the PR template).
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+          sparse-checkout: .github/docs-check
+      - name: Self-test
+        run: node --test .github/docs-check/check-dod.test.mjs
+      - name: Every DoD line ticked or N/A with a reason
+        env:
+          PR_BODY: ${{ github.event.pull_request.body }}
+        run: node .github/docs-check/check-dod.mjs

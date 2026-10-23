@@ -20,6 +20,7 @@ No self-hosted runners. Secrets and token permissions are unchanged.
 | --- | --- | --- |
 | `installers.yml` / shellcheck + install.sh/install.ps1 + npm launcher (Linux) | Every PR event, drafts included, and push to `main` (paths). Group per PR, cancel. Timeout 10. | Non-draft PRs (opened, ready_for_review, synchronize, reopened) and push to `main` (paths unchanged). Cancel only for PRs. Timeout 3 (p95 0.4, max 0.6, floor 3). |
 | `docs-check.yml` / Docs updated, Design doc updated | Every PR event incl. `edited`, drafts included. Timeout 3. | Non-draft PRs (adds ready_for_review, keeps `edited`). Timeout 3 (floor). |
+| `docs-check.yml` / DoD block complete (MERGE-0) | (new, vibead-ai#223 QA first-pass) | Non-draft PRs incl. `edited` and ready_for_review, same group and cancel as the other Docs check jobs. Sparse checkout of `.github/docs-check` (the PR template comes with it in cone mode); reads only the PR body. Timeout 3 (floor; the check takes seconds). One job, about 1 billed minute per PR event. |
 | `release.yml` (check, sign, publish-release, npm, tap) | Dispatch only, Linux, group `release-<version>` without cancel. | Unchanged. Already Linux only, no cancel. Publish caps kept (rule 7). |
 | `sign-release.yml` | Dispatch or called from release, group `sign-release-<tag>` without cancel. | Unchanged. |
 
@@ -35,6 +36,7 @@ Artifacts: no workflow here uses `upload-artifact`. Release files go to the GitH
 | --- | --- | --- |
 | shellcheck, install.sh and install.ps1 tests, npm launcher tests, status-legend test | Installer tests | Every non-draft PR, docs-only included, and `main` pushes to the watched paths. |
 | Docs updated, LESSONS check, Design doc updated | Docs check | Every non-draft PR event, including body edits and ready_for_review. |
+| DoD block complete (MERGE-0): the body has the `## Definition of Done` block with every line ID in `.github/pull_request_template.md`, each ticked or `N/A - <reason>` (`.github/docs-check/check-dod.mjs`, tests in `check-dod.test.mjs`) | Docs check | Every non-draft PR event, including body edits and ready_for_review. Drafts skip it, so a draft may hold pending lines; marking it ready runs it. |
 | Release check (draft tgz = `npm pack` at this commit), signing, `SHA256SUMS`, npm provenance publish | Release, Sign release | Every release dispatch (unchanged). |
 
 There are no CodeQL, dependency-audit or mutation-test jobs in this repo's workflows.
