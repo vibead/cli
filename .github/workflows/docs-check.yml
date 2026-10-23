@@ -78,13 +78,15 @@ jobs:
     # Reads the body and the template only (seconds); 3 is the floor for any job (docs/quality/ci.md).
     timeout-minutes: 3
     steps:
-      # Cone mode: .github/docs-check plus the files directly in .github (the PR template).
+      # Cone mode: these two folders plus the files directly in .github (the PR template).
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
-          sparse-checkout: .github/docs-check
+          sparse-checkout: |
+            .github/docs-check
+            .github/workflows
       - name: Self-test
-        run: node --test .github/docs-check/check-dod.test.mjs
+        run: node --test .github/docs-check/check-dod.test.mjs .github/docs-check/check-dod-workflow.test.mjs
       - name: Every DoD line ticked or N/A with a reason
         env:
           PR_BODY: ${{ github.event.pull_request.body }}
