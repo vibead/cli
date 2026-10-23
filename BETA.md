@@ -23,11 +23,13 @@ Download and extract the complete beta.17 archive into a fresh folder and update
 For organization messages, download the [publisher beta](ENTERPRISE-DEMO.md), then run the command for your agent:
 
 ```sh
-"/path/to/vibead-beta" claude --test-publisher
-"/path/to/vibead-beta" codex --test-publisher
-"/path/to/vibead-beta" gemini --test-publisher
-"/path/to/vibead-beta" opencode --test-publisher
+"/path/to/vibead-beta" --test-publisher claude
+"/path/to/vibead-beta" --test-publisher codex
+"/path/to/vibead-beta" --test-publisher gemini
+"/path/to/vibead-beta" --test-publisher opencode
 ```
+
+VibeAd options go before the agent name from 0.1.0-beta.33. With an older kit, such as beta.17, add `--agent` before the agent name, for example `"/path/to/vibead-beta" --test-publisher --agent claude`.
 
 Your existing account, provider, settings and project stay in use; normal model charges apply. In the [hosted publisher](https://www.vibead.ai/woolworths-demo), change **Terminal line**, click **Publish to workspace**, and send another prompt in the same session. The publication appears with `[Org]` while the agent works. Existing proxy settings are used automatically. Use `--test-publisher` separately from `--test-links`. Existing ad commands and beta.17 downloads below are unchanged.
 
@@ -50,15 +52,17 @@ These are initial capability checks, not a claim of physical-desktop qualificati
 3. Run one agent at a time, using the path to beta.17. No `--mode interactive` is needed:
 
 ```sh
-"/path/to/vibead-beta" claude --test-links
-"/path/to/vibead-beta" codex --test-links
-"/path/to/vibead-beta" gemini --test-links
-"/path/to/vibead-beta" opencode --test-links
+"/path/to/vibead-beta" --test-links claude
+"/path/to/vibead-beta" --test-links codex
+"/path/to/vibead-beta" --test-links gemini
+"/path/to/vibead-beta" --test-links opencode
 ```
 
-On a Mac where you already set `VIBEAD_BETA` to beta.17, use `"$VIBEAD_BETA" claude --test-links`, changing the agent name as needed. Windows clickable-ad testing is not included in this release.
+VibeAd options go before the agent name from 0.1.0-beta.33. With an older kit, such as beta.17, add `--agent` before the agent name, for example `"/path/to/vibead-beta" --test-links --agent claude`.
 
-Keep gateway variables and saved logins as they normally are. Native agent arguments still follow `--`, for example `"/path/to/vibead-beta" claude --test-links -- --model my-model`.
+On a Mac where you already set `VIBEAD_BETA` to beta.17, use `"$VIBEAD_BETA" --test-links claude`, changing the agent name as needed. Windows clickable-ad testing is not included in this release.
+
+Keep gateway variables and saved logins as they normally are. Agent arguments go after the agent name, for example `"/path/to/vibead-beta" --test-links claude --model my-model`. With a kit older than 0.1.0-beta.33, put them after `--`: `"/path/to/vibead-beta" --test-links --agent claude -- --model my-model`.
 
 4. Send a normal prompt that gives you a few seconds to observe thinking. While `Beta … [Ad]…` is visible, open the link on **the word Beta**, using the gesture above. The random label, disclosure and adjacent agent text must not be part of the link. Nothing should open until you deliberately click.
 5. The browser must show **Vibead local click test** at `http://127.0.0.1:<port>/beta/click/...`. Press **Confirm I opened the test ad**. Expect **Click test confirmed**, then return to the agent. Keep the agent session open until confirmation; the mock service stops when you exit. Do not paste this temporary URL into an issue.
@@ -265,10 +269,10 @@ A second overlapping beta session for the same configuration, an existing Vibead
 Normal exit handles cleanup automatically. A power loss or force-kill can leave temporary hooks and a local recovery journal. Close other beta sessions for that agent, then run from the same account and configuration environment:
 
 ```sh
-"/path/to/vibead-beta" claude --cleanup
+"/path/to/vibead-beta" --cleanup claude
 ```
 
-Replace `claude` with your agent. Windows uses `& "C:\path\to\vibead-beta.exe" claude --cleanup`. This command needs no model request. It refuses to clean up a live beta session. If cleanup reports an error, retain the archive and recovery files; report the error without uploading those files. Do not delete recovery state while cleanup is pending.
+Replace `claude` with your agent. Windows uses `& "C:\path\to\vibead-beta.exe" --cleanup claude`. With a kit older than 0.1.0-beta.33, use `"/path/to/vibead-beta" --cleanup --agent claude`. This command needs no model request. It refuses to clean up a live beta session. If cleanup reports an error, retain the archive and recovery files; report the error without uploading those files. Do not delete recovery state while cleanup is pending.
 
 ## Optional isolated checks
 
@@ -278,7 +282,7 @@ Replace `claude` with your agent. Windows uses `& "C:\path\to\vibead-beta.exe" c
 | `--mode fixture` | Temporary empty home, fixed prompt and local simulated model; no account or model charges |
 | `--mode authenticated` | Temporary empty home and fixed factorial prompt using an exported provider key/token |
 
-To run an optional diagnostic, use `"/path/to/vibead-beta" AGENT --mode fixture`, replacing `AGENT` with any of the four agent names. You do not need to pass it before using the primary beta. Fixture success does not establish that your usual provider works.
+To run an optional diagnostic, use `"/path/to/vibead-beta" --mode fixture AGENT` (with a kit older than 0.1.0-beta.33: `--mode fixture --agent AGENT`), replacing `AGENT` with any of the four agent names. You do not need to pass it before using the primary beta. Fixture success does not establish that your usual provider works.
 
 The separate automated authenticated mode requires `OPENAI_API_KEY` for Codex/OpenCode, `GEMINI_API_KEY` for Gemini, or `ANTHROPIC_API_KEY` / `ANTHROPIC_AUTH_TOKEN` for Claude. It accepts `--model MODEL`; Claude also accepts the gateway URL/model variables. Unlike the primary mode, it does not reuse saved account configuration. Provider charges may apply.
 
