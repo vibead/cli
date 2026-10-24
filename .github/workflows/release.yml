@@ -8,14 +8,13 @@ name: Release
 #      pre-release that is not Latest, so releases/latest and /install stay put
 #   4. npm publish of that signed vibead-cli-X.tgz, byte for byte, via Trusted
 #      Publishing (OIDC + provenance; no token, no OTP)
-#   5. bump the Homebrew tap (npm_tag latest only)
+#   (Homebrew follows on its own: the tap repo polls npm `latest`; no token here)
 # Promoting a version that is already on npm (cli#58): run with mode promote and
 # the same version and npm_tag. It skips check, sign and npm publish, and runs
 #   a. promote-npm: the published release's signed vibead-cli-X.tgz must be the
 #      exact tarball npm holds (SHA-512 integrity); then `npm dist-tag add`
 #      through Trusted Publishing (OIDC, no token)
 #   b. promote-release: Latest on the GitHub Release (npm_tag latest only)
-#   c. tap: the Homebrew bump (npm_tag latest only)
 # It is safe to re-run. Rehearse with npm_tag next on a version that is already
 # `next`: every step runs and nothing changes.
 # Before running: the draft release vX exists with every archive and its
@@ -57,8 +56,7 @@ jobs:
     # access, so with contents:read `gh release view/download` on the draft
     # says "release not found". This job only reads; write is for draft
     # visibility alone (dry run: cli#37). The other jobs that read the draft
-    # (sign, publish-release) already have contents:write; tap reads it after
-    # publish, when it is public.
+    # (sign, publish-release) already have contents:write.
     permissions:
       contents: write
     outputs:
@@ -189,44 +187,6 @@ jobs:
           NPM_TAG: ${{ inputs.npm_tag }}
           VERSION: ${{ inputs.version }}
         run: npm publish "./vibead-cli-$VERSION.tgz" --provenance --access public --tag "$NPM_TAG"
-
-  tap:
-    name: Bump the Homebrew tap (npm_tag latest only)
-    needs: [npm, promote-release]
-    # Homebrew is a Live channel: only a promoted (latest) release may bump it, never next or beta.
-    # Exactly one of the two paths ran: a release (npm published) or a promote (dist-tag and Latest set).
-    if: ${{ !cancelled() && inputs.npm_tag == 'latest' && (needs.npm.result == 'success' || needs.promote-release.result == 'success') }}
-    runs-on: ubuntu-latest
-    timeout-minutes: 5
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          repository: vibead/homebrew-tap
-          # Fine-grained token: contents read/write on vibead/homebrew-tap only.
-          token: ${{ secrets.HOMEBREW_TAP_TOKEN }}
-      - env:
-          GH_TOKEN: ${{ github.token }}
-          TAG: v${{ inputs.version }}
-          VERSION: ${{ inputs.version }}
-          SOURCE: ${{ github.repository }}
-        run: |
-          set -euo pipefail
-          gh release download "$TAG" --repo "$SOURCE" --pattern SHA256SUMS
-          f=Formula/vibead.rb
-          old=$(sed -nE 's/^  version "([^"]+)"$/\1/p' "$f")
-          sed -i "s/${old//./\\.}/$VERSION/g" "$f"
-          for p in darwin-arm64 darwin-x64 linux-x64; do
-            sum=$(awk -v n="vibead-beta-$VERSION-$p.tar.gz" '$2 == n {print $1}' SHA256SUMS)
-            [ -n "$sum" ] || { echo "SHA256SUMS has no $p"; exit 1; }
-            # The sha256 line follows its url line in the formula.
-            sed -i "/vibead-beta-$VERSION-$p.tar.gz\"/{n;s/sha256 \"[0-9a-f]\{64\}\"/sha256 \"$sum\"/}" "$f"
-          done
-          rm SHA256SUMS
-          git diff --quiet && { echo "tap already at $VERSION"; exit 0; }
-          git diff --stat
-          # Author and committer are the Actions bot, never a person's address.
-          git -c user.name="github-actions[bot]" -c user.email="41898282+github-actions[bot]@users.noreply.github.com" commit -am "vibead $VERSION"
-          git push origin HEAD:main
 
   promote-npm:
     name: Promote on npm - add the dist-tag (mode promote, Trusted Publishing)

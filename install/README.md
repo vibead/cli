@@ -30,7 +30,7 @@ Then run **Release** (mode `release`, the default) with `version` (no `v`) and t
 2. **sign:** calls `sign-release.yml`, which checks every kit archive and the launcher tarball against its `.sha256`, refuses a release without exactly one `vibead-cli-<version>.tgz`, and adds `SHA256SUMS` (kits **and** launcher tarball) and `SHA256SUMS.sigstore.json`. The Sigstore identity stays `sign-release.yml@refs/heads/main`, which the installers verify. This writes a public transparency-log entry, so only run it for a release you mean to ship.
 3. **publish-release:** publishes the release. With npm dist-tag `latest` it is marked **Latest**; with `next` or `beta` it is a **pre-release, not Latest** (`--prerelease --latest=false`), so `releases/latest` and `/install` stay on the promoted version.
 4. **npm:** first re-packs `npm/` and stops unless its SHA-256 is the `vibead-cli-<version>.tgz` line in the signed `SHA256SUMS`; then `npm publish --provenance --access public` through npm Trusted Publishing. The job's GitHub OIDC token is exchanged for a short-lived publish credential. There is no `NODE_AUTH_TOKEN` and no OTP, and the npm page shows a provenance badge linking to this run. It runs in the `npm` environment; add required reviewers there to gate it.
-5. **tap** (only when the npm dist-tag is `latest`; a `next` or `beta` run never touches Homebrew): updates `vibead/homebrew-tap` `Formula/vibead.rb` (version, URLs, SHA-256s from `SHA256SUMS`) and pushes to main as `github-actions[bot]` (a test fails if any workflow names a personal email). Its own CI then installs the formula on Linux and both Macs.
+Homebrew needs no step here: `vibead/homebrew-tap` updates `Formula/vibead.rb` itself every 30 minutes from npm `latest` (workflow `update-formula`, default `GITHUB_TOKEN` only; it stops unless npm's tarball and this release's `SHA256SUMS` agree). A `next` or `beta` run never reaches Homebrew.
 
 After the run, bump `apps/static-web/install.json` in vibead/vibead-ai. That manifest, not GitHub's "latest", decides what `curl | sh` and `irm | iex` install, and vibead-ai CI refuses a pin whose release lacks `SHA256SUMS` or any archive; it accepts exactly one same-version `vibead-cli-<version>.tgz` line in `SHA256SUMS` and refuses any other unknown line (vibead/vibead-ai#212).
 
@@ -38,7 +38,6 @@ After the run, bump `apps/static-web/install.json` in vibead/vibead-ai. That man
 
 - On npmjs.com, open `@vibead/cli` → Settings → Trusted publishing → GitHub Actions, and enter: owner `vibead`, repository `cli`, workflow `release.yml`, environment `npm`.
 - In this repo, create the `npm` environment, with optional required reviewers.
-- Add the `HOMEBREW_TAP_TOKEN` secret: a fine-grained token with Contents read/write on `vibead/homebrew-tap` only.
 - Once the first OIDC publish works, set the package's publishing access to "Require two-factor authentication and disallow tokens", so only this workflow can publish.
 
 - To promote a version that is already on npm without any token, also tick **Allow npm dist-tag** on that trusted-publisher entry (off by default; npm 11.21.0 or newer is installed by the job). Without it the promote run stops at its dist-tag step, before the GitHub Release or Homebrew change.
@@ -47,7 +46,7 @@ After the run, bump `apps/static-web/install.json` in vibead/vibead-ai. That man
 
 1. **promote-npm:** stops unless the release is published, its `SHA256SUMS` lists `vibead-cli-<version>.tgz` exactly once with a matching SHA-256, the tarball is `@vibead/cli@<version>`, and npm's `dist.integrity` (SHA-512) for that version is the same tarball. Then `npm dist-tag add @vibead/cli@<version> <npm_tag>` through Trusted Publishing (OIDC, no token). It runs in the `npm` environment.
 2. **promote-release:** the same rule as publish-release: Latest for `latest`, otherwise a pre-release that is not Latest.
-3. **tap:** `latest` only, the same job as a normal release.
+Homebrew follows by itself once npm `latest` moves (see above).
 
 Rehearse first with `npm_tag` `next` on a version that is already `next`: every step runs and nothing changes. Then bump `install.json` as above.
 
