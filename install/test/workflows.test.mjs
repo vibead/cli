@@ -32,7 +32,7 @@ test('release.yml: manual only, OIDC in the npm environment, next by default, no
   const on = y.slice(y.indexOf('\non:'), y.indexOf('\npermissions:'));
   assert.match(on, /workflow_dispatch:/);
   assert.doesNotMatch(on, /^\s+(push|pull_request|release|schedule|workflow_run):/m);
-  const npm = y.slice(y.indexOf('\n  npm:'), y.indexOf('\n  tap:'));
+  const npm = y.slice(y.indexOf('\n  npm:'), y.indexOf('\n  promote-npm:'));
   assert.match(npm, /environment: npm/);
   assert.match(npm, /id-token: write/);
   assert.match(npm, /contents: read/);
@@ -59,10 +59,9 @@ test('release.yml: manual only, OIDC in the npm environment, next by default, no
   assert.equal(pbranches[2], branches[2]);
   assert.equal(prom.match(/gh release edit/g).length, 2);
   assert.doesNotMatch(y.replaceAll(branches[1], ''), /--latest(?!=false)/, '--latest only in the npm_tag latest branches');
-  // Homebrew is a Live channel: the tap job runs only for npm_tag latest, so a `next` run never touches it.
-  const tap = y.slice(y.indexOf('\n  tap:'), y.indexOf('\n  promote-npm:'));
-  assert.match(tap.split('\n    steps:')[0], /^    if: \$\{\{ !cancelled\(\) && inputs\.npm_tag == 'latest' && \(needs\.npm\.result == 'success' \|\| needs\.promote-release\.result == 'success'\) \}\}$/m, 'tap job gated on npm_tag latest and on one path having succeeded');
-  assert.match(tap, /needs: \[npm, promote-release\]/);
+  // Homebrew follows npm latest from vibead/homebrew-tap (update-formula, no token): no tap job and no tap token here.
+  assert.doesNotMatch(y, /^  tap:/m);
+  assert.doesNotMatch(y, /HOMEBREW_TAP_TOKEN|homebrew-tap/);
 });
 
 // Drafts are visible only to tokens with push access (cli#37 QA R2-1): every job
@@ -185,7 +184,7 @@ test('release.yml check: the draft tgz must be npm pack of npm/ at this commit',
 
 test('release.yml npm: publishes the signed tgz itself, after checking it against SHA256SUMS', () => {
   const y = releaseYml();
-  const npm = y.slice(y.indexOf('\n  npm:'), y.indexOf('\n  tap:'));
+  const npm = y.slice(y.indexOf('\n  npm:'), y.indexOf('\n  promote-npm:'));
   assert.match(npm, /needs: \[check, publish-release\]/);
   assert.match(npm, /--pattern SHA256SUMS --pattern "vibead-cli-\$VERSION\.tgz"/);
   const pub = npm.match(/^\s+run: (npm publish .*)$/m);
