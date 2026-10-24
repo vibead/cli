@@ -24,7 +24,7 @@ Before the run:
 3. Make sure the tag `vX.Y.Z-beta.N` either does not exist yet or points at the main commit from step 2. Release never creates, moves or checks the tag: publishing a draft whose tag exists keeps that tag (the release's `target_commitish` is used only when the tag is missing), so a tag left on an older commit makes the release's source archives disagree with the npm package.
 4. QA the draft from a local mirror (`VIBEAD_RELEASE_BASE=file:///path/to/mirror`, laid out as `download/vX/…`, plus `VIBEAD_MANIFEST_URL=file:///path/to/install.json`) on Claude Code, Codex and OpenCode.
 
-Then run **Release** with `version` (no `v`) and the npm dist-tag (default `next`; choose `latest` only when QA promotes the release). It:
+Then run **Release** (mode `release`, the default) with `version` (no `v`) and the npm dist-tag (default `next`; choose `latest` only when QA promotes the release). It:
 
 1. **check:** fails unless the draft has all three archives and `npm/` on main matches them exactly, and the draft's `vibead-cli-<version>.tgz` is byte-identical to `npm pack` of `npm/` on main (same SHA-256), so the tarball that gets signed is the one npm publishes. The job runs with `contents: write` although it only reads: GitHub shows a **draft** release only to tokens with push access, so with the default `contents: read` the workflow token gets "release not found" (dry run in cli#37). Every job that reads the draft (check, sign, publish-release) has `contents: write`; the workflow default stays `read`.
 2. **sign:** calls `sign-release.yml`, which checks every kit archive and the launcher tarball against its `.sha256`, refuses a release without exactly one `vibead-cli-<version>.tgz`, and adds `SHA256SUMS` (kits **and** launcher tarball) and `SHA256SUMS.sigstore.json`. The Sigstore identity stays `sign-release.yml@refs/heads/main`, which the installers verify. This writes a public transparency-log entry, so only run it for a release you mean to ship.
@@ -41,7 +41,15 @@ After the run, bump `apps/static-web/install.json` in vibead/vibead-ai. That man
 - Add the `HOMEBREW_TAP_TOKEN` secret: a fine-grained token with Contents read/write on `vibead/homebrew-tap` only.
 - Once the first OIDC publish works, set the package's publishing access to "Require two-factor authentication and disallow tokens", so only this workflow can publish.
 
-Trusted Publishing only publishes. Moving another dist-tag (for example `beta`) still needs a signed-in maintainer, so pick the tag in the run instead.
+- To promote a version that is already on npm without any token, also tick **Allow npm dist-tag** on that trusted-publisher entry (off by default; npm 11.21.0 or newer is installed by the job). Without it the promote run stops at its dist-tag step, before the GitHub Release or Homebrew change.
+
+**Promote a version already on npm** (for example a `next` release that QA passed). Run **Release** from `main` with `mode` **promote**, the same `version`, and `npm_tag` (`latest`, `beta` or `next`). It skips check, sign and `npm publish`, and is safe to re-run:
+
+1. **promote-npm:** stops unless the release is published, its `SHA256SUMS` lists `vibead-cli-<version>.tgz` exactly once with a matching SHA-256, the tarball is `@vibead/cli@<version>`, and npm's `dist.integrity` (SHA-512) for that version is the same tarball. Then `npm dist-tag add @vibead/cli@<version> <npm_tag>` through Trusted Publishing (OIDC, no token). It runs in the `npm` environment.
+2. **promote-release:** the same rule as publish-release: Latest for `latest`, otherwise a pre-release that is not Latest.
+3. **tap:** `latest` only, the same job as a normal release.
+
+Rehearse first with `npm_tag` `next` on a version that is already `next`: every step runs and nothing changes. Then bump `install.json` as above.
 
 Then deploy the site so `/install` and `/install.ps1` serve this commit's scripts.
 

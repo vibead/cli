@@ -9,6 +9,15 @@ name: Release
 #   4. npm publish of that signed vibead-cli-X.tgz, byte for byte, via Trusted
 #      Publishing (OIDC + provenance; no token, no OTP)
 #   5. bump the Homebrew tap (npm_tag latest only)
+# Promoting a version that is already on npm (cli#58): run with mode promote and
+# the same version and npm_tag. It skips check, sign and npm publish, and runs
+#   a. promote-npm: the published release's signed vibead-cli-X.tgz must be the
+#      exact tarball npm holds (SHA-512 integrity); then `npm dist-tag add`
+#      through Trusted Publishing (OIDC, no token)
+#   b. promote-release: Latest on the GitHub Release (npm_tag latest only)
+#   c. tap: the Homebrew bump (npm_tag latest only)
+# It is safe to re-run. Rehearse with npm_tag next on a version that is already
+# `next`: every step runs and nothing changes.
 # Before running: the draft release vX exists with every archive and its
 # .sha256 (from the vibead/vibead build) plus vibead-cli-X.tgz (npm pack in
 # npm/) and its .sha256, and main has npm/package.json at X
@@ -25,6 +34,11 @@ on:
         type: choice
         options: [next, beta, latest]
         default: next
+      mode:
+        description: release (draft to published and npm publish) or promote (the version is already on npm; add the dist-tag)
+        type: choice
+        options: [release, promote]
+        default: release
 
 permissions:
   contents: read
@@ -36,7 +50,7 @@ concurrency:
 jobs:
   check:
     name: Check draft release and npm launcher
-    if: github.ref == 'refs/heads/main'
+    if: github.ref == 'refs/heads/main' && inputs.mode == 'release'
     runs-on: ubuntu-latest
     timeout-minutes: 5
     # write, not read: GitHub shows DRAFT releases only to tokens with push
@@ -178,9 +192,10 @@ jobs:
 
   tap:
     name: Bump the Homebrew tap (npm_tag latest only)
-    needs: [check, npm]
+    needs: [npm, promote-release]
     # Homebrew is a Live channel: only a promoted (latest) release may bump it, never next or beta.
-    if: inputs.npm_tag == 'latest'
+    # Exactly one of the two paths ran: a release (npm published) or a promote (dist-tag and Latest set).
+    if: ${{ !cancelled() && inputs.npm_tag == 'latest' && (needs.npm.result == 'success' || needs.promote-release.result == 'success') }}
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
@@ -191,7 +206,7 @@ jobs:
           token: ${{ secrets.HOMEBREW_TAP_TOKEN }}
       - env:
           GH_TOKEN: ${{ github.token }}
-          TAG: ${{ needs.check.outputs.tag }}
+          TAG: v${{ inputs.version }}
           VERSION: ${{ inputs.version }}
           SOURCE: ${{ github.repository }}
         run: |
@@ -207,7 +222,81 @@ jobs:
             sed -i "/vibead-beta-$VERSION-$p.tar.gz\"/{n;s/sha256 \"[0-9a-f]\{64\}\"/sha256 \"$sum\"/}" "$f"
           done
           rm SHA256SUMS
+          git diff --quiet && { echo "tap already at $VERSION"; exit 0; }
           git diff --stat
           # Author and committer are the Actions bot, never a person's address.
           git -c user.name="github-actions[bot]" -c user.email="41898282+github-actions[bot]@users.noreply.github.com" commit -am "vibead $VERSION"
           git push origin HEAD:main
+
+  promote-npm:
+    name: Promote on npm - add the dist-tag (mode promote, Trusted Publishing)
+    if: github.ref == 'refs/heads/main' && inputs.mode == 'promote'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    # The same environment and workflow file as the npm job: the npm trusted-publisher
+    # entry names release.yml and environment npm, and must also have "Allow npm dist-tag".
+    environment: npm
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: '22'
+          registry-url: 'https://registry.npmjs.org'
+      # dist-tag through OIDC needs npm 11.21.0 or newer (npm 11.5.1 only publishes).
+      - run: npm install -g 'npm@^11.21.0' && npm --version
+      - name: The published release's signed tarball is the one npm holds
+        env:
+          GH_TOKEN: ${{ github.token }}
+          VERSION: ${{ inputs.version }}
+        run: |
+          set -euo pipefail
+          [[ "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.]+)?$ ]] || { echo "bad version"; exit 1; }
+          tag="v$VERSION"
+          tgz="vibead-cli-$VERSION.tgz"
+          [ "$(gh release view "$tag" --repo "$GITHUB_REPOSITORY" --json isDraft --jq .isDraft)" = false ] || { echo "$tag must be a published release; run mode release for a draft"; exit 1; }
+          mkdir signed
+          gh release download "$tag" --repo "$GITHUB_REPOSITORY" --dir signed --pattern SHA256SUMS --pattern "$tgz"
+          cd signed
+          line=$(awk -v n="$tgz" '$2 == n' SHA256SUMS)
+          [ "$(printf '%s\n' "$line" | grep -c .)" -eq 1 ] || { echo "SHA256SUMS must list $tgz exactly once"; exit 1; }
+          printf '%s\n' "$line" | sha256sum -c -
+          [ "$(tar -xOzf "$tgz" package/package.json | jq -r '.name + "@" + .version')" = "@vibead/cli@$VERSION" ] || { echo "$tgz is not @vibead/cli@$VERSION"; exit 1; }
+          # npm's integrity is the SHA-512 of the tarball it stores. Equal means the signed
+          # tarball is what npm serves; nothing is published here, so a mismatch stops the run.
+          want="sha512-$(openssl dgst -sha512 -binary "$tgz" | base64 -w0)"
+          have=$(npm view "@vibead/cli@$VERSION" dist.integrity)
+          [ -n "$have" ] || { echo "@vibead/cli@$VERSION is not on npm; run mode release"; exit 1; }
+          [ "$have" = "$want" ] || { echo "npm's @vibead/cli@$VERSION is not the signed $tgz"; exit 1; }
+          echo "npm holds the signed $tgz ($VERSION)"
+      # Needs "Allow npm dist-tag" on the package's trusted-publisher entry (off by default).
+      # Moving a tag to the version it already has is a no-op, which is how this is rehearsed.
+      - name: Add the dist-tag
+        env:
+          NPM_TAG: ${{ inputs.npm_tag }}
+          VERSION: ${{ inputs.version }}
+        run: |
+          set -euo pipefail
+          npm dist-tag add "@vibead/cli@$VERSION" "$NPM_TAG"
+          npm dist-tag ls @vibead/cli
+          [ "$(npm view @vibead/cli "dist-tags.$NPM_TAG")" = "$VERSION" ] || { echo "dist-tag $NPM_TAG is not $VERSION"; exit 1; }
+
+  promote-release:
+    name: Promote the GitHub Release (Latest only for npm_tag latest)
+    needs: promote-npm
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: write
+    steps:
+      - env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: v${{ inputs.version }}
+          NPM_TAG: ${{ inputs.npm_tag }}
+        run: |
+          if [ "$NPM_TAG" = latest ]; then
+            gh release edit "$TAG" --repo "$GITHUB_REPOSITORY" --draft=false --prerelease=false --latest
+          else
+            gh release edit "$TAG" --repo "$GITHUB_REPOSITORY" --draft=false --prerelease --latest=false
+          fi
