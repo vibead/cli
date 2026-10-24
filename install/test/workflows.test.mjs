@@ -51,10 +51,18 @@ test('release.yml: manual only, OIDC in the npm environment, next by default, no
   assert.match(branches[1], /--prerelease=false --latest$/);
   assert.match(branches[2], /--prerelease --latest=false$/);
   assert.equal(pub.match(/gh release edit/g).length, 2, 'no other release edit can mark it Latest');
-  assert.doesNotMatch(y.replace(branches[1], ''), /--latest(?!=false)/, '--latest only in the npm_tag latest branch');
+  // The promote path (cli#58) has the same two branches and no others.
+  const prom = y.slice(y.indexOf('\n  promote-release:'));
+  const pbranches = prom.match(/if \[ "\$NPM_TAG" = latest \]; then\n(.*)\n\s*else\n(.*)\n\s*fi/);
+  assert.ok(pbranches, 'promote-release branches on npm_tag');
+  assert.equal(pbranches[1], branches[1]);
+  assert.equal(pbranches[2], branches[2]);
+  assert.equal(prom.match(/gh release edit/g).length, 2);
+  assert.doesNotMatch(y.replaceAll(branches[1], ''), /--latest(?!=false)/, '--latest only in the npm_tag latest branches');
   // Homebrew is a Live channel: the tap job runs only for npm_tag latest, so a `next` run never touches it.
-  const tap = y.slice(y.indexOf('\n  tap:'));
-  assert.match(tap.split('\n    steps:')[0], /^    if: inputs\.npm_tag == 'latest'$/m, 'tap job gated on npm_tag latest');
+  const tap = y.slice(y.indexOf('\n  tap:'), y.indexOf('\n  promote-npm:'));
+  assert.match(tap.split('\n    steps:')[0], /^    if: \$\{\{ !cancelled\(\) && inputs\.npm_tag == 'latest' && \(needs\.npm\.result == 'success' \|\| needs\.promote-release\.result == 'success'\) \}\}$/m, 'tap job gated on npm_tag latest and on one path having succeeded');
+  assert.match(tap, /needs: \[npm, promote-release\]/);
 });
 
 // Drafts are visible only to tokens with push access (cli#37 QA R2-1): every job
@@ -64,7 +72,7 @@ test('release.yml: jobs that read the draft have contents:write; the default sta
   const y = readFileSync(join(dir, 'release.yml'), 'utf8');
   assert.match(y.slice(y.indexOf('\npermissions:'), y.indexOf('\nconcurrency:')), /^  contents: read$/m);
   const job = (a, b) => y.slice(y.indexOf(`\n  ${a}:`), b ? y.indexOf(`\n  ${b}:`) : undefined);
-  for (const [name, next] of [['check', 'sign'], ['sign', 'publish-release'], ['publish-release', 'npm']]) {
+  for (const [name, next] of [['check', 'sign'], ['sign', 'publish-release'], ['publish-release', 'npm'], ['promote-release']]) {
     const head = job(name, next).split('\n    steps:')[0];
     assert.match(head, /^    permissions:\n(?:      .*\n)*?      contents: write$/m, `${name} needs contents:write to see the draft`);
   }
@@ -203,4 +211,69 @@ test('release.yml npm: publishes the signed tgz itself, after checking it agains
   assert.notEqual(bash(step, signed(), { VERSION: '0.1.0-beta.98' }).status, 0, 'other version');
   // Listed and signed under V's name, but the package inside is another version.
   assert.match(bash(step, signed('0.1.0-beta.98'), { VERSION: V }).stdout, /is not @vibead\/cli@/);
+});
+
+// Promote an existing npm version (cli#58): no token, no publish, least privilege, and
+// the tarball check runs the workflow step's own shell against fake gh and npm.
+test('release.yml promote: mode input, OIDC dist-tag, no publish, least privilege', () => {
+  const y = releaseYml();
+  assert.match(y, /      mode:\n(?:        .*\n)*?        default: release$/m, 'mode defaults to release');
+  assert.match(y, /options: \[release, promote\]/);
+  const jobs = y.slice(y.indexOf('\n  promote-npm:'));
+  const pn = jobs.slice(0, jobs.indexOf('\n  promote-release:'));
+  assert.match(pn, /^    if: github\.ref == 'refs\/heads\/main' && inputs\.mode == 'promote'$/m);
+  assert.match(pn, /environment: npm/);
+  assert.match(pn, /permissions:\n      contents: read\n      id-token: write\n/);
+  assert.match(pn, /npm@\^11\.21\.0/, 'dist-tag through OIDC needs npm 11.21.0');
+  assert.match(pn, /npm dist-tag add "@vibead\/cli@\$VERSION" "\$NPM_TAG"/);
+  assert.doesNotMatch(pn, /npm publish/, 'promote never publishes');
+  assert.doesNotMatch(pn, /secrets\./, 'promote uses no secret');
+  // Every release-mode job is off in promote mode, and no job of either mode is both.
+  assert.match(y.slice(y.indexOf('\n  check:'), y.indexOf('\n  sign:')), /^    if: github\.ref == 'refs\/heads\/main' && inputs\.mode == 'release'$/m);
+  assert.match(jobs.slice(jobs.indexOf('\n  promote-release:')), /needs: promote-npm/);
+});
+
+// Shims for gh and npm: `gh release view` answers from DRAFT, `gh release download` copies
+// from <root>/rel, and `npm view @vibead/cli@V dist.integrity` answers from INTEGRITY.
+function promoteRun({ draft = 'false', mutate, integrity, noNpm = false, version = V, sums } = {}) {
+  const root = mkdtempSync(join(tmpdir(), 'vibead-promote-'));
+  const rel = join(root, 'rel'), bin = join(root, 'bin'), work = join(root, 'work');
+  for (const d of [rel, bin, work]) mkdirSync(d);
+  const ref = packLauncher(root, null, version);
+  const tgz = `vibead-cli-${version}.tgz`;
+  cpSync(ref, join(rel, tgz));
+  writeFileSync(join(rel, 'SHA256SUMS'), sums ?? sha(rel, tgz));
+  if (mutate) mutate(rel, tgz);
+  const good = 'sha512-' + execFileSync('openssl', ['dgst', '-sha512', '-binary', join(ref)]).toString('base64');
+  writeFileSync(join(bin, 'gh'), `#!/bin/bash
+case "$2" in
+  view) echo "$DRAFT" ;;
+  download) while [ $# -gt 0 ]; do case "$1" in --dir) d=$2;; --pattern) cp "$REL/$2" "$d/" ;; esac; shift; done ;;
+esac\n`, { mode: 0o755 });
+  writeFileSync(join(bin, 'npm'), `#!/bin/bash\n[ -n "$NO_NPM" ] || echo "$INTEGRITY"\n`, { mode: 0o755 });
+  const step = stepRun(releaseYml(), "The published release's signed tarball is the one npm holds");
+  const r = bash(step, work, {
+    PATH: `${bin}:${process.env.PATH}`, VERSION: version, GITHUB_REPOSITORY: 'vibead/cli',
+    DRAFT: draft, REL: rel, INTEGRITY: integrity ?? good, NO_NPM: noNpm ? '1' : '',
+  });
+  return { ...r, out: r.stdout + r.stderr };
+}
+
+test('release.yml promote: passes only when the signed tarball is exactly what npm holds', () => {
+  const ok = promoteRun();
+  assert.equal(ok.status, 0, ok.out);
+  assert.match(ok.out, /npm holds the signed vibead-cli-/);
+  const cases = {
+    'npm has other bytes': [promoteRun({ integrity: 'sha512-AAAA' }), /is not the signed/],
+    'version not on npm': [promoteRun({ noNpm: true }), /is not on npm/],
+    'release is still a draft': [promoteRun({ draft: 'true' }), /must be a published release/],
+    'tarball changed after signing': [promoteRun({ mutate: (rel, tgz) => writeFileSync(join(rel, tgz), 'tampered\n') }), /FAILED|did NOT match|no properly formatted/i],
+    'tgz not in SHA256SUMS': [promoteRun({ sums: 'deadbeef  other.tgz\n' }), /exactly once/],
+    'tgz listed twice': [promoteRun({ mutate: (rel, tgz) => writeFileSync(join(rel, 'SHA256SUMS'), readFileSync(join(rel, 'SHA256SUMS'), 'utf8').repeat(2)) }), /exactly once/],
+  };
+  for (const [what, [r, msg]] of Object.entries(cases)) {
+    assert.notEqual(r.status, 0, what);
+    assert.match(r.out, msg, what);
+  }
+  assert.notEqual(promoteRun({ version: 'not a version' }).status, 0, 'bad version');
 });
