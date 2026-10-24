@@ -55,7 +55,7 @@ Works with **Claude Code, Codex and OpenCode** on **macOS (Apple Silicon, Intel)
 
 Ads are labelled `[Ad]` and appear only in status or notification UI. `vibead disable` removes only VibeAd's changes and keeps yours; `vibead uninstall` also removes VibeAd's data.
 
-VibeAd counts how many times ads are shown, nothing else. Never your prompts or code. Turn it off anytime with `vibead telemetry off`.
+VibeAd counts how many times ads are shown, nothing else. Never your prompts or code. Stop it anytime with `vibead disable`.
 </details>
 
 <details>
