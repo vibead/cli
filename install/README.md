@@ -31,7 +31,14 @@ Then run **Release** (mode `release`, the default) with `version` (no `v`) and t
 2. **sign:** calls `sign-release.yml`, which checks every kit archive and the launcher tarball against its `.sha256`, refuses a release without exactly one `vibead-cli-<version>.tgz`, and adds `SHA256SUMS` (kits **and** launcher tarball) and `SHA256SUMS.sigstore.json`. The Sigstore identity stays `sign-release.yml@refs/heads/main`, which the installers verify. This writes a public transparency-log entry, so only run it for a release you mean to ship.
 3. **publish-release:** publishes the release. With npm dist-tag `latest` it is marked **Latest**; with `next` or `beta` it is a **pre-release, not Latest** (`--prerelease --latest=false`), so `releases/latest` and `/install` stay on the promoted version.
 4. **npm:** first re-packs `npm/` and stops unless its SHA-256 is the `vibead-cli-<version>.tgz` line in the signed `SHA256SUMS`; then `npm publish --provenance --access public` through npm Trusted Publishing. The job's GitHub OIDC token is exchanged for a short-lived publish credential. There is no `NODE_AUTH_TOKEN` and no OTP, and the npm page shows a provenance badge linking to this run. It runs in the `npm` environment; add required reviewers there to gate it.
-Homebrew needs no step here: `vibead/homebrew-tap` updates `Formula/vibead.rb` itself every 30 minutes from npm `latest` (workflow `update-formula`, default `GITHUB_TOKEN` only; it stops unless npm's tarball and this release's `SHA256SUMS` agree). A `next` or `beta` run never reaches Homebrew.
+**Homebrew, before npm `latest` (beta.36 RC2, PENDING NINA).** The tap's scheduled `update-formula` bumps main's formula from npm `latest` but keeps the caveats and `brew test` main already has, so the tap PR for a version merges **before** npm `latest` moves. The order is:
+
+1. Run **Release** with `npm_tag` `next`: the GitHub Release is published (pre-release) and npm has the version under `next`.
+2. Hash the real published archives (`SHA256SUMS`, checked against `npm/releases.json`) and re-run the release-candidate gate on those exact files, not a local build.
+3. On the tap PR branch, run `VIBEAD_TAP_VERSION=<version> scripts/update-formula.sh` (it checks npm's tarball and the release's `SHA256SUMS`), commit and push; the PR's `Homebrew install` run must be green on Linux x64, Mac Apple Silicon and Mac Intel. Then merge the tap PR.
+4. Promote to npm `latest` (**Release**, mode `promote`). The `npm` and `promote-npm` jobs stop with npm_tag `latest` unless tap main already ships this version, so `latest` can never run ahead of the tap.
+
+A `next` or `beta` run never reaches Homebrew.
 
 After the run, bump `apps/static-web/install.json` in vibead/vibead-ai. That manifest, not GitHub's "latest", decides what `curl | sh` and `irm | iex` install, and vibead-ai CI refuses a pin whose release lacks `SHA256SUMS` or any archive; it accepts exactly one same-version `vibead-cli-<version>.tgz` line in `SHA256SUMS` and refuses any other unknown line (vibead/vibead-ai#212).
 
@@ -47,7 +54,7 @@ After the run, bump `apps/static-web/install.json` in vibead/vibead-ai. That man
 
 1. **promote-npm:** stops unless the release is published, its `SHA256SUMS` lists `vibead-cli-<version>.tgz` exactly once with a matching SHA-256, the tarball is `@vibead/cli@<version>`, and npm's `dist.integrity` (SHA-512) for that version is the same tarball. Then `npm dist-tag add @vibead/cli@<version> <npm_tag>` through Trusted Publishing (OIDC, no token). It runs in the `npm` environment.
 2. **promote-release:** the same rule as publish-release: Latest for `latest`, otherwise a pre-release that is not Latest.
-Homebrew follows by itself once npm `latest` moves (see above).
+With npm_tag `latest` it stops unless tap main already ships this version (see the Homebrew order above).
 
 Rehearse first with `npm_tag` `next` on a version that is already `next`: every step runs and nothing changes. Then bump `install.json` as above.
 

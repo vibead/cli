@@ -8,7 +8,8 @@ name: Release
 #      pre-release that is not Latest, so releases/latest and /install stay put
 #   4. npm publish of that signed vibead-cli-X.tgz, byte for byte, via Trusted
 #      Publishing (OIDC + provenance; no token, no OTP)
-#   (Homebrew follows on its own: the tap repo polls npm `latest`; no token here)
+#   (Homebrew: the tap PR for X merges before npm_tag latest; the npm and promote-npm
+#   jobs stop unless tap main already ships X. See install/README.md "Releasing")
 # Promoting a version that is already on npm (cli#58): run with mode promote and
 # the same version and npm_tag. It skips check, sign and npm publish, and runs
 #   a. promote-npm: the published release's signed vibead-cli-X.tgz must be the
@@ -160,6 +161,19 @@ jobs:
       - run: npm install -g 'npm@^11.5.1' && npm --version
       - working-directory: npm
         run: npm test
+      # beta.36 RC2 (T1): npm `latest` moves only after the tap ships this version.
+      # The tap's scheduled update bumps main's formula from npm `latest` and keeps the
+      # caveats main already has, so a `latest` that runs ahead of the tap merge would
+      # ship this version with an older version's caveats. Public read, no token.
+      - name: Homebrew tap main already ships this version (npm_tag latest only)
+        if: inputs.npm_tag == 'latest'
+        env:
+          VERSION: ${{ inputs.version }}
+        run: |
+          set -euo pipefail
+          tap=$(curl -fsSL --retry 3 https://raw.githubusercontent.com/vibead/homebrew-tap/main/Formula/vibead.rb | sed -nE 's/^  version "([^"]+)"$/\1/p')
+          [ "$tap" = "$VERSION" ] || { echo "vibead/homebrew-tap main ships $tap, not $VERSION: merge the tap PR for $VERSION first (install/README.md, Releasing)"; exit 1; }
+          echo "tap main ships $VERSION"
       # Publish the tarball that SHA256SUMS signs, not a fresh pack, so the npm
       # tarball is the signed one (REL-2). The release is public by now.
       - name: Download the signed launcher tarball
@@ -206,6 +220,19 @@ jobs:
           registry-url: 'https://registry.npmjs.org'
       # dist-tag through OIDC needs npm 11.21.0 or newer (npm 11.5.1 only publishes).
       - run: npm install -g 'npm@^11.21.0' && npm --version
+      # beta.36 RC2 (T1): npm `latest` moves only after the tap ships this version.
+      # The tap's scheduled update bumps main's formula from npm `latest` and keeps the
+      # caveats main already has, so a `latest` that runs ahead of the tap merge would
+      # ship this version with an older version's caveats. Public read, no token.
+      - name: Homebrew tap main already ships this version (npm_tag latest only)
+        if: inputs.npm_tag == 'latest'
+        env:
+          VERSION: ${{ inputs.version }}
+        run: |
+          set -euo pipefail
+          tap=$(curl -fsSL --retry 3 https://raw.githubusercontent.com/vibead/homebrew-tap/main/Formula/vibead.rb | sed -nE 's/^  version "([^"]+)"$/\1/p')
+          [ "$tap" = "$VERSION" ] || { echo "vibead/homebrew-tap main ships $tap, not $VERSION: merge the tap PR for $VERSION first (install/README.md, Releasing)"; exit 1; }
+          echo "tap main ships $VERSION"
       - name: The published release's signed tarball is the one npm holds
         env:
           GH_TOKEN: ${{ github.token }}
