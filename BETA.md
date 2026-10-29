@@ -85,7 +85,7 @@ The click test passes only when the ordinary display checks pass, `click_test.st
 
 If `terminal_support` is `unknown` or `multiplexer_unverified`, the requested click test is blocked and ads remain plain text. If link rendering or confirmation was not observed, `click_test.status` is `not_observed`; do not report that as a click pass. When renderer `matching_rows` is zero, report the display failure first. Very short turns may legitimately show no ad. Widen the window if the sponsor text is truncated.
 
-Share the reviewed report JSON, archive version, terminal application/version, agent version, OS, and which checklist items passed or failed. Do not share tokens, configuration backups, model transcripts or temporary click URLs. Nothing is uploaded automatically. User cash sharing and withdrawals after network settlement belong to a future approved monetized pilot; this beta creates no monetary balance.
+Share the reviewed report JSON, archive version, terminal application/version, agent version, OS, and which checklist items passed or failed. Do not share tokens, configuration backups, model transcripts or temporary click URLs. Nothing is uploaded automatically. This beta creates no monetary balance.
 
 ## Mac quick start: Claude Code, Codex and OpenCode
 
