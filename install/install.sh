@@ -10,7 +10,8 @@
 # `vibead` command in ~/.local/bin (no sudo), then connects the agents it finds
 # with no question (zero-step, vibead-ai#235) and prints what it did; with
 # zero-step off it runs `vibead enable`, which lists each change and asks first.
-# `vibead uninstall` restores the user's files and removes all of this.
+# `vibead uninstall` restores the user's files and removes all of this (a
+# telemetry-off setting is kept, so a reinstall stays private).
 #
 # Optional environment:
 #   VIBEAD_VERSION=0.1.0-beta.27   install this version instead of the pinned one
@@ -19,7 +20,7 @@
 #   VIBEAD_NO_ENABLE=1             install only; run `vibead enable` yourself
 #   VIBEAD_NO_MODIFY_PATH=1        accepted for older scripts; the installer never edits profiles
 #   VIBEAD_REQUIRE_SIGNATURE=1     fail unless cosign verifies SHA256SUMS
-#   VIBEAD_ZERO_STEP=1             opt in to zero-step setup (see below)
+#   VIBEAD_ZERO_STEP=1             zero-step setup even when ZERO_STEP_CONSENT_APPROVED=0 (on by default; see below)
 #
 # Zero-step setup (vibead/vibead-ai#235) connects every detected agent, on
 # install or on the first `vibead` run, whichever comes first, without a
@@ -157,8 +158,9 @@ LAUNCHER
     if ci_set || ! has_tty || [ "$(id -u)" = 0 ]; then
       say "Setup finishes the first time you run vibead."
     else
-      # Prints the one-line notice (it names `vibead disable`); a re-install changes
-      # no byte. Never reads the terminal.
+      # Prints the install notice (the agents it connected, `vibead disable`, and
+      # Codex's trust step when Codex is connected); a re-install changes no byte.
+      # Never reads the terminal.
       PATH="$install_dir/bin:$PATH" "$launcher" __wrapperless wire --announce < /dev/null || say "Setup finishes the first time you run vibead."
     fi
   elif has_tty; then
