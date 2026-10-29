@@ -7,8 +7,10 @@
 # GitHub's "latest"), downloads that release for this computer, verifies its
 # SHA-256 against the release's SHA256SUMS (and the Sigstore signature of
 # SHA256SUMS when `cosign` is installed), installs it under ~/.vibead with a
-# `vibead` command in ~/.local/bin (no sudo), then runs `vibead enable`, which
-# lists every file it will change and asks before touching anything.
+# `vibead` command in ~/.local/bin (no sudo), then connects the agents it finds
+# with no question (zero-step, vibead-ai#235) and prints what it did; with
+# zero-step off it runs `vibead enable`, which lists each change and asks first.
+# `vibead uninstall` restores the user's files and removes all of this.
 #
 # Optional environment:
 #   VIBEAD_VERSION=0.1.0-beta.27   install this version instead of the pinned one
@@ -58,12 +60,12 @@ main() {
     want=${VIBEAD_VERSION#v}
   else
     manifest_url=${VIBEAD_MANIFEST_URL:-https://www.vibead.ai/install.json}
-    fetch "$manifest_url" "$tmp/install.json" || fail "Could not read the current version ($manifest_url). Use npm instead: npm i -g @vibead/cli && vibead enable"
+    fetch "$manifest_url" "$tmp/install.json" || fail "Could not read the current version ($manifest_url). Use npm instead: npm i -g @vibead/cli"
     want=$(tr -d '\n\r' < "$tmp/install.json" | grep -oE '"version"[[:space:]]*:[[:space:]]*"[0-9A-Za-z.+-]+"' | head -n 1 | sed -E 's/.*"([^"]+)"$/\1/')
-    [ -n "$want" ] || fail "The version manifest ($manifest_url) has no version. Use npm instead: npm i -g @vibead/cli && vibead enable"
+    [ -n "$want" ] || fail "The version manifest ($manifest_url) has no version. Use npm instead: npm i -g @vibead/cli"
   fi
   sums_url="$release_base/download/v$want/SHA256SUMS"
-  fetch "$sums_url" "$tmp/SHA256SUMS" || fail "Could not download the release checksums ($sums_url). Use npm instead: npm i -g @vibead/cli && vibead enable"
+  fetch "$sums_url" "$tmp/SHA256SUMS" || fail "Could not download the release checksums ($sums_url). Use npm instead: npm i -g @vibead/cli"
 
   # SHA256SUMS lines: "<64 hex>  vibead-beta-<version>-<platform>.tar.gz"
   line=$(grep -E "^[0-9a-f]{64}  vibead-beta-[0-9A-Za-z.+-]+-$platform\.tar\.gz\$" "$tmp/SHA256SUMS" | head -n 1)

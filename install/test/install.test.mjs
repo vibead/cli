@@ -269,7 +269,7 @@ test('install.sh: an unreachable or empty manifest fails clearly with the npm co
     const r = runSh(box);
     assert.notEqual(r.status, 0);
     assert.match(r.stderr, message);
-    assert.match(r.stderr, /Use npm instead: npm i -g @vibead\/cli && vibead enable/);
+    assert.match(r.stderr, /Use npm instead: npm i -g @vibead\/cli$/m);
     assert.doesNotMatch(r.stdout, /Downloading/, 'stops before any release download');
     assert.ok(!existsSync(join(box.home, '.vibead/bin/vibead')));
   }
@@ -333,7 +333,7 @@ test('README: npm is listed first and every install channel is a single command'
     'npm i -g @vibead/cli ',
     'curl -fsSL https://www.vibead.ai/install | sh',
     'irm https://www.vibead.ai/install.ps1 | iex',
-    'brew install vibead/tap/vibead && vibead enable',
+    'brew install vibead/tap/vibead && vibead ',
   ];
   const lines = readme.split('\n');
   const at = channels.map(c => lines.findIndex(l => l.trim().startsWith(c)));

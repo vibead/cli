@@ -29,7 +29,6 @@ For organization messages, download the [publisher beta](ENTERPRISE-DEMO.md), th
 ```sh
 "/path/to/vibead-beta" --test-publisher claude
 "/path/to/vibead-beta" --test-publisher codex
-"/path/to/vibead-beta" --test-publisher gemini
 "/path/to/vibead-beta" --test-publisher opencode
 ```
 
@@ -58,7 +57,6 @@ These are initial capability checks, not a claim of physical-desktop qualificati
 ```sh
 "/path/to/vibead-beta" --test-links claude
 "/path/to/vibead-beta" --test-links codex
-"/path/to/vibead-beta" --test-links gemini
 "/path/to/vibead-beta" --test-links opencode
 ```
 
@@ -166,7 +164,7 @@ If you only see `Vibead beta: passed` from an automatic test without your normal
 
 If macOS blocks the executable, see [platform notes](#platform-notes). If you force-killed a session, use the [recovery command](#recovery-after-a-crash-or-forced-termination) before trying again or deleting the folder.
 
-Gemini is also supported on qualified Mac builds: use `"$VIBEAD_BETA" gemini`. Use only platform downloads listed in the release.
+Supported agents: Claude Code, Codex and OpenCode. Use only platform downloads listed in the release.
 
 ## 1. Download
 
@@ -214,7 +212,6 @@ Choose the agent name you normally use:
 | --- | --- |
 | Claude Code | `claude` |
 | Codex | `codex` |
-| Gemini CLI | `gemini` |
 | OpenCode | `opencode` |
 
 **The short command now uses your real setup by default.** Adding `--mode interactive` has the same effect in beta.4 or later. You do not need to copy credentials into Vibead or sign in again just for the beta. Your agent can still request login if its existing credentials have expired or are unavailable.
@@ -228,7 +225,6 @@ Put native arguments after `--` so they reach your agent:
 ```sh
 "/path/to/vibead-beta" claude -- --model my-model
 "/path/to/vibead-beta" codex -- --profile my-profile
-"/path/to/vibead-beta" gemini -- --model my-model
 "/path/to/vibead-beta" opencode -- --model provider/model
 ```
 
@@ -238,7 +234,7 @@ No model override is needed if you want the agent's saved default. Shell aliases
 
 In beta.4 or later, keep the same gateway configuration that already works with plain `claude`: settings files or exported `ANTHROPIC_BASE_URL`, `ANTHROPIC_MODEL` and `ANTHROPIC_AUTH_TOKEN` remain available. Simply launch the wrapper from the same shell and project. The local mock ad service does not replace your model gateway.
 
-If you are configuring a gateway for the first time, follow [Claude's gateway setup](https://code.claude.com/docs/en/llm-gateway-connect), confirm plain `claude` works, then launch through Vibead. Do not send us your token. The same principle applies to Codex, Gemini and OpenCode: keep their working provider setup; Vibead inherits it.
+If you are configuring a gateway for the first time, follow [Claude's gateway setup](https://code.claude.com/docs/en/llm-gateway-connect), confirm plain `claude` works, then launch through Vibead. Do not send us your token. The same principle applies to Codex and OpenCode: keep their working provider setup; Vibead inherits it.
 
 Beta.3 forwarded those three Claude variables but still used a fresh temporary home. Beta.2 filtered them. Use beta.5 for the full existing-setup path.
 
@@ -266,7 +262,7 @@ Review the JSON and attach it to a [beta issue](https://github.com/vibead/cli/is
 
 Vibead retains your working directory and provider environment. It temporarily merges its hooks into the selected agent's hook settings, or adds its OpenCode plugin. Your existing hooks and settings stay present. Claude also receives temporary launch settings for its generic thinking phrase. On normal exit, Vibead removes its integration, restores the original settings bytes when unchanged, and preserves other settings changes made during the session. It does not delete your agent's home or alter your shell configuration/vendor executable.
 
-A second overlapping beta session for the same configuration, an existing Vibead integration, disabled hooks, managed restrictions, or an unsupported invocation can prevent safe attachment. In that case the agent runs normally without ads; the report does not claim success. Examples include Claude custom `--settings`, Codex inline `--config`/`--cd` overrides, and sandboxed Gemini hooks. Existing provider settings loaded normally from your files are retained.
+A second overlapping beta session for the same configuration, an existing Vibead integration, disabled hooks, managed restrictions, or an unsupported invocation can prevent safe attachment. In that case the agent runs normally without ads; the report does not claim success. Examples include Claude custom `--settings` and Codex inline `--config`/`--cd` overrides. Existing provider settings loaded normally from your files are retained.
 
 ### Recovery after a crash or forced termination
 
@@ -286,9 +282,9 @@ Replace `claude` with your agent. Windows uses `& "C:\path\to\vibead-beta.exe" -
 | `--mode fixture` | Temporary empty home, fixed prompt and local simulated model; no account or model charges |
 | `--mode authenticated` | Temporary empty home and fixed factorial prompt using an exported provider key/token |
 
-To run an optional diagnostic, use `"/path/to/vibead-beta" --mode fixture AGENT` (with a kit older than 0.1.0-beta.33: `--mode fixture --agent AGENT`), replacing `AGENT` with any of the four agent names. You do not need to pass it before using the primary beta. Fixture success does not establish that your usual provider works.
+To run an optional diagnostic, use `"/path/to/vibead-beta" --mode fixture AGENT` (with a kit older than 0.1.0-beta.33: `--mode fixture --agent AGENT`), replacing `AGENT` with any of the three agent names. You do not need to pass it before using the primary beta. Fixture success does not establish that your usual provider works.
 
-The separate automated authenticated mode requires `OPENAI_API_KEY` for Codex/OpenCode, `GEMINI_API_KEY` for Gemini, or `ANTHROPIC_API_KEY` / `ANTHROPIC_AUTH_TOKEN` for Claude. It accepts `--model MODEL`; Claude also accepts the gateway URL/model variables. Unlike the primary mode, it does not reuse saved account configuration. Provider charges may apply.
+The separate automated authenticated mode requires `OPENAI_API_KEY` for Codex/OpenCode or `ANTHROPIC_API_KEY` / `ANTHROPIC_AUTH_TOKEN` for Claude. It accepts `--model MODEL`; Claude also accepts the gateway URL/model variables. Unlike the primary mode, it does not reuse saved account configuration. Provider charges may apply.
 
 ## Compatibility
 

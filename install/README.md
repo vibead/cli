@@ -1,12 +1,12 @@
 # Backup installers
 
-npm (`npm i -g @vibead/cli && vibead enable`) is the primary channel. These one-line installers use the same GitHub Release archives, so a one-command install keeps working without npm:
+npm (`npm i -g @vibead/cli`) is the primary channel. These one-line installers use the same GitHub Release archives, so a one-command install keeps working without npm:
 
 | Channel | Command |
 | --- | --- |
-| npm (primary) | `npm i -g @vibead/cli && vibead enable` |
+| npm (primary) | `npm i -g @vibead/cli` |
 | macOS / Linux | `curl -fsSL https://www.vibead.ai/install \| sh` |
-| Homebrew | `brew install vibead/tap/vibead && vibead enable` |
+| Homebrew | `brew install vibead/tap/vibead && vibead` |
 | Windows PowerShell | `irm https://www.vibead.ai/install.ps1 \| iex` (once Windows builds ship) |
 
 `install.sh` and `install.ps1` are the only sources; www.vibead.ai serves byte-identical copies.

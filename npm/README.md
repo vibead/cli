@@ -28,14 +28,14 @@ vibead disable                          # turn ads off and restore your settings
 
 **Codex** gets a `codex` alias for `vibead codex`; `vibead disable` removes it.
 
-- A short, labelled `[Ad]` line appears in the status line (Claude Code) or a notification (OpenCode) while your agent thinks.
+- A short, labelled `[Ad]` line appears while your agent thinks: in the status line (Claude Code, OpenCode 1.19+) or a labelled toast (OpenCode 1.18).
 - VibeAd never reads or changes your prompts, code or agent output.
 - Journals every file it changes; `vibead disable` restores them exactly.
 - Payouts launching soon.
 
-Works with **Claude Code, Codex and OpenCode** on **macOS (Apple Silicon, Intel)** and **Linux x64 (glibc 2.34+)**. Windows is not supported yet.
+Works with **Claude Code, Codex and OpenCode** on **macOS (Apple Silicon, Intel)** and **Linux x64 (glibc 2.34+)**. Linux arm64 and Windows are not supported yet.
 
-**Uninstall:** `vibead uninstall && npm uninstall -g @vibead/cli`
+**Uninstall:** `vibead uninstall` (restores your settings, then removes VibeAd's files and this package, so `vibead` is gone)
 
 ---
 
@@ -46,9 +46,11 @@ Install connects the agents it finds. `vibead enable` (to turn ads back on after
 
 - **Claude Code:** adds a status line and turn hooks to `~/.claude/settings.json`. The hooks print nothing, so nothing reaches the model.
 - **OpenCode:** adds a plugin that shows a labelled toast when a turn starts.
-- **Codex:** an optional shell alias, `codex` → `vibead codex`.
+- **Codex:** a `codex` shell function in your shell's rc file (`~/.bashrc` or `~/.zshrc`) that runs `vibead codex`, and plain `codex` if VibeAd is gone.
 
-Ads are labelled `[Ad]` and appear only in status or notification UI. `vibead disable` removes only VibeAd's changes and keeps yours; `vibead uninstall` also removes VibeAd's data.
+Ads are labelled `[Ad]` and appear only in status or notification UI. `vibead disable` removes only VibeAd's changes and keeps yours; `vibead uninstall` also removes VibeAd's files and the `vibead` command.
+
+npm 11 prints `npm warn install-scripts` lines for `@vibead/cli`: that is npm noting the package has an install script (it connects your agents); it is safe to ignore, and npm 12, which skips install scripts, leaves setup to your first `vibead` run.
 
 VibeAd counts how many times ads are shown, nothing else. Never your prompts or code. Stop it anytime with `vibead disable`.
 </details>
@@ -57,7 +59,7 @@ VibeAd counts how many times ads are shown, nothing else. Never your prompts or 
 <summary><b>Install with Homebrew</b></summary>
 
 ```sh
-brew install vibead/tap/vibead && vibead enable
+brew install vibead/tap/vibead && vibead      # installs, then connects the agents it finds
 ```
 
 Includes its own runtime, so Node.js is not needed. See [vibead/homebrew-tap](https://github.com/vibead/homebrew-tap).

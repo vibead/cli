@@ -7,7 +7,6 @@ From your usual project, run the command for your agent:
 ```sh
 "/path/to/vibead-beta" --test-publisher claude
 "/path/to/vibead-beta" --test-publisher codex
-"/path/to/vibead-beta" --test-publisher gemini
 "/path/to/vibead-beta" --test-publisher opencode
 ```
 

@@ -1,6 +1,6 @@
 import { createHash } from 'node:crypto';
 import { createReadStream, createWriteStream } from 'node:fs';
-import { access, chmod, mkdir, mkdtemp, readFile, rename, rm } from 'node:fs/promises';
+import { access, chmod, mkdir, mkdtemp, readdir, readFile, rename, rm } from 'node:fs/promises';
 import { homedir } from 'node:os';
 import { join, resolve } from 'node:path';
 import { Readable } from 'node:stream';
@@ -13,7 +13,7 @@ export const release = JSON.parse(await readFile(new URL('../releases.json', imp
 
 export function platformKey(platform = process.platform, arch = process.arch) {
   const key = `${platform}-${arch}`;
-  if (!release.platforms[key]) throw new Error(`Unsupported platform ${key}. Supported: macOS arm64/x64 and Linux x64 (glibc >= 2.34).`);
+  if (!release.platforms[key]) throw new Error(`Unsupported platform ${key}. Supported: macOS (Apple Silicon and Intel) and Linux x64 (glibc >= 2.34); Linux arm64 is not supported yet.`);
   return key;
 }
 
@@ -47,6 +47,14 @@ async function download(url, destination) {
   await pipeline(Readable.fromWeb(response.body), createWriteStream(destination, { mode: 0o600 }));
 }
 
+// beta.36: once a kit is verified and in place, older kits in the cache go
+// (they were never pruned, one ~100 MB folder per release). Only kit-shaped
+// names are touched; a half-finished `.install-*` of another run is left alone.
+const OLD_KIT = /^\d[0-9A-Za-z.+-]*-(?:darwin|linux|win32)-(?:arm64|x64)-[0-9a-f]{12}$/u;
+export async function pruneOldKits(cache, keep) {
+  for (const name of await readdir(cache).catch(() => [])) if (OLD_KIT.test(name) && name !== keep) await rm(join(cache, name), { recursive: true, force: true }).catch(() => {});
+}
+
 export async function ensureInstalled() {
   const key = platformKey();
   const cache = resolve(process.env.VIBEAD_CACHE_DIR || join(homedir(), '.cache', 'vibead'));
@@ -72,6 +80,7 @@ export async function ensureInstalled() {
       if (!['EEXIST', 'ENOTEMPTY'].includes(error.code)) throw error;
       await access(executable);
     }
+    await pruneOldKits(cache, `${version}-${key}-${sha256.slice(0, 12)}`);
     return executable;
   } finally {
     await rm(staging, { recursive: true, force: true });

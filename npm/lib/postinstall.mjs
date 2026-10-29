@@ -40,7 +40,9 @@ export async function runPostinstall({
   let executable = kit;
   if (!executable) {
     try { executable = await ensure(); }
-    catch {
+    catch (error) {
+      // beta.36: an unsupported platform never finishes setup later; say so.
+      if (/^Unsupported platform/u.test(error?.message ?? '')) { warn(`vibead: ${error.message} Remove it with: npm uninstall -g @vibead/cli`); return { code: 0, skipped: 'unsupported-platform' }; }
       warn(SETUP_LATER);
       return { code: 0, skipped: 'no-kit' };
     }
