@@ -31,7 +31,7 @@ brew install vibead/tap/vibead && vibead          # Homebrew
 irm https://www.vibead.ai/install.ps1 | iex        # Windows PowerShell (once Windows builds ship)
 ```
 
-**Codex** gets a `codex` shell function that runs `vibead codex`; `vibead disable` removes it.
+**Codex** gets a `codex` shell function that runs `vibead codex`; `vibead disable` removes it. Open a new terminal after installing; Codex asks once whether to trust VibeAd's hooks, and ads show after you choose Trust.
 
 - A short, labelled `[Ad]` line appears while your agent thinks: in the status line (Claude Code, OpenCode 1.19+) or a labelled toast (OpenCode 1.18).
 - VibeAd never reads or changes your prompts, code or agent output.
@@ -50,7 +50,7 @@ Works with **Claude Code, Codex and OpenCode** on **macOS (Apple Silicon, Intel)
 Install connects the agents it finds, without a question, and prints what it did. `vibead enable` (to turn ads back on after `vibead disable`) lists every file it will change and asks before touching anything. Use `--dry-run` to preview only.
 
 - **Claude Code:** adds a status line, spinner tips and turn hooks to `~/.claude/settings.json`. The hooks print nothing, so nothing reaches the model.
-- **OpenCode:** adds a plugin that shows a labelled toast when a turn starts.
+- **OpenCode:** adds a plugin: a line in the status area on OpenCode 1.19+ (the first turn shows a short notice, then the ad), a labelled toast on 1.18.
 - **Codex:** a `codex` shell function in your shell's rc file (`~/.bashrc` or `~/.zshrc`) that runs `vibead codex`, and plain `codex` if VibeAd is gone.
 
 Ads are labelled `[Ad]` and appear only in status or notification UI. `vibead disable` removes only VibeAd's changes and keeps yours; `vibead uninstall` also removes VibeAd's files and the `vibead` command.
@@ -58,6 +58,8 @@ Ads are labelled `[Ad]` and appear only in status or notification UI. `vibead di
 npm 11 prints `npm warn install-scripts` lines for `@vibead/cli`: that is npm noting the package has an install script (it connects your agents); it is safe to ignore, and npm 12, which skips install scripts, leaves setup to your first `vibead` run.
 
 VibeAd counts how many times ads are shown, nothing else. Never your prompts or code. Stop it anytime with `vibead disable`.
+
+**Turn off ad counting but keep ads:** `vibead telemetry off` (or set `VIBEAD_NO_TELEMETRY=1` or `DO_NOT_TRACK=1`). Nothing is counted or sent about the ads you see, and ads have no click link. `vibead telemetry status` shows the setting; `vibead telemetry on` turns counting back on. The setting is the file `~/.vibead/telemetry-off`; `vibead uninstall` keeps it, so a reinstall stays private, and says where it is. Delete that file to reset it.
 </details>
 
 <details>
