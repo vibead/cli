@@ -1,10 +1,13 @@
-# Official Homebrew listing candidate
+# Official Homebrew listing: notes, no candidate file
 
-**Not submitted or accepted by Homebrew.** The file in `Casks/v/vibead.rb` is a
-candidate for the official macOS catalog. Continue using the working public tap:
+**Not submitted or accepted by Homebrew.** The candidate cask that lived in
+`Casks/v/vibead.rb` was removed in beta.36: it pinned 0.1.0-beta.12 and linked a
+`vibead-beta` command that the current kit no longer offers. Write a new cask from
+the working tap formula ([vibead/homebrew-tap](https://github.com/vibead/homebrew-tap)
+`Formula/vibead.rb`) once the gaps below are closed. Until then, use the tap:
 
 ```sh
-brew install vibead/tap/vibead
+brew install vibead/tap/vibead && vibead
 ```
 
 Homebrew creates a dedicated `formulae.brew.sh/cask/vibead` page only after its
@@ -38,7 +41,7 @@ create that page. No separate Homebrew account is needed.
 platform-specific binaries. Its [formula requirements](https://docs.brew.sh/Acceptable-Formulae)
 include an eligible open-source license and source-build requirements.
 
-## Candidate design and validation
+## The removed beta.12 candidate (history)
 
 The candidate uses official release downloads and their published SHA-256 hashes
 for Apple Silicon and Intel Macs. Linking the executable leaves its bundled Node
@@ -66,7 +69,6 @@ brew audit --cask --new vibead
 brew livecheck --cask vibead
 brew install --cask vibead
 vibead --help
-vibead-beta --help
 brew uninstall --cask vibead
 ```
 
@@ -75,7 +77,7 @@ passing Mac installation or Gatekeeper validation. Its CLI is the release's
 native entry point; the custom formula's additional `--version` wrapper is not
 part of this candidate.
 
-Search for existing and previously declined Vibead casks before opening a PR.
+Search for existing and previously declined VibeAd casks before opening a PR.
 Follow Homebrew's [contribution instructions](https://github.com/Homebrew/homebrew-cask/blob/master/AGENTS.md)
 and disclose AI assistance and the checks actually performed. Maintainer review
 and publication of the page are separate from preparing this candidate.
