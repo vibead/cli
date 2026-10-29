@@ -178,7 +178,7 @@ Run this on a clean Linux cloud test machine with a fresh `$HOME`. **Any user fr
   *Evidence:* the hook/plugin code lines, plus the fields of one captured request (keys masked).
 - **CLI-13** Hosted test runs are brief and cost-aware. The cloud test machine is paused afterwards, and every install key the run issued is revoked.
   *Evidence:* the machine state after the run, plus the revoked install hashes (hashes only, never keys).
-- **CLI-14** Installers (`curl | sh`, `irm | iex`, the npm launcher) edit shell profiles idempotently (one marker-delimited block) and are tested against `file://` fake releases in a temp `$HOME`, never the real `~/.vibead` or the network.
+- **CLI-14** Installers (`curl | sh`, the npm launcher; no Windows installer since beta.36 RC3 W1) edit shell profiles idempotently (one marker-delimited block) and are tested against `file://` fake releases in a temp `$HOME`, never the real `~/.vibead` or the network.
   *Evidence:* the test names, plus a second install run showing no second profile edit.
 
 ## SAFE: safety and infra

@@ -18,51 +18,53 @@
 ## Quick start
 
 ```sh
-npm i -g @vibead/cli && vibead enable   # install, then review and approve the changes
-claude                                  # or opencode: use your agent as usual
+npm i -g @vibead/cli                    # installs and connects the agents it finds
+claude                                  # or codex, or opencode: use your agent as usual
 vibead disable                          # turn ads off and restore your settings
 ```
 
-**No npm, or npm unavailable?** Each of these is one command that installs the same release and runs the same `vibead enable`:
+**No npm, or npm unavailable?** Each of these installs the same release and connects the same agents:
 
 ```sh
 curl -fsSL https://www.vibead.ai/install | sh       # macOS and Linux, no sudo
-brew install vibead/tap/vibead && vibead enable    # Homebrew
-irm https://www.vibead.ai/install.ps1 | iex        # Windows PowerShell (once Windows builds ship)
+brew install vibead/tap/vibead && vibead          # Homebrew
 ```
 
-**Codex** is opt-in: accept the `codex` alias that `vibead enable` offers, or run `vibead codex`.
+**Codex** gets a `codex` shell function that runs `vibead codex`; `vibead disable` removes it. Open a new terminal after installing. Codex asks you to trust VibeAd's hooks; ads show after you choose Trust. It asks again each time you turn VibeAd off and back on.
 
-- A short, labelled `[Ad]` line appears in the status line (Claude Code) or a notification (OpenCode) while your agent thinks.
+- A short, labelled `[Ad]` line appears while your agent thinks: in the status line (Claude Code, OpenCode 1.19+) or a labelled toast (OpenCode 1.18).
 - VibeAd never reads or changes your prompts, code or agent output.
-- Asks before changing any file; `vibead disable` restores them exactly.
-- Payouts launching soon.
+- Journals every file it changes; `vibead disable` restores them exactly.
 
-Works with **Claude Code, Codex and OpenCode** on **macOS (Apple Silicon, Intel)** and **Linux x64 (glibc 2.34+)**. Windows is not supported yet.
+Works with **Claude Code, Codex and OpenCode** on **macOS (Apple Silicon, Intel)** and **Linux x64 (glibc 2.34+)**. Linux arm64 is not supported yet.
 
-**Uninstall:** `vibead uninstall && npm uninstall -g @vibead/cli` (npm), `vibead uninstall && rm -rf ~/.vibead/versions ~/.vibead/bin ~/.local/bin/vibead` (install script), or `vibead uninstall && brew uninstall vibead` (Homebrew).
+**Uninstall:** `vibead uninstall` (npm or install script: it restores your settings and removes VibeAd's files and the `vibead` command), or `vibead uninstall && brew uninstall vibead` (Homebrew).
 
 ---
 
 <details>
-<summary><b>What <code>vibead enable</code> changes</b></summary>
+<summary><b>What install (or <code>vibead enable</code>) changes</b></summary>
 
-`vibead enable` lists every file it will change and asks before touching anything. Use `--dry-run` to preview only.
+Install connects the agents it finds, without a question, and prints what it did. `vibead enable` (to turn ads back on after `vibead disable`) lists every file it will change and asks before touching anything. Use `--dry-run` to preview only.
 
 - **Claude Code:** adds a status line, spinner tips and turn hooks to `~/.claude/settings.json`. The hooks print nothing, so nothing reaches the model.
-- **OpenCode:** adds a plugin that shows a labelled toast when a turn starts.
-- **Codex:** an optional shell alias, `codex` → `vibead codex`.
+- **OpenCode:** adds a plugin: a line in the status area on OpenCode 1.19+ (the first turn shows a short notice, then the ad), a labelled toast on 1.18.
+- **Codex:** a `codex` shell function in your shell's rc file (`~/.bashrc` or `~/.zshrc`) that runs `vibead codex`, and plain `codex` if VibeAd is gone.
 
-Ads are labelled `[Ad]` and appear only in status or notification UI. `vibead disable` removes only VibeAd's changes and keeps yours; `vibead uninstall` also removes VibeAd's data.
+Ads are labelled `[Ad]` and appear only in status or notification UI. `vibead disable` removes only VibeAd's changes and keeps yours; `vibead uninstall` also removes VibeAd's files and the `vibead` command.
+
+npm 11 prints `npm warn install-scripts` lines for `@vibead/cli`: that is npm noting the package has an install script (it connects your agents); it is safe to ignore, and npm 12, which skips install scripts, leaves setup to your first `vibead` run.
 
 VibeAd counts how many times ads are shown, nothing else. Never your prompts or code. Stop it anytime with `vibead disable`.
+
+**Turn off ad counting but keep ads:** `vibead telemetry off` (or set `VIBEAD_NO_TELEMETRY=1` or `DO_NOT_TRACK=1`). VibeAd stops reporting the ads it shows, ads have no click link, and the ad server keeps no per-install record of what you saw. Ads are still fetched with your anonymous install key. `vibead telemetry status` shows the setting; `vibead telemetry on` turns counting back on. The setting is the file `~/.vibead/telemetry-off`; `vibead uninstall` keeps it, so a reinstall stays private, and says where it is. Delete that file to reset it.
 </details>
 
 <details>
 <summary><b>Install with Homebrew</b></summary>
 
 ```sh
-brew install vibead/tap/vibead && vibead enable
+brew install vibead/tap/vibead && vibead      # installs, then connects the agents it finds
 ```
 
 Includes its own runtime, so Node.js is not needed. See [vibead/homebrew-tap](https://github.com/vibead/homebrew-tap).
@@ -108,5 +110,5 @@ Full guide: [BETA.md](https://github.com/vibead/cli/blob/main/BETA.md). Publishe
 <details>
 <summary><b>For developers</b></summary>
 
-This repo holds public releases, the npm launcher in [`npm/`](https://github.com/vibead/cli/tree/main/npm) and the backup installers in [`install/`](https://github.com/vibead/cli/tree/main/install) (served at `www.vibead.ai/install` and `/install.ps1`). Source and server code are private. [Release notes](https://github.com/vibead/cli/releases/latest).
+This repo holds public releases, the npm launcher in [`npm/`](https://github.com/vibead/cli/tree/main/npm) and the backup installers in [`install/`](https://github.com/vibead/cli/tree/main/install) (served at `www.vibead.ai/install`). Source and server code are private. [Release notes](https://github.com/vibead/cli/releases/latest).
 </details>

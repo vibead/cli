@@ -23,7 +23,7 @@ flowchart LR
     SH["install/install.sh"]
     PS["install/install.ps1"]
     Sign["sign-release.yml<br/>SHA256SUMS (kits + launcher tgz)<br/>+ Sigstore bundle"]
-    Cask["packaging/homebrew<br/>official cask candidate (not submitted)"]
+    Cask["packaging/homebrew<br/>notes for an official cask (no candidate file)"]
   end
   Src["vibead/vibead<br/>builds the release archives"]
   Rel["GitHub Releases<br/>archive + .sha256 per platform,<br/>vibead-cli-&lt;v&gt;.tgz + .sha256,<br/>SHA256SUMS, SHA256SUMS.sigstore.json"]
@@ -40,7 +40,7 @@ flowchart LR
   TP --> Reg
   Reg --> User
   NPM -- "downloads + checks SHA-256" --> Rel
-  Site -- "curl | sh, irm | iex" --> User
+  Site -- "curl | sh" --> User
   SH -. "byte-identical copy" .-> Site
   PS -. "byte-identical copy" .-> Site
   SH -- "reads /install.json, verifies SHA256SUMS<br/>(and cosign when present)" --> Rel
@@ -52,10 +52,13 @@ flowchart LR
 
 | Channel | How it works | Status |
 | --- | --- | --- |
-| npm (primary) | `npm i -g @vibead/cli && vibead enable`. The launcher (`npm/bin/vibead.mjs`) picks the archive for this platform from `releases.json`, downloads it from GitHub Releases, checks its SHA-256 and runs it. macOS arm64/x64 and Linux x64. | **Live**, 0.1.0-beta.33 (npm `latest`, `beta` and `next`). |
+| npm (primary) | `npm i -g @vibead/cli` (install connects the agents it finds). The launcher (`npm/bin/vibead.mjs`) picks the archive for this platform from `releases.json`, downloads it from GitHub Releases, checks its SHA-256 and runs it. macOS arm64/x64 and Linux x64. | **Live**, 0.1.0-beta.33 (npm `latest`, `beta` and `next`). |
 | curl | `curl -fsSL https://www.vibead.ai/install \| sh`. `install/install.sh` reads the pinned version from `www.vibead.ai/install.json` (never GitHub "latest", [cli#27](https://github.com/vibead/cli/issues/27)), verifies the archive against the release's `SHA256SUMS` (and its Sigstore signature when `cosign` is installed, required with `VIBEAD_REQUIRE_SIGNATURE=1`), installs under `~/.vibead` with a `vibead` link in `~/.local/bin`, then runs the zero-step wire (see Zero-step install; with the switch set back to 0 it runs `vibead enable`, which asks). The whole script is one function called on the last line, so a truncated download runs nothing. | **Live** ([#28](https://github.com/vibead/cli/pull/28)). vibead-ai serves a byte-identical copy at the commit pinned in its `install.source.json` (b3abed7, which has the zero-step switch at 0, so the copy on www runs `vibead enable`, which asks). Its version pin `install.json` is 0.1.0-beta.33 ([vibead-ai#295](https://github.com/vibead/vibead-ai/pull/295)), so the copy on www installs 0.1.0-beta.33. |
-| PowerShell | `irm https://www.vibead.ai/install.ps1 \| iex`. Prints the npm or WSL one-liner until Windows builds ship. | **Live**. |
-| Homebrew | `brew install vibead/tap/vibead` from [vibead/homebrew-tap](https://github.com/vibead/homebrew-tap). `packaging/homebrew` holds an official-cask candidate that is not submitted (needs notarized macOS builds). | **Live** (tap at 0.1.0-beta.33, [homebrew-tap#9](https://github.com/vibead/homebrew-tap/pull/9)). |
+| PowerShell | None: `vibead: Windows is not supported yet.` `install/install.ps1` (served at www.vibead.ai/install.ps1) prints that line, installs nothing and suggests no npm or WSL route; as a file it exits 1, piped into PowerShell it returns with `$LASTEXITCODE` 1 (install.ps1's own comments say how). | **Merged, not released (0.1.0-beta.36).** Live is the old script, which printed an npm line that cannot install on Windows (npm `os` is darwin/linux). |
+| Homebrew | `brew install vibead/tap/vibead && vibead` (the first `vibead` run connects the agents) from [vibead/homebrew-tap](https://github.com/vibead/homebrew-tap). `packaging/homebrew` holds only notes for an official cask (needs notarized macOS builds); the stale beta.12 candidate file was removed in beta.36. | **Live** (tap at 0.1.0-beta.34, [homebrew-tap#11](https://github.com/vibead/homebrew-tap/pull/11) updates it from npm `latest`). **Planned** for beta.36 (release blocker): the tap branch `cli-accuracy-beta36` (caveats without `vibead gemini`, no `vibead-beta` link, `brew test` for the beta.36 help, `VIBEAD_TAP_VERSION` to ship a `next` release). |
+
+- **Merged, not released (0.1.0-beta.36, CLI accuracy).** `vibead uninstall` through the npm launcher (`npm/lib/uninstall.mjs`) runs the kit's `vibead uninstall` (restores the user's files, removes `~/.vibead` and the kits in `~/.cache/vibead`), removes the launcher's cache folder again in case the kit could not run, then runs `npm uninstall --global --prefix <prefix> @vibead/cli` for the prefix the launcher lives in (npm next to this node first, then npm on PATH), so `which vibead` is empty. npm 7+ runs no uninstall scripts, so this is the only place it can happen. If the kit fails, the package is kept so the user can retry; if npm cannot run (npx, a local install), it prints `npm uninstall -g @vibead/cli`. The launcher keeps only the current kit in its cache (`pruneOldKits`). On an unsupported platform (Linux arm64, Windows) the postinstall says so and names the uninstall command instead of "setup finishes the first time you run vibead"; `cpu` keeps `arm64` because Apple Silicon needs it. npm 11 prints `npm warn install-scripts` for the postinstall; the README explains it in one line. The npm description, README, BETA guide and enterprise demo name Claude Code, Codex and OpenCode only.
+- **Merged, not released (0.1.0-beta.36, CLI Tester re-check).** `VIBEAD_RELEASE_BASE` (a local release mirror) is test-only in `install/install.sh` and the npm launcher (`npm/lib/install.mjs`): without `VIBEAD_TEST_RELEASE=1` both refuse it before writing anything, so a value left in a shell profile cannot quietly change the download source.
 
 ## Zero-step install
 
@@ -91,15 +94,15 @@ flowchart TD
 
 ## LEGAL WORDING - approved by Gaurav (vibead-ai#254)
 
-These sentences are the consent, approved word for word in vibead-ai#254. The npm sentence goes above the install command in `npm/README.md`. The website sentence goes in the install section on www.vibead.ai. The first-turn line is one line in each agent's status area, before any ad.
+These sentences are the consent, approved word for word in vibead-ai#254. **beta.36 change approved** (approved by Nina, delegated wording owner (Gaurav, Oct 29 2026), 21:43 AEDT; commit 3260fd6, which a revert would take back): the placement is generic (status line, working indicator or notification area), ads begin after a short notice, some agents ask you to approve VibeAd first, and both routes say "Installing VibeAd". The terminal copy (vibead/vibead `beta/lib/notices.mjs`) names only the agents the install connected and, when Codex was connected and Codex will ask about VibeAd's hooks, adds the Codex trust note (`CODEX_TRUST_NEXT`, approved by Nina 03:09 AEDT Oct 30; it replaced the earlier one-line trust instruction). The #254 text said "Installing this package" (npm) and "appears in the agent's status area". The npm sentence goes above the install command in `npm/README.md`. The website sentence goes in the install section on www.vibead.ai. The first-turn line is one line in each agent's status area, before any ad.
 
 npm README and npm page, above the install command:
 
-Installing this package turns on a short sponsored line in Claude Code, Codex and OpenCode on this computer. The line is labelled [Ad] and appears in the agent's status area while it works. It does not read or change your prompts, code or replies. Turn it off at any time with: vibead disable
+Installing VibeAd turns on a short sponsored line in Claude Code, Codex and OpenCode on this computer. The line is labelled [Ad] and appears in the agent's status line, working indicator or notification area while it works. Ads begin after a short notice, and some agents ask you to approve VibeAd first. It does not read or change your prompts, code or replies. Turn it off at any time with: vibead disable
 
 Website install section, where the install command is shown:
 
-Installing VibeAd turns on a short sponsored line in Claude Code, Codex and OpenCode on this computer. The line is labelled [Ad] and appears in the agent's status area while it works. It does not read or change your prompts, code or replies. Turn it off at any time with: vibead disable
+Installing VibeAd turns on a short sponsored line in Claude Code, Codex and OpenCode on this computer. The line is labelled [Ad] and appears in the agent's status line, working indicator or notification area while it works. Ads begin after a short notice, and some agents ask you to approve VibeAd first. It does not read or change your prompts, code or replies. Turn it off at any time with: vibead disable
 
 First turn of each agent, one line in the status area, before any ad:
 

@@ -7,8 +7,11 @@
 # GitHub's "latest"), downloads that release for this computer, verifies its
 # SHA-256 against the release's SHA256SUMS (and the Sigstore signature of
 # SHA256SUMS when `cosign` is installed), installs it under ~/.vibead with a
-# `vibead` command in ~/.local/bin (no sudo), then runs `vibead enable`, which
-# lists every file it will change and asks before touching anything.
+# `vibead` command in ~/.local/bin (no sudo), then connects the agents it finds
+# with no question (zero-step, vibead-ai#235) and prints what it did; with
+# zero-step off it runs `vibead enable`, which lists each change and asks first.
+# `vibead uninstall` restores the user's files and removes all of this (a
+# telemetry-off setting is kept, so a reinstall stays private).
 #
 # Optional environment:
 #   VIBEAD_VERSION=0.1.0-beta.27   install this version instead of the pinned one
@@ -17,7 +20,7 @@
 #   VIBEAD_NO_ENABLE=1             install only; run `vibead enable` yourself
 #   VIBEAD_NO_MODIFY_PATH=1        accepted for older scripts; the installer never edits profiles
 #   VIBEAD_REQUIRE_SIGNATURE=1     fail unless cosign verifies SHA256SUMS
-#   VIBEAD_ZERO_STEP=1             opt in to zero-step setup (see below)
+#   VIBEAD_ZERO_STEP=1             zero-step setup even when ZERO_STEP_CONSENT_APPROVED=0 (on by default; see below)
 #
 # Zero-step setup (vibead/vibead-ai#235) connects every detected agent, on
 # install or on the first `vibead` run, whichever comes first, without a
@@ -35,6 +38,10 @@ set -u
 ZERO_STEP_CONSENT_APPROVED=1
 
 main() {
+  # Test-only mirror (local QA, tests): honoured only with VIBEAD_TEST_RELEASE=1.
+  if [ -n "${VIBEAD_RELEASE_BASE:-}" ] && [ "${VIBEAD_TEST_RELEASE:-}" != 1 ]; then
+    fail "VIBEAD_RELEASE_BASE is for tests only. Unset it, or also set VIBEAD_TEST_RELEASE=1."
+  fi
   release_base=${VIBEAD_RELEASE_BASE:-https://github.com/vibead/cli/releases}
   install_dir=${VIBEAD_INSTALL_DIR:-$HOME/.vibead}
   bin_dir=${VIBEAD_BIN_DIR:-$HOME/.local/bin}
@@ -58,12 +65,12 @@ main() {
     want=${VIBEAD_VERSION#v}
   else
     manifest_url=${VIBEAD_MANIFEST_URL:-https://www.vibead.ai/install.json}
-    fetch "$manifest_url" "$tmp/install.json" || fail "Could not read the current version ($manifest_url). Use npm instead: npm i -g @vibead/cli && vibead enable"
+    fetch "$manifest_url" "$tmp/install.json" || fail "Could not read the current version ($manifest_url). Use npm instead: npm i -g @vibead/cli"
     want=$(tr -d '\n\r' < "$tmp/install.json" | grep -oE '"version"[[:space:]]*:[[:space:]]*"[0-9A-Za-z.+-]+"' | head -n 1 | sed -E 's/.*"([^"]+)"$/\1/')
-    [ -n "$want" ] || fail "The version manifest ($manifest_url) has no version. Use npm instead: npm i -g @vibead/cli && vibead enable"
+    [ -n "$want" ] || fail "The version manifest ($manifest_url) has no version. Use npm instead: npm i -g @vibead/cli"
   fi
   sums_url="$release_base/download/v$want/SHA256SUMS"
-  fetch "$sums_url" "$tmp/SHA256SUMS" || fail "Could not download the release checksums ($sums_url). Use npm instead: npm i -g @vibead/cli && vibead enable"
+  fetch "$sums_url" "$tmp/SHA256SUMS" || fail "Could not download the release checksums ($sums_url). Use npm instead: npm i -g @vibead/cli"
 
   # SHA256SUMS lines: "<64 hex>  vibead-beta-<version>-<platform>.tar.gz"
   line=$(grep -E "^[0-9a-f]{64}  vibead-beta-[0-9A-Za-z.+-]+-$platform\.tar\.gz\$" "$tmp/SHA256SUMS" | head -n 1)
@@ -89,7 +96,23 @@ main() {
     fail "Unexpected files in $archive. Nothing was installed."
   fi
 
+  # Record the folders above the launcher link that this run creates (for example
+  # ~/.local/bin and ~/.local), so `vibead uninstall` can remove them when they are
+  # empty, and never a folder that was already there (~/.vibead/created-dirs).
+  created_dirs=""
+  case "$bin_dir" in
+    "$HOME"/*)
+      d=$bin_dir
+      while [ "$d" != "$HOME" ] && [ "$d" != "/" ] && [ ! -e "$d" ]; do
+        created_dirs="$created_dirs$d
+"
+        d=$(dirname "$d")
+      done ;;
+  esac
   mkdir -p "$install_dir/versions" "$install_dir/bin" "$bin_dir" || fail "Could not create $install_dir or $bin_dir."
+  if [ -n "$created_dirs" ]; then
+    mkdir -p "$HOME/.vibead" && printf '%s' "$created_dirs" >> "$HOME/.vibead/created-dirs" || true
+  fi
   stage=$(mktemp -d "$install_dir/versions/.stage.XXXXXX") || fail "Could not write to $install_dir."
   tar -xzf "$tmp/$archive" -C "$stage" || { rm -rf "$stage"; fail "Could not extract $archive."; }
   [ -f "$stage/$folder/vibead-beta" ] || { rm -rf "$stage"; fail "$archive has no vibead-beta executable."; }
@@ -139,8 +162,9 @@ LAUNCHER
     if ci_set || ! has_tty || [ "$(id -u)" = 0 ]; then
       say "Setup finishes the first time you run vibead."
     else
-      # Prints the one-line notice (it names `vibead disable`); a re-install changes
-      # no byte. Never reads the terminal.
+      # Prints the install notice (the agents it connected, `vibead disable`, and
+      # Codex's trust step when Codex is connected); a re-install changes no byte.
+      # Never reads the terminal.
       PATH="$install_dir/bin:$PATH" "$launcher" __wrapperless wire --announce < /dev/null || say "Setup finishes the first time you run vibead."
     fi
   elif has_tty; then
@@ -187,7 +211,8 @@ detect_platform() {
         fi
       fi
       echo "linux-x64" ;;
-    *) warn "unsupported system $os. On Windows, run in PowerShell: irm https://www.vibead.ai/install.ps1 | iex"; return 1 ;;
+    MINGW*|MSYS*|CYGWIN*|Windows_NT) warn "Windows is not supported yet."; return 1 ;;
+    *) warn "unsupported system $os (macOS and Linux x64 only)."; return 1 ;;
   esac
 }
 
