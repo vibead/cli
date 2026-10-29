@@ -8,7 +8,7 @@ import { tmpdir } from 'node:os';
 import { join, sep } from 'node:path';
 import test from 'node:test';
 import { MANUAL, globalPrefix, npmUninstall, removeKitCache, removePackage } from '../lib/uninstall.mjs';
-import { pruneOldKits } from '../lib/install.mjs';
+import { ensureInstalled, platformKey, platformRelease, pruneOldKits } from '../lib/install.mjs';
 import { runPostinstall } from '../lib/postinstall.mjs';
 
 const temp = async t => { const d = await mkdtemp(join(tmpdir(), 'vibead-npm-b36-')); t.after(() => rm(d, { recursive: true, force: true })); return d; };
@@ -91,11 +91,49 @@ test('item 1: after npm uninstall -g the empty @vibead scope folder goes; a non-
   assert.equal(removePackage({ prefix, spawn: () => ({ status: 0 }) }).removed, true);
   assert.equal(existsSync(scope), false);
   await mkdir(join(scope, 'other'), { recursive: true });
-  removePackage({ prefix, spawn: () => ({ status: 0 }) });
+  assert.equal(removePackage({ prefix, spawn: () => ({ status: 0 }) }).removed, true, 'a non-empty scope never throws');
   assert.ok(existsSync(join(scope, 'other')));
+  await rm(scope, { recursive: true });
+  assert.equal(removePackage({ prefix, spawn: () => ({ status: 0 }) }).removed, true, 'a missing scope never throws');
 });
 
-test('item 2: a cached kit start also prunes older kits', async () => {
-  const src = await readFile(join(root, 'npm/lib/install.mjs'), 'utf8');
-  assert.match(src, /await access\(executable\); await pruneOldKits\(cache/);
+test('item 2: a cached kit start also prunes older kits', async t => {
+  const cache = await temp(t);
+  const key = platformKey();
+  const { version, sha256 } = platformRelease(key);
+  const current = join(cache, `${version}-${key}-${sha256.slice(0, 12)}`);
+  await mkdir(current, { recursive: true });
+  await writeFile(join(current, 'vibead-beta'), '#!/bin/sh\n');
+  const old = join(cache, `0.1.0-beta.1-${key}-0123456789ab`);
+  await mkdir(old, { recursive: true });
+  await writeFile(join(cache, 'unrelated.txt'), 'x');
+  const saved = process.env.VIBEAD_CACHE_DIR;
+  process.env.VIBEAD_CACHE_DIR = cache;
+  t.after(() => { if (saved === undefined) delete process.env.VIBEAD_CACHE_DIR; else process.env.VIBEAD_CACHE_DIR = saved; });
+  assert.equal(await ensureInstalled(), join(current, 'vibead-beta'), 'no download: the cached kit is used');
+  assert.deepEqual((await readdir(cache)).sort(), [`${version}-${key}-${sha256.slice(0, 12)}`, 'unrelated.txt'].sort());
+});
+
+test('item 9: the launcher names Linux arm64 as not supported (no arm64 Linux claim)', () => {
+  assert.throws(() => platformKey('linux', 'arm64'), /Unsupported platform linux-arm64\. .*Linux arm64 is not supported yet\./);
+  assert.throws(() => platformKey('win32', 'x64'), /Unsupported platform win32-x64/);
+});
+
+test('item 1: `vibead uninstall` through the npm bin runs the kit, clears the cache, then removes the package', async t => {
+  const { spawnSync } = await import('node:child_process');
+  const { chmod } = await import('node:fs/promises');
+  const dir = await temp(t);
+  const cache = join(dir, 'cache');
+  const key = platformKey();
+  const { version, sha256 } = platformRelease(key);
+  const kit = join(cache, `${version}-${key}-${sha256.slice(0, 12)}`);
+  await mkdir(kit, { recursive: true });
+  await writeFile(join(kit, 'vibead-beta'), `#!/bin/sh\necho "$@" > '${join(dir, 'kit-args')}'\n`);
+  await chmod(join(kit, 'vibead-beta'), 0o755);
+  const r = spawnSync(process.execPath, [join(root, 'npm/bin/vibead.mjs'), 'uninstall'], { env: { ...process.env, VIBEAD_CACHE_DIR: cache }, encoding: 'utf8' });
+  assert.equal(await readFile(join(dir, 'kit-args'), 'utf8'), 'uninstall\n', 'the kit ran `uninstall`');
+  assert.equal(existsSync(cache), false, 'the kit cache is gone');
+  // A repo checkout is not under <prefix>/lib/node_modules, so the launcher prints the npm command.
+  assert.match(r.stdout, /npm uninstall -g @vibead\/cli/);
+  assert.equal(r.status, 1);
 });
