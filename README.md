@@ -59,7 +59,7 @@ npm 11 prints `npm warn install-scripts` lines for `@vibead/cli`: that is npm no
 
 VibeAd counts how many times ads are shown, nothing else. Never your prompts or code. Stop it anytime with `vibead disable`.
 
-**Turn off ad counting but keep ads:** `vibead telemetry off` (or set `VIBEAD_NO_TELEMETRY=1` or `DO_NOT_TRACK=1`). Nothing is counted or sent about the ads you see, and ads have no click link. `vibead telemetry status` shows the setting; `vibead telemetry on` turns counting back on. The setting is the file `~/.vibead/telemetry-off`; `vibead uninstall` keeps it, so a reinstall stays private, and says where it is. Delete that file to reset it.
+**Turn off ad counting but keep ads:** `vibead telemetry off` (or set `VIBEAD_NO_TELEMETRY=1` or `DO_NOT_TRACK=1`). VibeAd stops reporting the ads it shows, ads have no click link, and the ad server keeps no per-install record of what you saw. Ads are still fetched with your anonymous install key. `vibead telemetry status` shows the setting; `vibead telemetry on` turns counting back on. The setting is the file `~/.vibead/telemetry-off`; `vibead uninstall` keeps it, so a reinstall stays private, and says where it is. Delete that file to reset it.
 </details>
 
 <details>
