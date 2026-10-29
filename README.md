@@ -30,7 +30,7 @@ curl -fsSL https://www.vibead.ai/install | sh       # macOS and Linux, no sudo
 brew install vibead/tap/vibead && vibead          # Homebrew
 ```
 
-**Codex** gets a `codex` shell function that runs `vibead codex`; `vibead disable` removes it. Open a new terminal after installing; Codex asks once whether to trust VibeAd's hooks, and ads show after you choose Trust.
+**Codex** gets a `codex` shell function that runs `vibead codex`; `vibead disable` removes it. Open a new terminal after installing; Codex asks you to trust VibeAd's hooks; ads show after you choose Trust. It asks again each time you turn VibeAd off and back on.
 
 - A short, labelled `[Ad]` line appears while your agent thinks: in the status line (Claude Code, OpenCode 1.19+) or a labelled toast (OpenCode 1.18).
 - VibeAd never reads or changes your prompts, code or agent output.

@@ -7,7 +7,7 @@ import assert from 'node:assert/strict';
 import { createHash } from 'node:crypto';
 import { readFileSync } from 'node:fs';
 
-export const BETA_MD_SHA256 = 'bb41866fb7a353b123491c718aeb2a4c0a7901307f7a8907714439693b667aba';
+export const BETA_MD_SHA256 = '0b8d2d27543aba4bc545486338552680e9fb2f2c426c3f12c63e24702337248a';
 
 test('BETA.md is byte-identical to the kit BETA.md (pinned SHA-256 shared with vibead/vibead)', () => {
   const sha = createHash('sha256').update(readFileSync(new URL('../../BETA.md', import.meta.url))).digest('hex');
