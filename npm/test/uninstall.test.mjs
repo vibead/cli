@@ -78,7 +78,7 @@ test('items 4, 6, 8, 9: shipped text names only Claude Code, Codex and OpenCode 
   for (const file of ['README.md', 'npm/README.md']) {
     const text = await readFile(join(root, file), 'utf8');
     assert.match(text, /brew install vibead\/tap\/vibead && vibead /, file);
-    assert.match(text, /Linux arm64 and Windows are not supported yet/, file);
+    assert.match(text, /Linux arm64 is not supported yet/, file);
     assert.match(text, /npm warn install-scripts/, file);
     assert.match(text, /\*\*Uninstall:\*\* `vibead uninstall`/, file);
   }
@@ -136,4 +136,22 @@ test('item 1: `vibead uninstall` through the npm bin runs the kit, clears the ca
   // A repo checkout is not under <prefix>/lib/node_modules, so the launcher prints the npm command.
   assert.match(r.stdout, /npm uninstall -g @vibead\/cli/);
   assert.equal(r.status, 1);
+});
+
+// beta.36 RC2 (W1, Nina 01:06): the npm package and the READMEs carry no Windows copy
+// except the one approved sentence, byte-exact (approved by Nina, delegated wording owner
+// (Gaurav, Oct 29 2026), 23:01 AEDT). Covers every file npm pack ships, plus BETA.md.
+test('W1: no Windows, PowerShell or .exe copy in the npm package or the guides except the approved sentence', async () => {
+  const { execFileSync } = await import('node:child_process');
+  const APPROVED = 'vibead: Windows is not supported yet.';
+  const packed = JSON.parse(execFileSync('npm', ['pack', '--dry-run', '--json', '--ignore-scripts'], { cwd: join(root, 'npm'), encoding: 'utf8' }))[0].files.map(f => join('npm', f.path));
+  assert.ok(packed.length > 3, 'npm pack lists the package files');
+  for (const file of [...new Set([...packed, 'README.md', 'BETA.md', 'ENTERPRISE-DEMO.md'])]) {
+    const lines = (await readFile(join(root, file), 'utf8')).split('\n');
+    for (const [i, line] of lines.entries()) {
+      if (line.replaceAll('`', '').trim() === APPROVED) continue;
+      assert.doesNotMatch(line, /windows|powershell|\.exe\b|\.ps1|%USERPROFILE%|C:\\/iu, `${file}:${i + 1}`);
+    }
+  }
+  assert.ok((await readFile(join(root, 'BETA.md'), 'utf8')).includes(`\`${APPROVED}\``), 'BETA.md carries the approved sentence byte-exact');
 });

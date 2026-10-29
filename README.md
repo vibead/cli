@@ -36,7 +36,7 @@ brew install vibead/tap/vibead && vibead          # Homebrew
 - VibeAd never reads or changes your prompts, code or agent output.
 - Journals every file it changes; `vibead disable` restores them exactly.
 
-Works with **Claude Code, Codex and OpenCode** on **macOS (Apple Silicon, Intel)** and **Linux x64 (glibc 2.34+)**. Linux arm64 and Windows are not supported yet.
+Works with **Claude Code, Codex and OpenCode** on **macOS (Apple Silicon, Intel)** and **Linux x64 (glibc 2.34+)**. Linux arm64 is not supported yet.
 
 **Uninstall:** `vibead uninstall` (npm or install script: it restores your settings and removes VibeAd's files and the `vibead` command), or `vibead uninstall && brew uninstall vibead` (Homebrew).
 
@@ -110,5 +110,5 @@ Full guide: [BETA.md](https://github.com/vibead/cli/blob/main/BETA.md). Publishe
 <details>
 <summary><b>For developers</b></summary>
 
-This repo holds public releases, the npm launcher in [`npm/`](https://github.com/vibead/cli/tree/main/npm) and the backup installers in [`install/`](https://github.com/vibead/cli/tree/main/install) (served at `www.vibead.ai/install` and `/install.ps1`). Source and server code are private. [Release notes](https://github.com/vibead/cli/releases/latest).
+This repo holds public releases, the npm launcher in [`npm/`](https://github.com/vibead/cli/tree/main/npm) and the backup installers in [`install/`](https://github.com/vibead/cli/tree/main/install) (served at `www.vibead.ai/install`). Source and server code are private. [Release notes](https://github.com/vibead/cli/releases/latest).
 </details>

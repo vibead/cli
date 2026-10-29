@@ -32,7 +32,7 @@ vibead disable                          # turn ads off and restore your settings
 - VibeAd never reads or changes your prompts, code or agent output.
 - Journals every file it changes; `vibead disable` restores them exactly.
 
-Works with **Claude Code, Codex and OpenCode** on **macOS (Apple Silicon, Intel)** and **Linux x64 (glibc 2.34+)**. Linux arm64 and Windows are not supported yet.
+Works with **Claude Code, Codex and OpenCode** on **macOS (Apple Silicon, Intel)** and **Linux x64 (glibc 2.34+)**. Linux arm64 is not supported yet.
 
 **Uninstall:** `vibead uninstall` (restores your settings, then removes VibeAd's files and this package, so `vibead` is gone)
 
