@@ -28,7 +28,6 @@ vibead disable                          # turn ads off and restore your settings
 ```sh
 curl -fsSL https://www.vibead.ai/install | sh       # macOS and Linux, no sudo
 brew install vibead/tap/vibead && vibead          # Homebrew
-irm https://www.vibead.ai/install.ps1 | iex        # Windows PowerShell (once Windows builds ship)
 ```
 
 **Codex** gets a `codex` shell function that runs `vibead codex`; `vibead disable` removes it. Open a new terminal after installing; Codex asks once whether to trust VibeAd's hooks, and ads show after you choose Trust.
