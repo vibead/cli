@@ -31,7 +31,6 @@ vibead disable                          # turn ads off and restore your settings
 - A short, labelled `[Ad]` line appears while your agent thinks: in the status line (Claude Code, OpenCode 1.19+) or a labelled toast (OpenCode 1.18).
 - VibeAd never reads or changes your prompts, code or agent output.
 - Journals every file it changes; `vibead disable` restores them exactly.
-- Payouts launching soon.
 
 Works with **Claude Code, Codex and OpenCode** on **macOS (Apple Silicon, Intel)** and **Linux x64 (glibc 2.34+)**. Linux arm64 and Windows are not supported yet.
 
