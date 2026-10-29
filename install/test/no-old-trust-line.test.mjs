@@ -35,11 +35,15 @@ test('no tracked text file carries the old trust line (allow-list: this guard)',
   const tracked = execFileSync('git', ['ls-files'], { cwd: root, encoding: 'utf8' }).split('\n').filter(Boolean);
   assert.ok(tracked.includes('docs/system-design/README.md') && tracked.includes('install/README.md'), 'scans the docs too');
   const hits = [];
+  const scanned = [];
   for (const f of tracked) {
     if (ALLOWED.has(f)) continue;
     let bytes; try { bytes = readFileSync(new URL(f, root)); } catch { continue; }
     if (bytes.includes(0)) continue; // binary (the gif)
+    scanned.push(f);
     for (const line of oldTrustLines(bytes.toString('utf8'))) hits.push(`${f}: ${line}`);
   }
+  // RC3b mutant o3: the scan itself must reach the docs, not just the file list.
+  for (const f of ['docs/system-design/README.md', 'install/README.md', 'README.md']) assert.ok(scanned.includes(f), `scanned ${f}`);
   assert.deepEqual(hits, []);
 });
