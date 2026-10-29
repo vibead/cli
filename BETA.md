@@ -8,9 +8,9 @@
 
 **Official distribution:** [vibead/cli](https://github.com/vibead/cli). Beta.17 archives are unchanged from their original publication. Their bundled guide can contain older repository links; use this online guide for current downloads and known issues.
 
-**Beta.17 keeps the setup you already use:** your home directory, saved login, model/provider configuration, custom configuration directories, project files, settings, plugins and exported environment. You launch through Vibead from your usual project, and it adds local mock advertisements during supported thinking states.
+**Beta.17 keeps the setup you already use:** your home directory, saved login, model/provider configuration, custom configuration directories, project files, settings, plugins and exported environment. You launch through VibeAd from your usual project, and it adds local mock advertisements during supported thinking states.
 
-No new account setup, private checkout or separate ad server is required by Vibead. Your agent's own permissions, trust prompts and provider charges still apply.
+No new account setup, private checkout or separate ad server is required by VibeAd. Your agent's own permissions, trust prompts and provider charges still apply.
 
 **Known issues in beta.17** ([release notes](https://github.com/vibead/cli/releases/tag/v0.1.0-beta.17)):
 - **Fixed in beta.17:** stray text such as `0;0m` in Claude Code output; "Ads unavailable (beta_integration_busy_or_needs_cleanup)" after an interrupted session, which now recovers automatically; OpenCode ads missing after the first turn (fixed in beta.15).
@@ -50,7 +50,7 @@ This tests a synthetic ad opening a local browser page. It uses your existing ag
 | macOS | iTerm2 | Hold Command and click the word `Beta` |
 | Linux | A modern VTE terminal, such as GNOME Terminal | Use the terminal's Open Link gesture/menu, commonly Ctrl+click |
 
-These are initial capability checks, not a claim of physical-desktop qualification. Apple Terminal and unidentified terminals currently keep plain text. Remote/SSH sessions are outside this local-browser test: `127.0.0.1` must refer to the computer running both Vibead and the browser. Do not override terminal variables to force support.
+These are initial capability checks, not a claim of physical-desktop qualification. Apple Terminal and unidentified terminals currently keep plain text. Remote/SSH sessions are outside this local-browser test: `127.0.0.1` must refer to the computer running both VibeAd and the browser. Do not override terminal variables to force support.
 
 3. Run one agent at a time, using the path to beta.17. No `--mode interactive` is needed:
 
@@ -67,7 +67,7 @@ On a Mac where you already set `VIBEAD_BETA` to beta.17, use `"$VIBEAD_BETA" --t
 Keep gateway variables and saved logins as they normally are. Agent arguments go after the agent name, for example `"/path/to/vibead-beta" --test-links claude --model my-model`. With a kit older than 0.1.0-beta.33, put them after `--`: `"/path/to/vibead-beta" --test-links --agent claude -- --model my-model`.
 
 4. Send a normal prompt that gives you a few seconds to observe thinking. While `Beta … [Ad]…` is visible, open the link on **the word Beta**, using the gesture above. The random label, disclosure and adjacent agent text must not be part of the link. Nothing should open until you deliberately click.
-5. The browser must show **Vibead local click test** at `http://127.0.0.1:<port>/beta/click/...`. Press **Confirm I opened the test ad**. Expect **Click test confirmed**, then return to the agent. Keep the agent session open until confirmation; the mock service stops when you exit. Do not paste this temporary URL into an issue.
+5. The browser must show **VibeAd local click test** at `http://127.0.0.1:<port>/beta/click/...`. Press **Confirm I opened the test ad**. Expect **Click test confirmed**, then return to the agent. Keep the agent session open until confirmation; the mock service stops when you exit. Do not paste this temporary URL into an issue.
 6. Complete the checklist below, then exit the agent normally. Review the JSON report under `~/.vibead-beta/results`.
 
 | Check | Expected result |
@@ -98,7 +98,7 @@ Share the reviewed report JSON, archive version, terminal application/version, a
 | Apple Silicon | [Download ARM64](https://github.com/vibead/cli/releases/download/v0.1.0-beta.17/vibead-beta-0.1.0-beta.17-darwin-arm64.tar.gz) | [ARM64 checksum](https://github.com/vibead/cli/releases/download/v0.1.0-beta.17/vibead-beta-0.1.0-beta.17-darwin-arm64.tar.gz.sha256) |
 | Intel | [Download x64](https://github.com/vibead/cli/releases/download/v0.1.0-beta.17/vibead-beta-0.1.0-beta.17-darwin-x64.tar.gz) | [x64 checksum](https://github.com/vibead/cli/releases/download/v0.1.0-beta.17/vibead-beta-0.1.0-beta.17-darwin-x64.tar.gz.sha256) |
 
-2. Exit any running Vibead session. In Terminal, run the block for **your Mac only**. It checks the download and extracts it into a versioned folder only if the checksum matches. These commands leave your terminal's working directory unchanged.
+2. Exit any running VibeAd session. In Terminal, run the block for **your Mac only**. It checks the download and extracts it into a versioned folder only if the checksum matches. These commands leave your terminal's working directory unchanged.
 
 Apple Silicon:
 
@@ -144,13 +144,13 @@ If you extracted elsewhere, change the path. This variable lasts for the current
 | Codex | `"$VIBEAD_BETA" codex` | Press Ctrl+C twice |
 | OpenCode | `"$VIBEAD_BETA" opencode` | Enter `/exit` |
 
-**No `--mode interactive` is needed in beta.4 or later.** Your existing provider, model, login, exported environment and current project remain in use. If plain `claude` already works with `ANTHROPIC_BASE_URL`, `ANTHROPIC_MODEL` and `ANTHROPIC_AUTH_TOKEN`, keep those settings and launch Vibead from that same shell. Do not copy or send us your token. Saved Codex and OpenCode setups are reused in the same way.
+**No `--mode interactive` is needed in beta.4 or later.** Your existing provider, model, login, exported environment and current project remain in use. If plain `claude` already works with `ANTHROPIC_BASE_URL`, `ANTHROPIC_MODEL` and `ANTHROPIC_AUTH_TOKEN`, keep those settings and launch VibeAd from that same shell. Do not copy or send us your token. Saved Codex and OpenCode setups are reused in the same way.
 
-Review any native trust prompt. In Codex, review the Vibead hooks and approve the ones you intend to run; `/hooks` opens the hook controls. Vibead does not approve customer hooks automatically. Close the hook menu before sending your prompt.
+Review any native trust prompt. In Codex, review the VibeAd hooks and approve the ones you intend to run; `/hooks` opens the hook controls. VibeAd does not approve customer hooks automatically. Close the hook menu before sending your prompt.
 
 Ask a normal question, or try: “Compare five sorting algorithms and explain their tradeoffs. Do not use tools or change files.” Look for `Beta … [Ad]…` while the agent works (for OpenCode, beside `esc interrupt`), then check that the ad disappears and the answer remains readable. Very short turns may show no ad. Your normal model billing applies; the ad is local and synthetic.
 
-Exit normally and review the report printed by Vibead, under `~/.vibead-beta/results`. Share only that report JSON and your observations in a [beta issue](https://github.com/vibead/cli/issues). A `failed` or `blocked` report is not a pass even if the agent answered. The report section below explains what is recorded.
+Exit normally and review the report printed by VibeAd, under `~/.vibead-beta/results`. Share only that report JSON and your observations in a [beta issue](https://github.com/vibead/cli/issues). A `failed` or `blocked` report is not a pass even if the agent answered. The report section below explains what is recorded.
 
 For OpenCode, finish at least three prompts in the same session, letting each response complete before submitting the next. During each sufficiently long turn, the ad should stay readable without pulsing, flashing or disappearing while the activity row is still present. Check clearing after every turn, then exit normally with `/exit`. Keep `tab agents`, `ctrl+p commands`, the Build/model label and sidebar readable in their native positions. Try the same wide-window layout you normally use. Report flicker even when automated checks pass.
 
@@ -160,7 +160,7 @@ Repeat for each installed agent and share one report per agent. Include your Mac
 open "$HOME/.vibead-beta/results"
 ```
 
-If you only see `Vibead beta: passed` from an automatic test without your normal session, check that you downloaded **beta.17** and omitted `--mode fixture`. Older releases used the simulated test by default.
+If you only see `VibeAd beta: passed` from an automatic test without your normal session, check that you downloaded **beta.17** and omitted `--mode fixture`. Older releases used the simulated test by default.
 
 If macOS blocks the executable, see [platform notes](#platform-notes). If you force-killed a session, use the [recovery command](#recovery-after-a-crash-or-forced-termination) before trying again or deleting the folder.
 
@@ -214,9 +214,9 @@ Choose the agent name you normally use:
 | Codex | `codex` |
 | OpenCode | `opencode` |
 
-**The short command now uses your real setup by default.** Adding `--mode interactive` has the same effect in beta.4 or later. You do not need to copy credentials into Vibead or sign in again just for the beta. Your agent can still request login if its existing credentials have expired or are unavailable.
+**The short command now uses your real setup by default.** Adding `--mode interactive` has the same effect in beta.4 or later. You do not need to copy credentials into VibeAd or sign in again just for the beta. Your agent can still request login if its existing credentials have expired or are unavailable.
 
-Complete the agent's normal project-trust prompts. Approve the new Vibead hooks if your agent requests it; for Codex, check `/hooks`. Vibead does not approve hooks, change your permissions or disable organization policies for you.
+Complete the agent's normal project-trust prompts. Approve the new VibeAd hooks if your agent requests it; for Codex, check `/hooks`. VibeAd does not approve hooks, change your permissions or disable organization policies for you.
 
 ### Keep your usual arguments
 
@@ -228,20 +228,20 @@ Put native arguments after `--` so they reach your agent:
 "/path/to/vibead-beta" opencode -- --model provider/model
 ```
 
-No model override is needed if you want the agent's saved default. Shell aliases and functions are not invoked by Vibead. If your normal alias supplies arguments or environment variables, supply those same arguments after `--` and export those variables in the shell before launching.
+No model override is needed if you want the agent's saved default. Shell aliases and functions are not invoked by VibeAd. If your normal alias supplies arguments or environment variables, supply those same arguments after `--` and export those variables in the shell before launching.
 
 ### Claude Code through your gateway (beta.3 or later)
 
 In beta.4 or later, keep the same gateway configuration that already works with plain `claude`: settings files or exported `ANTHROPIC_BASE_URL`, `ANTHROPIC_MODEL` and `ANTHROPIC_AUTH_TOKEN` remain available. Simply launch the wrapper from the same shell and project. The local mock ad service does not replace your model gateway.
 
-If you are configuring a gateway for the first time, follow [Claude's gateway setup](https://code.claude.com/docs/en/llm-gateway-connect), confirm plain `claude` works, then launch through Vibead. Do not send us your token. The same principle applies to Codex and OpenCode: keep their working provider setup; Vibead inherits it.
+If you are configuring a gateway for the first time, follow [Claude's gateway setup](https://code.claude.com/docs/en/llm-gateway-connect), confirm plain `claude` works, then launch through VibeAd. Do not send us your token. The same principle applies to Codex and OpenCode: keep their working provider setup; VibeAd inherits it.
 
 Beta.3 forwarded those three Claude variables but still used a fresh temporary home. Beta.2 filtered them. Use beta.5 for the full existing-setup path.
 
 ## 3. Check the ad during normal use
 
 1. Submit your own prompt, or try: “Compare five sorting algorithms and explain their tradeoffs. Do not use tools or change files.”
-2. During thinking, look for the disclosed `Beta … [Ad]…` phrase printed when Vibead started.
+2. During thinking, look for the disclosed `Beta … [Ad]…` phrase printed when VibeAd started.
 3. Check that the ad disappears when the turn completes and the answer remains readable. A very short turn may finish before an ad appears; try a longer prompt.
 4. Test three consecutive turns, waiting for each response to complete. Include your observation of smoothness and later-turn ads; then keep working normally. The interactive session has no beta-imposed time limit.
 5. Exit the agent normally when finished; for example, `/exit` in Claude.
@@ -250,7 +250,7 @@ This is your actual workspace. Agent file edits, conversation history, settings 
 
 ## 4. Review and share the report
 
-Vibead prints the ad-test result and a report path, normally under `~/.vibead-beta/results` (`%USERPROFILE%\.vibead-beta\results` on Windows). Add `--report-dir DIRECTORY` before `--` to choose another location.
+VibeAd prints the ad-test result and a report path, normally under `~/.vibead-beta/results` (`%USERPROFILE%\.vibead-beta\results` on Windows). Add `--report-dir DIRECTORY` before `--` to choose another location.
 
 A `passed` report means the display checks passed for this session. `failed` or `blocked` is not a pass, even if the agent itself answered. Interactive mode does not compare the model's answer against a fixed expected response; your visual check matters. The wrapper preserves the agent's exit code, so judge ad-test success from the JSON status rather than the shell exit code.
 
@@ -260,9 +260,9 @@ Review the JSON and attach it to a [beta issue](https://github.com/vibead/cli/is
 
 ## How your setup is preserved
 
-Vibead retains your working directory and provider environment. It temporarily merges its hooks into the selected agent's hook settings, or adds its OpenCode plugin. Your existing hooks and settings stay present. Claude also receives temporary launch settings for its generic thinking phrase. On normal exit, Vibead removes its integration, restores the original settings bytes when unchanged, and preserves other settings changes made during the session. It does not delete your agent's home or alter your shell configuration/vendor executable.
+VibeAd retains your working directory and provider environment. It temporarily merges its hooks into the selected agent's hook settings, or adds its OpenCode plugin. Your existing hooks and settings stay present. Claude also receives temporary launch settings for its generic thinking phrase. On normal exit, VibeAd removes its integration, restores the original settings bytes when unchanged, and preserves other settings changes made during the session. It does not delete your agent's home or alter your shell configuration/vendor executable.
 
-A second overlapping beta session for the same configuration, an existing Vibead integration, disabled hooks, managed restrictions, or an unsupported invocation can prevent safe attachment. In that case the agent runs normally without ads; the report does not claim success. Examples include Claude custom `--settings` and Codex inline `--config`/`--cd` overrides. Existing provider settings loaded normally from your files are retained.
+A second overlapping beta session for the same configuration, an existing VibeAd integration, disabled hooks, managed restrictions, or an unsupported invocation can prevent safe attachment. In that case the agent runs normally without ads; the report does not claim success. Examples include Claude custom `--settings` and Codex inline `--config`/`--cd` overrides. Existing provider settings loaded normally from your files are retained.
 
 ### Recovery after a crash or forced termination
 
@@ -288,7 +288,7 @@ The separate automated authenticated mode requires `OPENAI_API_KEY` for Codex/Op
 
 ## Compatibility
 
-You do not need to upgrade your agent merely to match our test version. Vibead detects required capabilities and recognizes supported status layouts; version numbers are observations, not an allowlist. This does not guarantee every old or future release works. An agent must provide usable lifecycle events and a recognizable generic status label for ad replacement.
+You do not need to upgrade your agent merely to match our test version. VibeAd detects required capabilities and recognizes supported status layouts; version numbers are observations, not an allowlist. This does not guarantee every old or future release works. An agent must provide usable lifecycle events and a recognizable generic status label for ad replacement.
 
 Release notes list combinations actually tested. Other OS versions, terminal applications, themes and agent versions remain unverified until exercised. An unfamiliar status layout should leave native output intact; a no-ad report is still a compatibility failure to investigate, not successful ad delivery. Report your agent version, OS version and the status label, without prompts or credentials.
 
