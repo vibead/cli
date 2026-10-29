@@ -17,7 +17,7 @@
 
 ## Quick start
 
-Installing this package turns on a short sponsored line in Claude Code, Codex and OpenCode on this computer. The line is labelled [Ad] and appears in the agent's status area while it works. It does not read or change your prompts, code or replies. Turn it off at any time with: vibead disable
+Installing VibeAd turns on a short sponsored line in Claude Code, Codex and OpenCode on this computer. The line is labelled [Ad] and appears in the agent's status line, working indicator or notification area while it works. Ads begin after a short notice, and some agents ask you to approve VibeAd first. It does not read or change your prompts, code or replies. Turn it off at any time with: vibead disable
 
 ```sh
 npm i -g @vibead/cli                    # connects your agents on install, or on your first vibead run

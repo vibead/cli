@@ -205,7 +205,8 @@ detect_platform() {
         fi
       fi
       echo "linux-x64" ;;
-    *) warn "unsupported system $os. On Windows, run in PowerShell: irm https://www.vibead.ai/install.ps1 | iex"; return 1 ;;
+    MINGW*|MSYS*|CYGWIN*|Windows_NT) warn "Windows is not supported yet."; return 1 ;;
+    *) warn "unsupported system $os (macOS and Linux x64 only)."; return 1 ;;
   esac
 }
 

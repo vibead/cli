@@ -478,3 +478,19 @@ test('install.sh: records only the launcher folders it created in ~/.vibead/crea
   for (const b of [fresh, had, both, outside]) rmSync(b.home, { recursive: true, force: true });
   rmSync(elsewhere, { recursive: true, force: true });
 });
+
+// beta.36 (CLI Tester): on Windows shells (Git Bash, MSYS, Cygwin) install.sh pointed at
+// install.ps1, which has no Windows build to install. It says Windows is not supported yet.
+test('install.sh: a Windows shell or another system gets one honest line and no install', () => {
+  for (const [os, line] of [['MINGW64_NT-10.0-19045', 'vibead: Windows is not supported yet.'], ['MSYS_NT-10.0', 'vibead: Windows is not supported yet.'], ['CYGWIN_NT-10.0', 'vibead: Windows is not supported yet.'], ['FreeBSD', 'vibead: unsupported system FreeBSD (macOS and Linux x64 only).']]) {
+    const s = sandbox();
+    const bin = join(s.home, 'stub'); mkdirSync(bin);
+    writeFileSync(join(bin, 'uname'), `#!/bin/sh\ncase "$1" in -s) echo '${os}' ;; -m) echo x86_64 ;; *) echo '${os}' ;; esac\n`); chmodSync(join(bin, 'uname'), 0o755);
+    const r = spawnSync('sh', [installSh], { encoding: 'utf8', env: { HOME: s.home, PATH: `${bin}:/usr/bin:/bin`, VIBEAD_RELEASE_BASE: s.base, VIBEAD_VERSION: '0.1.0-beta.99' } });
+    assert.notEqual(r.status, 0, os);
+    assert.ok(r.stderr.split('\n').includes(line), `${os}: ${r.stderr}`);
+    assert.doesNotMatch(r.stderr + r.stdout, /install\.ps1|PowerShell/u, os);
+    assert.equal(existsSync(join(s.home, '.vibead')), false, `${os}: nothing installed`);
+    rmSync(s.home, { recursive: true, force: true });
+  }
+});
