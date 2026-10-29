@@ -2,6 +2,7 @@
 import { spawn } from 'node:child_process';
 import { ensureInstalled, release } from '../lib/install.mjs';
 import { npmUninstall } from '../lib/uninstall.mjs';
+import { GEMINI_REFUSAL, refusesGemini } from '../lib/gemini.mjs';
 
 const runKit = (executable, args) => new Promise((done, fail) => {
   const child = spawn(executable, args, { stdio: 'inherit' });
@@ -11,7 +12,11 @@ const runKit = (executable, args) => new Promise((done, fail) => {
 
 try {
   const args = process.argv.slice(2);
-  if (args.length === 1 && (args[0] === '--version' || args[0] === '-v')) {
+  if (refusesGemini(args)) {
+    // RC3b: before ensureInstalled, so a first Gemini form downloads and writes nothing.
+    console.error(`vibead: ${GEMINI_REFUSAL}`);
+    process.exitCode = 2;
+  } else if (args.length === 1 && (args[0] === '--version' || args[0] === '-v')) {
     console.log(release.version);
   } else if (args.length === 1 && args[0] === 'uninstall') {
     // beta.36: the kit restores settings and removes its files, then this
