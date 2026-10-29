@@ -40,7 +40,7 @@ Then run **Release** (mode `release`, the default) with `version` (no `v`) and t
 
 A `next` or `beta` run never reaches Homebrew.
 
-After the run, bump `apps/static-web/install.json` in vibead/vibead-ai. That manifest, not GitHub's "latest", decides what `curl | sh` and `irm | iex` install, and vibead-ai CI refuses a pin whose release lacks `SHA256SUMS` or any archive; it accepts exactly one same-version `vibead-cli-<version>.tgz` line in `SHA256SUMS` and refuses any other unknown line (vibead/vibead-ai#212).
+After the run, bump `apps/static-web/install.json` in vibead/vibead-ai. That manifest, not GitHub's "latest", decides what `curl | sh` installs, and vibead-ai CI refuses a pin whose release lacks `SHA256SUMS` or any archive; it accepts exactly one same-version `vibead-cli-<version>.tgz` line in `SHA256SUMS` and refuses any other unknown line (vibead/vibead-ai#212).
 
 **One-time setup:**
 
