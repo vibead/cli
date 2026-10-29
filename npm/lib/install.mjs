@@ -40,8 +40,11 @@ export async function verifyChecksum(file, expected) {
 // Test-only (CLI Tester re-check): honoured only with VIBEAD_TEST_RELEASE=1, so a value
 // left in a shell profile fails loudly instead of quietly changing the download source.
 export const RELEASE_BASE_TEST_ONLY = 'VIBEAD_RELEASE_BASE is for tests only. Unset it, or also set VIBEAD_TEST_RELEASE=1.';
+// The exact line both installers print (install.sh's fail() adds the same prefix).
+// Approved by Nina, delegated wording owner (Gaurav, Oct 29 2026), 23:01 AEDT.
+export const RELEASE_BASE_TEST_ONLY_LINE = `vibead install: ${RELEASE_BASE_TEST_ONLY}`;
 export function releaseUrl(version, key, environment = process.env) {
-  if (environment.VIBEAD_RELEASE_BASE && environment.VIBEAD_TEST_RELEASE !== '1') throw new Error(RELEASE_BASE_TEST_ONLY);
+  if (environment.VIBEAD_RELEASE_BASE && environment.VIBEAD_TEST_RELEASE !== '1') throw Object.assign(new Error(RELEASE_BASE_TEST_ONLY), { line: RELEASE_BASE_TEST_ONLY_LINE });
   const base = (environment.VIBEAD_RELEASE_BASE || 'https://github.com/vibead/cli/releases').replace(/\/+$/u, '');
   return `${base}/download/v${version}/vibead-beta-${version}-${key}.tar.gz`;
 }

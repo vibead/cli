@@ -36,6 +36,6 @@ try {
     });
   }
 } catch (error) {
-  console.error(`vibead: ${error.message}`);
+  console.error(error.line ?? `vibead: ${error.message}`);
   process.exitCode = 1;
 }

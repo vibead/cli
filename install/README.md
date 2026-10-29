@@ -8,7 +8,7 @@ npm (`npm i -g @vibead/cli`) is the primary channel. These one-line installers u
 | macOS / Linux | `curl -fsSL https://www.vibead.ai/install \| sh` |
 | Homebrew | `brew install vibead/tap/vibead && vibead` |
 
-Windows is not supported yet. `install.ps1` prints that line and installs nothing.
+`vibead: Windows is not supported yet.` `install.ps1` prints that line and installs nothing.
 
 `install.sh` and `install.ps1` are the only sources; www.vibead.ai serves byte-identical copies.
 

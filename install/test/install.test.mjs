@@ -313,6 +313,26 @@ test('README, install/README and the design doc point no one at install.ps1; Win
   assert.match(readFileSync(join(root, 'install/README.md'), 'utf8'), /Windows is not supported yet\./u);
 });
 
+// beta.36 (approved by Nina, delegated wording owner (Gaurav, Oct 29 2026), 23:01 AEDT):
+// one Windows sentence, byte-identical in install.ps1, install/README.md, the design doc
+// (docs/system-design/README.md:57) and install.sh's Windows branch (warn adds 'vibead: ').
+test('Windows line: byte-identical in install.ps1, install/README, docs:57 and install.sh', () => {
+  const WINDOWS = 'vibead: Windows is not supported yet.';
+  const ps1 = readFileSync(join(root, 'install/install.ps1'), 'utf8');
+  const printed = [...ps1.matchAll(/WriteLine\('([^']*)'\)/gu)].map(m => m[1]);
+  assert.deepEqual(printed, [WINDOWS], 'install.ps1 prints exactly one line, the Windows sentence');
+  assert.doesNotMatch(ps1.split('\n').filter(l => !l.trimStart().startsWith('#')).join('\n'), /npm|WSL/iu, 'install.ps1 code gives no npm/WSL advice');
+  const readme = readFileSync(join(root, 'install/README.md'));
+  const doc57 = readFileSync(join(root, 'docs/system-design/README.md'), 'utf8').split('\n')[56];
+  const bytes = Buffer.from(WINDOWS, 'utf8');
+  assert.ok(readme.includes(bytes), 'install/README.md carries the exact bytes');
+  assert.ok(Buffer.from(doc57, 'utf8').includes(bytes), `docs:57 carries the exact bytes: ${doc57.slice(0, 80)}`);
+  assert.match(doc57, /^\| PowerShell \|/u, 'line 57 is still the PowerShell row');
+  const sh = readFileSync(installSh, 'utf8');
+  assert.ok(sh.includes(`warn "${WINDOWS.replace(/^vibead: /u, '')}"`), 'install.sh warn() prints the same sentence');
+  assert.match(sh, /^warn\(\) \{ printf 'vibead: %s\\n'/mu);
+});
+
 // Since beta.29 SHA256SUMS also covers the npm launcher tarball (signed with
 // the kits). Its line comes first here on purpose: the installers must still
 // pick their platform's kit line and install exactly as before.
@@ -440,8 +460,9 @@ test('install.sh: a Windows shell or another system gets one honest line and no 
     const bin = join(s.home, 'stub'); mkdirSync(bin);
     writeFileSync(join(bin, 'uname'), `#!/bin/sh\ncase "$1" in -s) echo '${os}' ;; -m) echo x86_64 ;; *) echo '${os}' ;; esac\n`); chmodSync(join(bin, 'uname'), 0o755);
     const r = spawnSync('sh', [installSh], { encoding: 'utf8', env: { HOME: s.home, PATH: `${bin}:/usr/bin:/bin`, VIBEAD_RELEASE_BASE: s.base, VIBEAD_TEST_RELEASE: '1', VIBEAD_VERSION: '0.1.0-beta.99' } });
-    assert.notEqual(r.status, 0, os);
+    assert.equal(r.status, 1, os);
     assert.ok(r.stderr.split('\n').includes(line), `${os}: ${r.stderr}`);
+    assert.doesNotMatch(r.stderr + r.stdout, /\bnpm\b|WSL/u, `${os}: no npm or WSL advice`);
     assert.doesNotMatch(r.stderr + r.stdout, /install\.ps1|PowerShell/u, os);
     assert.equal(existsSync(join(s.home, '.vibead')), false, `${os}: nothing installed`);
     rmSync(s.home, { recursive: true, force: true });

@@ -94,3 +94,19 @@ test('releaseUrl: VIBEAD_RELEASE_BASE is test-only; the default needs no flag', 
   assert.throws(() => releaseUrl('0.1.0-beta.36', 'linux-x64', { VIBEAD_RELEASE_BASE: 'https://example.com/r', VIBEAD_TEST_RELEASE: 'yes' }), /tests only/u);
   assert.equal(releaseUrl('0.1.0-beta.36', 'linux-x64', { VIBEAD_RELEASE_BASE: 'file:///m/', VIBEAD_TEST_RELEASE: '1' }), 'file:///m/download/v0.1.0-beta.36/vibead-beta-0.1.0-beta.36-linux-x64.tar.gz');
 });
+
+// beta.36 (approved by Nina, delegated wording owner (Gaurav, Oct 29 2026), 23:01 AEDT):
+// the npm launcher refuses a stray VIBEAD_RELEASE_BASE with the same line as install.sh.
+test('npm launcher: VIBEAD_RELEASE_BASE without the test flag prints the exact install.sh line and exits 1', async () => {
+  const { spawnSync } = await import('node:child_process');
+  const { mkdtempSync, readdirSync, rmSync } = await import('node:fs');
+  const { tmpdir } = await import('node:os');
+  const { join: j } = await import('node:path');
+  const home = mkdtempSync(j(tmpdir(), 'vibead-rb-'));
+  try {
+    const r = spawnSync(process.execPath, [new URL('../bin/vibead.mjs', import.meta.url).pathname, 'status'], { encoding: 'utf8', env: { PATH: process.env.PATH, HOME: home, VIBEAD_RELEASE_BASE: 'file:///nowhere' } });
+    assert.equal(r.status, 1, r.stderr);
+    assert.equal(r.stderr, 'vibead install: VIBEAD_RELEASE_BASE is for tests only. Unset it, or also set VIBEAD_TEST_RELEASE=1.\n');
+    assert.deepEqual(readdirSync(home), [], 'nothing written');
+  } finally { rmSync(home, { recursive: true, force: true }); }
+});
