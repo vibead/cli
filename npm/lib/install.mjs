@@ -61,7 +61,7 @@ export async function ensureInstalled() {
   const { version, sha256 } = platformRelease(key);
   const target = join(cache, `${version}-${key}-${sha256.slice(0, 12)}`);
   const executable = join(target, 'vibead-beta');
-  try { await access(executable); return executable; } catch {}
+  try { await access(executable); await pruneOldKits(cache, `${version}-${key}-${sha256.slice(0, 12)}`); return executable; } catch {}
   await mkdir(cache, { recursive: true, mode: 0o700 });
   const staging = await mkdtemp(join(cache, '.install-'));
   try {

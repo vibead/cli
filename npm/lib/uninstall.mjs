@@ -9,7 +9,10 @@
 // If step 3 cannot run (npx, a local install, npm missing or refusing), it
 // prints the one command that finishes the job instead of claiming success.
 import { spawnSync } from 'node:child_process';
-import { realpathSync } from 'node:fs';
+import { realpathSync, rmdirSync as rmdirSyncRaw } from 'node:fs';
+
+// npm leaves the empty @vibead scope folder behind; it goes only if empty.
+const rmdirSync = path => { try { rmdirSyncRaw(path); } catch {} };
 import { readdir, rm, rmdir } from 'node:fs/promises';
 import { homedir } from 'node:os';
 import { dirname, join, resolve, sep } from 'node:path';
@@ -46,7 +49,10 @@ export function removePackage({ prefix = globalPrefix(), spawn = spawnSync, env 
   for (const npm of [join(dirname(execPath), 'npm'), 'npm']) {
     const run = spawn(npm, ['uninstall', '--global', '--prefix', prefix, '--no-fund', '--no-audit', '--loglevel=error', PACKAGE], { env, encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] });
     if (run?.error?.code === 'ENOENT') continue;
-    if (!run?.error && run?.status === 0) return { removed: true, line: `Removed the npm package ${PACKAGE} (the vibead command).` };
+    if (!run?.error && run?.status === 0) {
+      rmdirSync(join(prefix, 'lib', 'node_modules', '@vibead'));
+      return { removed: true, line: `Removed the npm package ${PACKAGE} (the vibead command).` };
+    }
     break;
   }
   return { removed: false, line: MANUAL };

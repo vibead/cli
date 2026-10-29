@@ -83,3 +83,19 @@ test('items 4, 6, 8, 9: shipped text names only Claude Code, Codex and OpenCode 
     assert.match(text, /\*\*Uninstall:\*\* `vibead uninstall`/, file);
   }
 });
+
+test('item 1: after npm uninstall -g the empty @vibead scope folder goes; a non-empty one stays', async t => {
+  const prefix = await temp(t);
+  const scope = join(prefix, 'lib', 'node_modules', '@vibead');
+  await mkdir(scope, { recursive: true });
+  assert.equal(removePackage({ prefix, spawn: () => ({ status: 0 }) }).removed, true);
+  assert.equal(existsSync(scope), false);
+  await mkdir(join(scope, 'other'), { recursive: true });
+  removePackage({ prefix, spawn: () => ({ status: 0 }) });
+  assert.ok(existsSync(join(scope, 'other')));
+});
+
+test('item 2: a cached kit start also prunes older kits', async () => {
+  const src = await readFile(join(root, 'npm/lib/install.mjs'), 'utf8');
+  assert.match(src, /await access\(executable\); await pruneOldKits\(cache/);
+});
