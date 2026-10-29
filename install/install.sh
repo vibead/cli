@@ -38,6 +38,10 @@ set -u
 ZERO_STEP_CONSENT_APPROVED=1
 
 main() {
+  # Test-only mirror (local QA, tests): honoured only with VIBEAD_TEST_RELEASE=1.
+  if [ -n "${VIBEAD_RELEASE_BASE:-}" ] && [ "${VIBEAD_TEST_RELEASE:-}" != 1 ]; then
+    fail "VIBEAD_RELEASE_BASE is for tests only. Unset it, or also set VIBEAD_TEST_RELEASE=1."
+  fi
   release_base=${VIBEAD_RELEASE_BASE:-https://github.com/vibead/cli/releases}
   install_dir=${VIBEAD_INSTALL_DIR:-$HOME/.vibead}
   bin_dir=${VIBEAD_BIN_DIR:-$HOME/.local/bin}

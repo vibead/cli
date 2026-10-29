@@ -37,7 +37,11 @@ export async function verifyChecksum(file, expected) {
 // point it at a local mirror (file:// or http://127.0.0.1) to exercise the real
 // download and checksum path before a release exists. The SHA-256 still comes from
 // this package's releases.json, so another base can never change what is installed.
+// Test-only (CLI Tester re-check): honoured only with VIBEAD_TEST_RELEASE=1, so a value
+// left in a shell profile fails loudly instead of quietly changing the download source.
+export const RELEASE_BASE_TEST_ONLY = 'VIBEAD_RELEASE_BASE is for tests only. Unset it, or also set VIBEAD_TEST_RELEASE=1.';
 export function releaseUrl(version, key, environment = process.env) {
+  if (environment.VIBEAD_RELEASE_BASE && environment.VIBEAD_TEST_RELEASE !== '1') throw new Error(RELEASE_BASE_TEST_ONLY);
   const base = (environment.VIBEAD_RELEASE_BASE || 'https://github.com/vibead/cli/releases').replace(/\/+$/u, '');
   return `${base}/download/v${version}/vibead-beta-${version}-${key}.tar.gz`;
 }
@@ -90,6 +94,7 @@ export async function ensureInstalled() {
   const target = join(cache, `${version}-${key}-${sha256.slice(0, 12)}`);
   const executable = join(target, 'vibead-beta');
   try { await access(executable); await pruneOldKits(cache, `${version}-${key}-${sha256.slice(0, 12)}`); return executable; } catch {}
+  const url = releaseUrl(version, key); // refuses a test-only base before anything is written
   const created = missingDirs(cache);
   await mkdir(cache, { recursive: true, mode: 0o700 });
   await recordCreatedDirs(created);
@@ -97,7 +102,6 @@ export async function ensureInstalled() {
   try {
     console.error(`vibead: downloading verified ${version} for ${key} (first run only)…`);
     const archive = join(staging, 'release.tar.gz');
-    const url = releaseUrl(version, key);
     await download(url, archive);
     await verifyChecksum(archive, sha256);
     try { await execute('tar', ['-xzf', archive, '-C', staging]); }

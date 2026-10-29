@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { createHash } from 'node:crypto';
-import { mkdtemp, rm, writeFile } from 'node:fs/promises';
+import { mkdtemp, readdir, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import test from 'node:test';
@@ -67,8 +67,12 @@ test('ensureInstalled downloads from VIBEAD_RELEASE_BASE, verifies the pinned sh
     const sha = hash('sha256').update(await read(archive)).digest('hex');
     const pkg = join(work, 'pkg'); await cp(new URL('..', import.meta.url).pathname, pkg, { recursive: true, filter: s => !s.includes('node_modules') });
     await writeFile(join(pkg, 'releases.json'), JSON.stringify({ version, platforms: { [key]: sha } }));
-    const run = (home, base) => execFileSync(process.execPath, ['--input-type=module', '-e', `const m = await import(${JSON.stringify(pathToFileURL(join(pkg, 'lib', 'install.mjs')).href)}); console.log(await m.ensureInstalled());`],
-      { encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'], env: { PATH: process.env.PATH, HOME: home, VIBEAD_RELEASE_BASE: base } });
+    const run = (home, base, flag = { VIBEAD_TEST_RELEASE: '1' }) => execFileSync(process.execPath, ['--input-type=module', '-e', `const m = await import(${JSON.stringify(pathToFileURL(join(pkg, 'lib', 'install.mjs')).href)}); console.log(await m.ensureInstalled());`],
+      { encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'], env: { PATH: process.env.PATH, HOME: home, VIBEAD_RELEASE_BASE: base, ...flag } });
+    // Test-only gate: without VIBEAD_TEST_RELEASE=1 the base is refused before anything is written.
+    const stray = join(work, 'home0'); await mkdir(stray);
+    assert.throws(() => run(stray, pathToFileURL(join(work, 'mirror')).href, {}), /VIBEAD_RELEASE_BASE is for tests only/u);
+    assert.deepEqual(await readdir(stray), [], 'nothing written without the test flag');
     const fresh = join(work, 'home1'); await mkdir(fresh);
     const exe = run(fresh, pathToFileURL(join(work, 'mirror')).href).trim();
     assert.equal(exe, join(fresh, '.cache', 'vibead', `${version}-${key}-${sha.slice(0, 12)}`, 'vibead-beta'));
@@ -81,4 +85,12 @@ test('ensureInstalled downloads from VIBEAD_RELEASE_BASE, verifies the pinned sh
     const bad = join(work, 'home3'); await mkdir(bad);
     assert.throws(() => run(bad, pathToFileURL(join(work, 'mirror')).href), /checksum mismatch/u);
   } finally { await rm(work, { recursive: true, force: true }); }
+});
+
+test('releaseUrl: VIBEAD_RELEASE_BASE is test-only; the default needs no flag', async () => {
+  const { releaseUrl } = await import('../lib/install.mjs');
+  assert.equal(releaseUrl('0.1.0-beta.36', 'linux-x64', {}), 'https://github.com/vibead/cli/releases/download/v0.1.0-beta.36/vibead-beta-0.1.0-beta.36-linux-x64.tar.gz');
+  assert.throws(() => releaseUrl('0.1.0-beta.36', 'linux-x64', { VIBEAD_RELEASE_BASE: 'https://example.com/r' }), /VIBEAD_RELEASE_BASE is for tests only\. Unset it, or also set VIBEAD_TEST_RELEASE=1\./u);
+  assert.throws(() => releaseUrl('0.1.0-beta.36', 'linux-x64', { VIBEAD_RELEASE_BASE: 'https://example.com/r', VIBEAD_TEST_RELEASE: 'yes' }), /tests only/u);
+  assert.equal(releaseUrl('0.1.0-beta.36', 'linux-x64', { VIBEAD_RELEASE_BASE: 'file:///m/', VIBEAD_TEST_RELEASE: '1' }), 'file:///m/download/v0.1.0-beta.36/vibead-beta-0.1.0-beta.36-linux-x64.tar.gz');
 });
