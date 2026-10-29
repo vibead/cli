@@ -23,7 +23,7 @@ test('README.md and BETA.md carry the approved Codex sentence as one sentence', 
     const text = readFileSync(new URL(`../../${f}`, import.meta.url), 'utf8');
     assert.equal(text.split(CODEX_TRUST_SENTENCE).length - 1, 1, `${f}: the approved sentence once`);
     assert.doesNotMatch(text, /;\s*Codex asks you to trust/u, `${f}: the sentence is joined to the one before by a semicolon`);
-    assert.doesNotMatch(text, /choose Trust\.?$|hooks; choose Trust/mu, `${f}: the old trust line`);
+    // the old trust line, by meaning, in every tracked file: install/test/no-old-trust-line.test.mjs
   }
   assert.ok(readFileSync(new URL('../../README.md', import.meta.url), 'utf8').includes(`Open a new terminal after installing. ${CODEX_TRUST_SENTENCE}`));
 });
