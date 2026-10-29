@@ -1,8 +1,9 @@
 import { createHash } from 'node:crypto';
-import { createReadStream, createWriteStream } from 'node:fs';
-import { access, chmod, mkdir, mkdtemp, readdir, readFile, rename, rm } from 'node:fs/promises';
+import { createReadStream, createWriteStream, existsSync } from 'node:fs';
+import { access, appendFile, chmod, copyFile, mkdir, mkdtemp, readdir, readFile, rename, rm } from 'node:fs/promises';
 import { homedir } from 'node:os';
-import { join, resolve } from 'node:path';
+import { dirname, join, resolve, sep } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { Readable } from 'node:stream';
 import { pipeline } from 'node:stream/promises';
 import { execFile } from 'node:child_process';
@@ -32,7 +33,34 @@ export async function verifyChecksum(file, expected) {
   if (actual !== expected) throw new Error(`Release checksum mismatch. Expected ${expected}, received ${actual}.`);
 }
 
+// The release folder, like install.sh's VIBEAD_RELEASE_BASE: tests and the CLI Tester
+// point it at a local mirror (file:// or http://127.0.0.1) to exercise the real
+// download and checksum path before a release exists. The SHA-256 still comes from
+// this package's releases.json, so another base can never change what is installed.
+export function releaseUrl(version, key, environment = process.env) {
+  const base = (environment.VIBEAD_RELEASE_BASE || 'https://github.com/vibead/cli/releases').replace(/\/+$/u, '');
+  return `${base}/download/v${version}/vibead-beta-${version}-${key}.tar.gz`;
+}
+
+// beta.36: the folders above the kit cache that this run creates (~/.cache when it
+// was missing) go to ~/.vibead/created-dirs, so `vibead uninstall` removes them when
+// empty, and never a folder that was already there. Only folders inside HOME.
+export function missingDirs(dir, home = process.env.HOME || homedir()) {
+  const root = resolve(home);
+  const missing = [];
+  for (let d = resolve(dir); d !== root && d.startsWith(root + sep) && !existsSync(d); d = dirname(d)) missing.push(d);
+  return missing;
+}
+export async function recordCreatedDirs(dirs, home = process.env.HOME || homedir()) {
+  if (!dirs.length) return;
+  try {
+    await mkdir(join(home, '.vibead'), { recursive: true, mode: 0o700 });
+    await appendFile(join(home, '.vibead', 'created-dirs'), dirs.map(d => `${d}\n`).join(''));
+  } catch {}
+}
+
 async function download(url, destination) {
+  if (url.startsWith('file://')) { await copyFile(fileURLToPath(url), destination); return; }
   const proxy = process.env.HTTPS_PROXY || process.env.https_proxy || process.env.ALL_PROXY || process.env.all_proxy;
   if (proxy) {
     try {
@@ -62,12 +90,14 @@ export async function ensureInstalled() {
   const target = join(cache, `${version}-${key}-${sha256.slice(0, 12)}`);
   const executable = join(target, 'vibead-beta');
   try { await access(executable); await pruneOldKits(cache, `${version}-${key}-${sha256.slice(0, 12)}`); return executable; } catch {}
+  const created = missingDirs(cache);
   await mkdir(cache, { recursive: true, mode: 0o700 });
+  await recordCreatedDirs(created);
   const staging = await mkdtemp(join(cache, '.install-'));
   try {
     console.error(`vibead: downloading verified ${version} for ${key} (first run only)…`);
     const archive = join(staging, 'release.tar.gz');
-    const url = `https://github.com/vibead/cli/releases/download/v${version}/vibead-beta-${version}-${key}.tar.gz`;
+    const url = releaseUrl(version, key);
     await download(url, archive);
     await verifyChecksum(archive, sha256);
     try { await execute('tar', ['-xzf', archive, '-C', staging]); }

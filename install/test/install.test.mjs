@@ -451,3 +451,30 @@ test('install.sh: with VIBEAD_ZERO_STEP=1, CI, no terminal or root wire nothing 
   assert.match(asRoot.stdout, /Setup finishes the first time you run vibead\./);
   assert.ok(!existsSync(join(root.home, 'kit.log')), 'root: nothing is wired from the installer');
 });
+
+// beta.36 (CLI Tester D6): install.sh creates ~/.local/bin (and ~/.local) when they are
+// missing; it records exactly those in ~/.vibead/created-dirs so `vibead uninstall` can
+// remove them when empty. A folder that already existed is never recorded.
+test('install.sh: records only the launcher folders it created in ~/.vibead/created-dirs', { skip: !linuxX64 && 'Linux x64 only' }, () => {
+  const fresh = sandbox();
+  release(fresh.rel, '0.1.0-beta.99');
+  assert.equal(runSh(fresh).status, 0);
+  assert.deepEqual(readFileSync(join(fresh.home, '.vibead/created-dirs'), 'utf8').split('\n').filter(Boolean), [join(fresh.home, '.local/bin'), join(fresh.home, '.local')]);
+  const had = sandbox();
+  release(had.rel, '0.1.0-beta.99');
+  mkdirSync(join(had.home, '.local'));
+  assert.equal(runSh(had).status, 0);
+  assert.deepEqual(readFileSync(join(had.home, '.vibead/created-dirs'), 'utf8').split('\n').filter(Boolean), [join(had.home, '.local/bin')], '~/.local was already there');
+  const both = sandbox();
+  release(both.rel, '0.1.0-beta.99');
+  mkdirSync(join(both.home, '.local/bin'), { recursive: true });
+  assert.equal(runSh(both).status, 0);
+  assert.ok(!existsSync(join(both.home, '.vibead/created-dirs')), 'nothing created, nothing recorded');
+  const outside = sandbox();
+  release(outside.rel, '0.1.0-beta.99');
+  const elsewhere = mkdtempSync(join(tmpdir(), 'vibead-bin-'));
+  assert.equal(runSh(outside, { VIBEAD_BIN_DIR: join(elsewhere, 'a/b') }).status, 0);
+  assert.ok(!existsSync(join(outside.home, '.vibead/created-dirs')), 'a bin dir outside HOME is never recorded');
+  for (const b of [fresh, had, both, outside]) rmSync(b.home, { recursive: true, force: true });
+  rmSync(elsewhere, { recursive: true, force: true });
+});

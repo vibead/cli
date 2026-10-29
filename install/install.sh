@@ -91,7 +91,23 @@ main() {
     fail "Unexpected files in $archive. Nothing was installed."
   fi
 
+  # Record the folders above the launcher link that this run creates (for example
+  # ~/.local/bin and ~/.local), so `vibead uninstall` can remove them when they are
+  # empty, and never a folder that was already there (~/.vibead/created-dirs).
+  created_dirs=""
+  case "$bin_dir" in
+    "$HOME"/*)
+      d=$bin_dir
+      while [ "$d" != "$HOME" ] && [ "$d" != "/" ] && [ ! -e "$d" ]; do
+        created_dirs="$created_dirs$d
+"
+        d=$(dirname "$d")
+      done ;;
+  esac
   mkdir -p "$install_dir/versions" "$install_dir/bin" "$bin_dir" || fail "Could not create $install_dir or $bin_dir."
+  if [ -n "$created_dirs" ]; then
+    mkdir -p "$HOME/.vibead" && printf '%s' "$created_dirs" >> "$HOME/.vibead/created-dirs" || true
+  fi
   stage=$(mktemp -d "$install_dir/versions/.stage.XXXXXX") || fail "Could not write to $install_dir."
   tar -xzf "$tmp/$archive" -C "$stage" || { rm -rf "$stage"; fail "Could not extract $archive."; }
   [ -f "$stage/$folder/vibead-beta" ] || { rm -rf "$stage"; fail "$archive has no vibead-beta executable."; }
