@@ -9,7 +9,8 @@ import { ZERO_STEP_CONSENT_APPROVED, zeroStepEnabled } from '../lib/consent.mjs'
 // default switch is ever set back to false; the switch-off tests pass false.
 const runPostinstall = options => runAny({ approved: true, ...options });
 
-// APPROVED (beta.36, approved by Nina, delegated wording owner (Gaurav, Oct 29 2026), 21:43 AEDT): generic placement, short notice, approval clause, "Installing VibeAd".
+// APPROVED Nov 5 2026 (vibead/cli#65) by Nina, delegated wording owner (Gaurav, Oct 29 2026), 09:44 AEDT: generic placement
+// ("status line, working indicator or notification area"), "Installing VibeAd"; the short-notice and approval clauses are dropped.
 const NOTICE = 'Installing VibeAd turns on a short sponsored line in Claude Code, Codex and OpenCode on this computer. The line is labelled [Ad] and appears in the agent\'s status line, working indicator or notification area while it works. It does not read or change your prompts, code or replies. Turn it off at any time with: vibead disable';
 
 test('install-time wiring is off for CI, ignore-scripts and a non-TTY', () => {
