@@ -59,9 +59,13 @@ test('release.yml: manual only, OIDC in the npm environment, next by default, no
   assert.equal(pbranches[2], branches[2]);
   assert.equal(prom.match(/gh release edit/g).length, 2);
   assert.doesNotMatch(y.replaceAll(branches[1], ''), /--latest(?!=false)/, '--latest only in the npm_tag latest branches');
-  // Homebrew follows npm latest from vibead/homebrew-tap (update-formula, no token): no tap job and no tap token here.
+  // No tap job and no tap token here. beta.36 RC2 (T1): the only tap reference is the
+  // public raw read of tap main's formula before npm `latest` (install/test/release-order.test.mjs).
   assert.doesNotMatch(y, /^  tap:/m);
-  assert.doesNotMatch(y, /HOMEBREW_TAP_TOKEN|homebrew-tap/);
+  assert.doesNotMatch(y, /HOMEBREW_TAP_TOKEN/);
+  const tapLines = y.split('\n').filter(l => l.includes('homebrew-tap') && !l.trim().startsWith('#'));
+  assert.equal(tapLines.length, 4, tapLines.join('\n'));
+  for (const l of tapLines) assert.match(l, /^ {10}(tap=\$\(curl -fsSL --retry 3 https:\/\/raw\.githubusercontent\.com\/vibead\/homebrew-tap\/main\/Formula\/vibead\.rb \| |\[ "\$tap" = "\$VERSION" \] \|\| \{ echo "vibead\/homebrew-tap main ships )/u, l);
 });
 
 // Drafts are visible only to tokens with push access (cli#37 QA R2-1): every job

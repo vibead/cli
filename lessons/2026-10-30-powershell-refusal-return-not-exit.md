@@ -1,0 +1,1 @@
+The PowerShell refusal script (`install/install.ps1`) can run inside the user's session, so it ends with `return`, never `exit`, or the PowerShell window closes on an error. Moved from LESSONS.md, which no longer names a Windows install command (beta.36 RC3 W1, vibead/cli#61).
