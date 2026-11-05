@@ -1,6 +1,6 @@
 {
   "name": "@vibead/cli",
-  "version": "0.1.0-beta.36",
+  "version": "0.1.0-beta.37",
   "description": "One clearly labelled [Ad] line in Claude Code, Codex and OpenCode while they work. macOS and Linux x64.",
   "type": "module",
   "license": "UNLICENSED",
