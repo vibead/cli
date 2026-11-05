@@ -1,8 +1,8 @@
-# VibeAd beta guide (0.1.0-beta.37)
+# VibeAd beta guide (0.1.0-beta.38)
 
 VibeAd shows one labelled `[Ad]` line in **Claude Code, Codex and OpenCode** while they work, on **macOS (Apple Silicon, Intel)** and **Linux x64 (glibc 2.34+)**. It never reads or changes your prompts, code or agent output. Your agent keeps your login, provider, model, settings and project; normal model charges apply.
 
-[Release notes](https://github.com/vibead/cli/releases/tag/v0.1.0-beta.37) list the tested versions and known limits.
+[Release notes](https://github.com/vibead/cli/releases/tag/v0.1.0-beta.38) list the tested versions and known limits.
 
 ## Install
 
@@ -50,7 +50,7 @@ Replace `claude` with `codex` or `opencode`. Report problems in a [beta issue](h
 
 ## 1. Download
 
-To install without npm, curl or Homebrew, download the archive for your computer and `SHA256SUMS` from the [release](https://github.com/vibead/cli/releases/tag/v0.1.0-beta.37):
+To install without npm, curl or Homebrew, download the archive for your computer and `SHA256SUMS` from the [release](https://github.com/vibead/cli/releases/tag/v0.1.0-beta.38):
 
 | Computer | Archive ending |
 | --- | --- |
