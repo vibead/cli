@@ -9,8 +9,9 @@ import { ZERO_STEP_CONSENT_APPROVED, zeroStepEnabled } from '../lib/consent.mjs'
 // default switch is ever set back to false; the switch-off tests pass false.
 const runPostinstall = options => runAny({ approved: true, ...options });
 
-// APPROVED (beta.36, approved by Nina, delegated wording owner (Gaurav, Oct 29 2026), 21:43 AEDT): generic placement, short notice, approval clause, "Installing VibeAd".
-const NOTICE = 'Installing VibeAd turns on a short sponsored line in Claude Code, Codex and OpenCode on this computer. The line is labelled [Ad] and appears in the agent\'s status line, working indicator or notification area while it works. Ads begin after a short notice, and some agents ask you to approve VibeAd first. It does not read or change your prompts, code or replies. Turn it off at any time with: vibead disable';
+// APPROVED Nov 5 2026 (vibead/cli#65) by Nina, delegated wording owner (Gaurav, Oct 29 2026), 09:44 AEDT: generic placement
+// ("status line, working indicator or notification area"), "Installing VibeAd"; the short-notice and approval clauses are dropped.
+const NOTICE = 'Installing VibeAd turns on a short sponsored line in Claude Code, Codex and OpenCode on this computer. The line is labelled [Ad] and appears in the agent\'s status line, working indicator or notification area while it works. It does not read or change your prompts, code or replies. Turn it off at any time with: vibead disable';
 
 test('install-time wiring is off for CI, ignore-scripts and a non-TTY', () => {
   assert.equal(installTimeWiringAllowed({ env: { CI: 'true' }, stdoutIsTTY: true }), false);
@@ -111,7 +112,7 @@ test('approved (vibead-ai#254): the switch is on and the npm README shows the ap
   assert.equal(zeroStepEnabled({ VIBEAD_ZERO_STEP: 'true' }, false), false);
   assert.equal(zeroStepEnabled({ VIBEAD_ZERO_STEP: '1' }, false), true);
   const { createHash } = await import('node:crypto');
-  assert.equal(createHash('sha256').update(NOTICE).digest('hex').slice(0, 16), 'f4dfc6e689de31d6', '2a changed: approved text goes back to Gaurav/Nina, never an edit');
+  assert.equal(createHash('sha256').update(NOTICE).digest('hex').slice(0, 16), 'ac3b2b0544674e6b', '2a changed: approved text goes back to Gaurav/Nina, never an edit');
   const readme = await readFile(new URL('../README.md', import.meta.url), 'utf8');
   const at = readme.indexOf(NOTICE);
   assert.ok(at >= 0, 'the approved sentence is on the npm page');
