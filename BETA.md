@@ -1,22 +1,22 @@
-# VibeAd beta guide (0.1.0-beta.40)
+# VibeAd beta guide (0.1.0-beta.41)
 
 VibeAd shows one labelled `[Ad]` line in **Claude Code, Codex and OpenCode** while they work, on **macOS (Apple Silicon, Intel)** and **Linux x64 (glibc 2.34+)**. It never reads or changes your prompts, code or agent output. Your agent keeps your login, provider, model, settings and project; normal model charges apply.
 
-[Release notes](https://github.com/vibead/cli/releases/tag/v0.1.0-beta.40) list the tested versions and known limits.
+[Release notes](https://github.com/vibead/cli/releases/tag/v0.1.0-beta.41) list the tested versions and known limits.
 
 ## Install
 
 ```sh
-npm i -g @vibead/cli                                # installs and connects the agents it finds
+npm i -g @vibead/cli && vibead                      # installs, then connects the agents it finds
 curl -fsSL https://www.vibead.ai/install | sh       # or: macOS and Linux, no sudo
 brew install vibead/tap/vibead && vibead            # or: Homebrew
 ```
 
-Install connects the agents it finds and prints what it did. Then start your agent as usual: `claude`, `codex` or `opencode`. Open a new terminal first for Codex: it gets a `codex` shell function that runs `vibead codex`. Codex asks you to trust VibeAd's hooks; ads show after you choose Trust. It asks again each time you turn VibeAd off and back on.
+Run `vibead` once after installing or upgrading. It connects Claude Code, Codex and OpenCode when they are installed, and prints what it did. Then start your agent as usual: `claude`, `codex` or `opencode`. Open a new terminal first for Codex: it gets a `codex` shell function that runs `vibead codex`. Codex will ask you to review VibeAd's hooks ("Hooks need review"). Choose "Trust all and continue" to see ads; "Continue without trusting" runs Codex normally without ads. It asks again each time you turn VibeAd off and back on.
 
 - **Claude Code:** a status line, spinner tips and turn hooks in `~/.claude/settings.json`.
 - **OpenCode:** a plugin: a line in the status area on OpenCode 1.19+, a labelled toast on 1.18.
-- **Codex:** a `codex` shell function in `~/.bashrc` or `~/.zshrc`.
+- **Codex:** a `codex` shell function in `~/.bashrc` or `~/.zshrc`, or in `~/.profile` when the shell is sh and no rc file exists yet.
 
 **Claude Code first run:** the workspace-trust dialog selects **No, exit** first. Choose **Yes, I trust this folder**, or run `claude` again if you exit by mistake. Very short turns can end before an ad shows; the first turn may show a VibeAd house ad.
 
@@ -50,7 +50,7 @@ Replace `claude` with `codex` or `opencode`. Report problems in a [beta issue](h
 
 ## 1. Download
 
-To install without npm, curl or Homebrew, download the archive for your computer and `SHA256SUMS` from the [release](https://github.com/vibead/cli/releases/tag/v0.1.0-beta.40):
+To install without npm, curl or Homebrew, download the archive for your computer and `SHA256SUMS` from the [release](https://github.com/vibead/cli/releases/tag/v0.1.0-beta.41):
 
 | Computer | Archive ending |
 | --- | --- |
