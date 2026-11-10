@@ -48,7 +48,7 @@ test('release.yml: manual only, OIDC in the npm environment, next by default, no
   assert.match(pub, /NPM_TAG: \$\{\{ inputs\.npm_tag \}\}/);
   const branches = pub.match(/if \[ "\$NPM_TAG" = latest \]; then\n(.*)\n\s*else\n(.*)\n\s*fi/);
   assert.ok(branches, 'publish-release branches on npm_tag');
-  assert.match(branches[1], /--prerelease=false --latest$/);
+  assert.match(branches[1], /--prerelease=false --latest --title "\$TAG"$/);
   assert.match(branches[2], /--prerelease --latest=false$/);
   assert.equal(pub.match(/gh release edit/g).length, 2, 'no other release edit can mark it Latest');
   // The promote path (cli#58) has the same two branches and no others.
@@ -66,6 +66,52 @@ test('release.yml: manual only, OIDC in the npm environment, next by default, no
   const tapLines = y.split('\n').filter(l => l.includes('homebrew-tap') && !l.trim().startsWith('#'));
   assert.equal(tapLines.length, 4, tapLines.join('\n'));
   for (const l of tapLines) assert.match(l, /^ {10}(tap=\$\(curl -fsSL --retry 3 https:\/\/raw\.githubusercontent\.com\/vibead\/homebrew-tap\/main\/Formula\/vibead\.rb \| |\[ "\$tap" = "\$VERSION" \] \|\| \{ echo "vibead\/homebrew-tap main ships )/u, l);
+});
+
+// A draft titled "Vibead X (RC, pending QA)" used to stay the Latest title.
+// Both latest paths rename it to the tag and fail unless the read-back matches.
+test('release.yml: both latest paths set --title "$TAG" and guard the read-back', () => {
+  const y = releaseYml();
+  const slice = (a, b) => y.slice(y.indexOf(`\n  ${a}:`), b ? y.indexOf(`\n  ${b}:`) : y.length);
+  const jobs = [
+    ['publish-release', slice('publish-release', 'npm')],
+    ['promote-release', slice('promote-release')],
+  ];
+  const guards = [];
+  for (const [name, job] of jobs) {
+    const branches = job.match(/if \[ "\$NPM_TAG" = latest \]; then\n(.*)\n\s*else\n(.*)\n\s*fi/);
+    assert.ok(branches, name);
+    assert.match(branches[1], /gh release edit "\$TAG" --repo "\$GITHUB_REPOSITORY" --draft=false --prerelease=false --latest --title "\$TAG"$/);
+    assert.doesNotMatch(branches[2], /--title/, `${name} next/prerelease keeps its title`);
+    const editAt = job.indexOf(branches[1]);
+    const guardAt = job.indexOf('gh release view "$TAG" --repo "$GITHUB_REPOSITORY" --json name,isPrerelease,isDraft');
+    assert.ok(guardAt > editAt, `${name} guard follows the latest edit`);
+    assert.match(job, /name: Latest release is titled with the tag\n        if: inputs\.npm_tag == 'latest'\n/);
+    guards.push(stepRun(job, 'Latest release is titled with the tag'));
+  }
+  assert.equal(guards[0], guards[1], 'publish-release and promote-release use the same guard');
+  const script = guards[0];
+  assert.match(script, /\[ "\$name" = "\$TAG" \]/);
+  assert.match(script, /\[ "\$prerelease" = false \]/);
+  assert.match(script, /\[ "\$draft" = false \]/);
+  const run = (json) => {
+    const root = mkdtempSync(join(tmpdir(), 'vibead-title-'));
+    const bin = join(root, 'bin');
+    mkdirSync(bin);
+    writeFileSync(join(bin, 'gh'), '#!/bin/bash\nprintf \'%s\\n\' "$JSON"\n', { mode: 0o755 });
+    return bash(script, root, { PATH: `${bin}:${process.env.PATH}`, TAG: 'v0.1.0-beta.41', JSON: json, GITHUB_REPOSITORY: 'vibead/cli' });
+  };
+  const ok = run('{"name":"v0.1.0-beta.41","isPrerelease":false,"isDraft":false}');
+  assert.equal(ok.status, 0, ok.stdout + ok.stderr);
+  const cases = {
+    'draft title left in place': [run('{"name":"Vibead 0.1.0-beta.41 (RC, pending QA)","isPrerelease":false,"isDraft":false}'), /want 'v0.1.0-beta.41'/],
+    'still a prerelease': [run('{"name":"v0.1.0-beta.41","isPrerelease":true,"isDraft":false}'), /isPrerelease is true/],
+    'still a draft': [run('{"name":"v0.1.0-beta.41","isPrerelease":false,"isDraft":true}'), /isDraft is true/],
+  };
+  for (const [what, [r, msg]] of Object.entries(cases)) {
+    assert.notEqual(r.status, 0, what);
+    assert.match(r.stdout + r.stderr, msg, what);
+  }
 });
 
 // Drafts are visible only to tokens with push access (cli#37 QA R2-1): every job
