@@ -132,10 +132,24 @@ jobs:
         run: |
           gh release view "$TAG" --repo "$GITHUB_REPOSITORY" --json assets --jq '.assets[].name' | grep -qx SHA256SUMS
           if [ "$NPM_TAG" = latest ]; then
-            gh release edit "$TAG" --repo "$GITHUB_REPOSITORY" --draft=false --prerelease=false --latest
+            gh release edit "$TAG" --repo "$GITHUB_REPOSITORY" --draft=false --prerelease=false --latest --title "$TAG"
           else
             gh release edit "$TAG" --repo "$GITHUB_REPOSITORY" --draft=false --prerelease --latest=false
           fi
+      - name: Latest release is titled with the tag
+        if: inputs.npm_tag == 'latest'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ needs.check.outputs.tag }}
+        run: |
+          set -euo pipefail
+          json=$(gh release view "$TAG" --repo "$GITHUB_REPOSITORY" --json name,isPrerelease,isDraft)
+          name=$(jq -r .name <<<"$json")
+          prerelease=$(jq -r .isPrerelease <<<"$json")
+          draft=$(jq -r .isDraft <<<"$json")
+          [ "$name" = "$TAG" ] || { echo "release name is '$name', want '$TAG'"; exit 1; }
+          [ "$prerelease" = false ] || { echo "isPrerelease is $prerelease, want false"; exit 1; }
+          [ "$draft" = false ] || { echo "isDraft is $draft, want false"; exit 1; }
 
   npm:
     name: npm publish (Trusted Publishing, provenance)
@@ -283,7 +297,21 @@ jobs:
           NPM_TAG: ${{ inputs.npm_tag }}
         run: |
           if [ "$NPM_TAG" = latest ]; then
-            gh release edit "$TAG" --repo "$GITHUB_REPOSITORY" --draft=false --prerelease=false --latest
+            gh release edit "$TAG" --repo "$GITHUB_REPOSITORY" --draft=false --prerelease=false --latest --title "$TAG"
           else
             gh release edit "$TAG" --repo "$GITHUB_REPOSITORY" --draft=false --prerelease --latest=false
           fi
+      - name: Latest release is titled with the tag
+        if: inputs.npm_tag == 'latest'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: v${{ inputs.version }}
+        run: |
+          set -euo pipefail
+          json=$(gh release view "$TAG" --repo "$GITHUB_REPOSITORY" --json name,isPrerelease,isDraft)
+          name=$(jq -r .name <<<"$json")
+          prerelease=$(jq -r .isPrerelease <<<"$json")
+          draft=$(jq -r .isDraft <<<"$json")
+          [ "$name" = "$TAG" ] || { echo "release name is '$name', want '$TAG'"; exit 1; }
+          [ "$prerelease" = false ] || { echo "isPrerelease is $prerelease, want false"; exit 1; }
+          [ "$draft" = false ] || { echo "isDraft is $draft, want false"; exit 1; }
