@@ -471,10 +471,9 @@ test('install.sh: a Windows shell or another system gets one honest line and no 
 
 // Beta kit (0.1.0-beta.42): `vibead whoami` exits 1 for signed-out and for
 // errors, and refreshes a stored session over the network. `vibead status`
-// always exits 0 and prints the full report. The installer therefore reads
-// the same local store (keychain/libsecret, else ~/.vibead/credentials) and
-// prints ACCOUNT_SIGNED_OUT_LINE only when that check positively finds no
-// refresh token.
+// always exits 0 and prints the full report. The installer uses an attributes-
+// only macOS Keychain lookup (no -w/-g) and the credentials file. It never
+// runs secret-tool. When libsecret would be the store, it prints nothing.
 const SIGNED_OUT_LINE = "Account: signed out. Ads still show, but you're not earning. Run `vibead login`.";
 
 function lastLine(stdout) {
@@ -582,13 +581,24 @@ test('install.sh: signed in (credentials file or keychain) prints no account lin
 
   const chain = sandbox();
   release(chain.rel, '0.1.0-beta.99');
-  const path = stubBin(chain.home, 'secret-tool', '#!/bin/sh\nprintf \'%s\\n\' \'{"refresh_token":"rt-keychain","email":"person@example.com"}\'\nexit 0\n');
+  const path = stubBin(chain.home, 'secret-tool', '#!/bin/sh\necho called >> "$HOME/secret-tool.log"\nexit 0\n');
   const fromChain = runSh(chain, { PATH: path, DBUS_SESSION_BUS_ADDRESS: 'unix:path=/tmp/vibead-test-bus' });
   assert.equal(fromChain.status, 0, fromChain.stdout + fromChain.stderr);
   assert.doesNotMatch(fromChain.stdout + fromChain.stderr, /Account|signed out/);
   assert.equal(lastLine(fromChain.stdout), 'Setup finishes the first time you run vibead.');
-  assert.equal(existsSync(join(chain.home, '.vibead', 'credentials')), false, 'keychain session has no credentials file');
+  assert.equal(existsSync(join(chain.home, 'secret-tool.log')), false, 'libsecret is not consulted');
   rmSync(chain.home, { recursive: true, force: true });
+
+  // VIBEAD_CREDENTIAL_STORE=file is the CLI's "skip the keyring" mode, so the
+  // file check still decides even when a session bus is set.
+  const forced = sandbox();
+  release(forced.rel, '0.1.0-beta.99');
+  const forcedPath = stubBin(forced.home, 'secret-tool', '#!/bin/sh\necho called >> "$HOME/secret-tool.log"\nexit 0\n');
+  const fromForced = runSh(forced, { PATH: forcedPath, DBUS_SESSION_BUS_ADDRESS: 'unix:path=/tmp/vibead-test-bus', VIBEAD_CREDENTIAL_STORE: 'file' });
+  assert.equal(fromForced.status, 0, fromForced.stdout + fromForced.stderr);
+  assert.equal(lastLine(fromForced.stdout), SIGNED_OUT_LINE, 'file store, no credentials file');
+  assert.equal(existsSync(join(forced.home, 'secret-tool.log')), false);
+  rmSync(forced.home, { recursive: true, force: true });
 });
 
 test('install.sh: a failed or timed-out session check prints nothing extra and still installs', { skip: !linuxX64 && 'Linux x64 only' }, () => {
@@ -598,13 +608,6 @@ test('install.sh: a failed or timed-out session check prints nothing extra and s
   release(timed.rel, '0.1.0-beta.99');
   cases.push(['timeout exits 124', timed, { PATH: stubBin(timed.home, 'timeout', '#!/bin/sh\nexit 124\n') }]);
 
-  const badTool = sandbox();
-  release(badTool.rel, '0.1.0-beta.99');
-  cases.push(['secret-tool errors', badTool, {
-    PATH: stubBin(badTool.home, 'secret-tool', '#!/bin/sh\nexit 2\n'),
-    DBUS_SESSION_BUS_ADDRESS: 'unix:path=/tmp/vibead-test-bus',
-  }]);
-
   const dir = sandbox();
   release(dir.rel, '0.1.0-beta.99');
   mkdirSync(join(dir.home, '.vibead', 'credentials'), { recursive: true });
@@ -612,8 +615,8 @@ test('install.sh: a failed or timed-out session check prints nothing extra and s
 
   const hung = sandbox();
   release(hung.rel, '0.1.0-beta.99');
-  cases.push(['secret-tool hangs', hung, {
-    PATH: stubBin(hung.home, 'secret-tool', '#!/bin/sh\nexec sleep 30\n'),
+  cases.push(['secret-tool is not run', hung, {
+    PATH: stubBin(hung.home, 'secret-tool', '#!/bin/sh\necho called >> "$HOME/secret-tool.log"\nexec sleep 30\n'),
     DBUS_SESSION_BUS_ADDRESS: 'unix:path=/tmp/vibead-test-bus',
   }]);
 
@@ -626,8 +629,22 @@ test('install.sh: a failed or timed-out session check prints nothing extra and s
     assert.equal(lastLine(r.stdout), 'Setup finishes the first time you run vibead.', label);
     assert.doesNotMatch(r.stdout + r.stderr, /Account|signed out|secret-tool|refresh_token/, label);
     assert.ok(elapsed < 12000, `${label}: check took ${elapsed}ms`);
+    if (label === 'secret-tool is not run') {
+      assert.ok(elapsed < 3000, `${label}: took ${elapsed}ms`);
+      assert.equal(existsSync(join(box.home, 'secret-tool.log')), false);
+    }
     rmSync(box.home, { recursive: true, force: true });
   }
+});
+
+test('install.sh: never calls security with -w or -g, and never runs secret-tool', () => {
+  const code = readFileSync(installSh, 'utf8').split('\n').filter(line => !/^\s*#/.test(line)).join('\n');
+  assert.ok(code.includes('security find-generic-password -s vibead -a "$1" >/dev/null'), code);
+  for (const line of code.split('\n')) {
+    if (!/\bsecurity\b/.test(line)) continue;
+    assert.doesNotMatch(line, /(^|[\s=])-[wg](\s|$)/, line);
+  }
+  assert.doesNotMatch(code, /\bsecret-tool\b/);
 });
 
 test('install.sh: a failed install does not print the account line', { skip: !linuxX64 && 'Linux x64 only' }, () => {

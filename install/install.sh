@@ -254,12 +254,17 @@ ensure_path() {
 # Last line of a successful install, only when this computer is positively
 # signed out. `vibead whoami` exits 1 both when signed out and on errors, and
 # a stored session makes it refresh over the network. `vibead status` always
-# exits 0 and prints the whole report. Neither is a quiet local check, so this
-# reads the store those commands use (hasStoredSession in the beta kit): macOS
-# Keychain or libsecret when that is the CLI's store, then ~/.vibead/credentials
-# (a JSON object keyed by the site origin, whose value is the session JSON).
-# A non-empty refresh_token means signed in. The lookup is bounded (~5s). Any
-# timeout or error prints nothing and never fails the install.
+# exits 0 and prints the whole report. Neither is a quiet local check.
+# macOS: `security find-generic-password -s vibead -a <site>` with no -w and no
+# -g (attributes only; those flags print the password and can raise an allow-
+# access dialog). Item present means signed in. The secret is never read.
+# libsecret: secret-tool lookup and search return the secret and can prompt to
+# unlock a locked keyring, and no secret-tool mode is guaranteed non-interactive,
+# so this script never runs secret-tool. When that is the CLI's store the result
+# is unknown and this line is not printed. Otherwise ~/.vibead/credentials (a
+# file under the home directory, no system prompt): a non-empty refresh_token
+# means signed in. The lookup is bounded (~5s). Any timeout or error prints
+# nothing and never fails the install.
 note_signed_out() {
   if account_signed_out; then
     say "Account: signed out. Ads still show, but you're not earning. Run \`vibead login\`."
@@ -303,50 +308,34 @@ run_bounded() {
   return 124
 }
 
-# Prints "in" (refresh token in the keychain), "out" (a keychain item with no
-# refresh token; the CLI does not consult the file), or "file" (look at the
-# file). Returns 1 when the lookup did not finish conclusively.
+# Prints "in" (a macOS Keychain item exists; its secret is not read) or "file"
+# (look at ~/.vibead/credentials). Returns 1 when the answer is unknown.
 keychain_state() {
   case "${VIBEAD_CREDENTIAL_STORE:-}" in
     file) printf '%s\n' file; return 0 ;;
   esac
   acct_os=$(uname -s) || return 1
   if [ "$acct_os" = Darwin ]; then
-    acct_blob=$(run_bounded security find-generic-password -s vibead -a "$1" -w)
+    # No -w and no -g: those print the password and can prompt. Attributes only.
+    run_bounded security find-generic-password -s vibead -a "$1" >/dev/null
     acct_rc=$?
-  elif [ "$acct_os" = Linux ] && [ -n "${DBUS_SESSION_BUS_ADDRESS:-}" ]; then
-    if ! command -v secret-tool >/dev/null 2>&1; then
+    if [ "$acct_rc" -eq 0 ]; then
+      printf '%s\n' in
+      return 0
+    fi
+    # 44: item not found. 127: security is missing. Either way the file decides.
+    if [ "$acct_rc" -eq 44 ] || [ "$acct_rc" -eq 127 ]; then
       printf '%s\n' file
       return 0
     fi
-    acct_blob=$(run_bounded secret-tool lookup service vibead account "$1")
-    acct_rc=$?
-  else
-    printf '%s\n' file
-    return 0
-  fi
-  if [ "$acct_rc" -eq 124 ]; then
     return 1
   fi
-  if [ "$acct_rc" -eq 127 ]; then
-    printf '%s\n' file
-    return 0
+  if [ "$acct_os" = Linux ] && [ -n "${DBUS_SESSION_BUS_ADDRESS:-}" ]; then
+    # Not called: secret-tool would read the secret and can prompt. Unknown.
+    return 1
   fi
-  if [ "$acct_rc" -eq 0 ] && [ -n "$acct_blob" ] && printf '%s' "$acct_blob" | grep -qE '"refresh_token":"[^"]'; then
-    printf '%s\n' in
-    return 0
-  fi
-  if [ "$acct_rc" -eq 0 ] && [ -n "$acct_blob" ]; then
-    printf '%s\n' out
-    return 0
-  fi
-  # Not found (security 44, secret-tool 1) or an empty hit: the CLI falls
-  # through to the file. Any other status is not a positive answer.
-  if [ "$acct_rc" -eq 0 ] || [ "$acct_rc" -eq 1 ] || [ "$acct_rc" -eq 44 ]; then
-    printf '%s\n' file
-    return 0
-  fi
-  return 1
+  printf '%s\n' file
+  return 0
 }
 
 # 0 when the store positively has no refresh token. 1 otherwise (signed in,
@@ -356,7 +345,6 @@ account_signed_out() {
   acct_kc=$(keychain_state "$acct_site") || return 1
   case "$acct_kc" in
     in) return 1 ;;
-    out) return 0 ;;
   esac
   acct_cred="$HOME/.vibead/credentials"
   run_bounded test -e "$acct_cred"
