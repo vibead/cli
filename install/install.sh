@@ -175,6 +175,9 @@ LAUNCHER
   else
     say "Next: vibead enable   (reviews and approves the changes)"
   fi
+
+  # Very last line on every successful path. A failed check prints nothing.
+  note_signed_out || true
 }
 
 say() { printf '%s\n' "$*"; }
@@ -246,6 +249,130 @@ ensure_path() {
   # profile edit: print the line to add.
   say "To use \`vibead\` in new terminals, add this to your shell profile:"
   say "  $line"
+}
+
+# Last line of a successful install, only when this computer is positively
+# signed out. `vibead whoami` exits 1 both when signed out and on errors, and
+# a stored session makes it refresh over the network. `vibead status` always
+# exits 0 and prints the whole report. Neither is a quiet local check, so this
+# reads the store those commands use (hasStoredSession in the beta kit): macOS
+# Keychain or libsecret when that is the CLI's store, then ~/.vibead/credentials
+# (a JSON object keyed by the site origin, whose value is the session JSON).
+# A non-empty refresh_token means signed in. The lookup is bounded (~5s). Any
+# timeout or error prints nothing and never fails the install.
+note_signed_out() {
+  if account_signed_out; then
+    say "Account: signed out. Ads still show, but you're not earning. Run \`vibead login\`."
+  fi
+}
+
+account_site() {
+  url=${VIBEAD_SITE_URL:-https://www.vibead.ai}
+  url=${url%/}
+  case "$url" in
+    https://*|http://127.0.0.1*|http://localhost*) ;;
+    *) return 1 ;;
+  esac
+  rest=${url#*://}
+  case "$rest" in
+    ""|*@*|*\?*|*\#*|*/*) return 1 ;;
+  esac
+  printf '%s\n' "$url"
+}
+
+# Runs a command with stdin from /dev/null and a ~5s cap. Stderr is discarded.
+# 124 means the cap was hit. Other statuses are the command's own.
+run_bounded() {
+  if command -v timeout >/dev/null 2>&1; then
+    timeout 5 "$@" </dev/null 2>/dev/null
+    return $?
+  fi
+  "$@" </dev/null 2>/dev/null &
+  acct_pid=$!
+  acct_i=0
+  while [ "$acct_i" -lt 5 ]; do
+    if ! kill -0 "$acct_pid" 2>/dev/null; then
+      wait "$acct_pid"
+      return $?
+    fi
+    sleep 1
+    acct_i=$((acct_i + 1))
+  done
+  kill "$acct_pid" 2>/dev/null
+  wait "$acct_pid" 2>/dev/null
+  return 124
+}
+
+# Prints "in" (refresh token in the keychain), "out" (a keychain item with no
+# refresh token; the CLI does not consult the file), or "file" (look at the
+# file). Returns 1 when the lookup did not finish conclusively.
+keychain_state() {
+  case "${VIBEAD_CREDENTIAL_STORE:-}" in
+    file) printf '%s\n' file; return 0 ;;
+  esac
+  acct_os=$(uname -s) || return 1
+  if [ "$acct_os" = Darwin ]; then
+    acct_blob=$(run_bounded security find-generic-password -s vibead -a "$1" -w)
+    acct_rc=$?
+  elif [ "$acct_os" = Linux ] && [ -n "${DBUS_SESSION_BUS_ADDRESS:-}" ]; then
+    if ! command -v secret-tool >/dev/null 2>&1; then
+      printf '%s\n' file
+      return 0
+    fi
+    acct_blob=$(run_bounded secret-tool lookup service vibead account "$1")
+    acct_rc=$?
+  else
+    printf '%s\n' file
+    return 0
+  fi
+  if [ "$acct_rc" -eq 124 ]; then
+    return 1
+  fi
+  if [ "$acct_rc" -eq 127 ]; then
+    printf '%s\n' file
+    return 0
+  fi
+  if [ "$acct_rc" -eq 0 ] && [ -n "$acct_blob" ] && printf '%s' "$acct_blob" | grep -qE '"refresh_token":"[^"]'; then
+    printf '%s\n' in
+    return 0
+  fi
+  if [ "$acct_rc" -eq 0 ] && [ -n "$acct_blob" ]; then
+    printf '%s\n' out
+    return 0
+  fi
+  # Not found (security 44, secret-tool 1) or an empty hit: the CLI falls
+  # through to the file. Any other status is not a positive answer.
+  if [ "$acct_rc" -eq 0 ] || [ "$acct_rc" -eq 1 ] || [ "$acct_rc" -eq 44 ]; then
+    printf '%s\n' file
+    return 0
+  fi
+  return 1
+}
+
+# 0 when the store positively has no refresh token. 1 otherwise (signed in,
+# or the check timed out or failed).
+account_signed_out() {
+  acct_site=$(account_site) || return 1
+  acct_kc=$(keychain_state "$acct_site") || return 1
+  case "$acct_kc" in
+    in) return 1 ;;
+    out) return 0 ;;
+  esac
+  acct_cred="$HOME/.vibead/credentials"
+  run_bounded test -e "$acct_cred"
+  acct_rc=$?
+  if [ "$acct_rc" -ne 0 ] && [ "$acct_rc" -ne 1 ]; then
+    return 1
+  fi
+  if [ "$acct_rc" -eq 1 ]; then
+    return 0
+  fi
+  acct_blob=$(run_bounded cat "$acct_cred") || return 1
+  printf '%s' "$acct_blob" | grep -qF "$acct_site" || return 0
+  if printf '%s' "$acct_blob" | grep -qE '"refresh_token":"[^"]|\\"refresh_token\\":\\"[^"\\]'; then
+    return 1
+  fi
+  return 0
 }
 
 main "$@"
