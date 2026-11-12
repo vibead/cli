@@ -26,7 +26,7 @@ export async function runPostinstall({
   showNotice = writeInstallNotice,
   approved,
 } = {}) {
-  if (!zeroStepEnabled(env, approved)) return { code: 0, skipped: 'pending-sign-off' };
+  if (!zeroStepEnabled(approved)) return { code: 0, skipped: 'pending-sign-off' };
   if (!installTimeWiringAllowed({ env, stdoutIsTTY, ancestorStdoutIsTTY })) return { code: 0, skipped: 'gated' };
   const dropped = reexecAsInstallUser({ uid, env, argv, spawn, ...(lookup ? { lookup } : {}) });
   if (dropped.identity?.refuse) {

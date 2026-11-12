@@ -64,11 +64,11 @@ flowchart LR
 
 Founder decision (vibead-ai#235): `npm i -g @vibead/cli` is the only install step. It connects the detected agents on install, or on the first `vibead` run, whichever comes first (npm 12, `CI`, `--ignore-scripts`, non-TTY and Homebrew installs run no install-time wiring, so the first run does it). Installing is the consent, given a notice on the npm page and the website and a first-turn notice in each agent that names `vibead disable`. The curl installer uses the same kit command. Homebrew takes the first-run path (below).
 
-**On by default (approved).** Gaurav approved the three notice sentences word for word in vibead-ai#254 (2a, 2b, 2c, 23 Oct 2026). `ZERO_STEP_CONSENT_APPROVED` is `true` in `npm/lib/consent.mjs` and `1` in `install/install.sh`, and the kit (vibead/vibead `beta/lib/notices.mjs`) has the same switch, on in the same release (0.1.0-beta.32). `npm/package.json` declares `"postinstall": "node lib/postinstall.mjs"`, the curl installer runs the zero-step wire instead of `vibead enable`, and `npm/README.md` shows the npm sentence above the install command. A test pins that sentence by hash: a change goes back for approval, never an edit. Setting the switches back (`false`, `0`) restores `vibead enable`, which asks, and stays tested. With a switch off, `VIBEAD_ZERO_STEP=1` is the explicit opt-in.
+**On by default (approved).** Gaurav approved the three notice sentences word for word in vibead-ai#254 (2a, 2b, 2c, 23 Oct 2026). `ZERO_STEP_CONSENT_APPROVED` is `true` in `npm/lib/consent.mjs` and `1` in `install/install.sh`, and the kit (vibead/vibead `beta/lib/notices.mjs`) has the same switch, on in the same release (0.1.0-beta.32). `npm/package.json` declares `"postinstall": "node lib/postinstall.mjs"`, the curl installer runs the zero-step wire instead of `vibead enable`, and `npm/README.md` shows the npm sentence above the install command. A test pins that sentence by hash: a change goes back for approval, never an edit. Setting the switches back (`false`, `0`) restores `vibead enable`, which asks, and stays tested.
 
 ```mermaid
 flowchart TD
-  Npm["npm i -g @vibead/cli"] --> Signed{"switch on (approved, vibead-ai#254), or VIBEAD_ZERO_STEP=1?"}
+  Npm["npm i -g @vibead/cli"] --> Signed{"switch on (approved, vibead-ai#254)?"}
   Curl["curl /install"] --> Signed
   Signed -- "no (switch set back)" --> Today["npm: postinstall does nothing; curl: vibead enable asks"]
   Signed -- yes --> Gate{"terminal on stdout and CI unset?"}

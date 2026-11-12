@@ -27,7 +27,7 @@ tty=no; [ -t 0 ] && tty=yes
 case ":$PATH:" in *"/.vibead/bin:"*) onpath=yes ;; *) onpath=no ;; esac
 echo "kit=@VERSION@ args=$* tty=$tty launcher_on_path=$onpath" >> "$HOME/kit.log"
 if [ "$1" = enable ] && [ -n "\${FAKE_DECLINE:-}" ]; then echo "No changes made."; exit 1; fi
-if [ "$1" = __wrapperless ]; then echo "FAKE NOTICE zero_step=\${VIBEAD_ZERO_STEP:-}"; echo "vibead disable"; fi
+if [ "$1" = __wrapperless ]; then echo "FAKE NOTICE"; echo "vibead disable"; fi
 `;
 
 function release(base, version, { platform = PLATFORM, extra = null, corrupt = false, zip = false } = {}) {
@@ -148,7 +148,7 @@ test('install.sh: off PATH it asks nothing and edits no profile, printing the ex
 test('install.sh, switch off: answering n at the enable consent prints a neutral "Setup skipped" line', { skip: (!linuxX64 || !which('script')) && 'needs Linux x64 and script(1)' }, () => {
   const box = sandbox();
   release(box.rel, '0.1.0-beta.99');
-  const r = runTty(box, '', { VIBEAD_NO_MODIFY_PATH: '1', FAKE_DECLINE: '1' }, switchedOff(box));
+  const r = runTty(box, '', { FAKE_DECLINE: '1' }, switchedOff(box));
   assert.equal(r.status, 0, r.stdout + r.stderr);
   assert.match(r.stdout, /Setup skipped\. Run `vibead enable` any time\./);
   assert.doesNotMatch(r.stdout + r.stderr, /did not finish/);
@@ -360,7 +360,7 @@ test('install.sh: zero-step is on by default (the switch is 1): a terminal insta
   assert.match(readFileSync(installSh, 'utf8'), /^ZERO_STEP_CONSENT_APPROVED=1$/m);
   const box = sandbox();
   release(box.rel, '0.1.0-beta.99');
-  const r = runTty(box, '', { VIBEAD_NO_MODIFY_PATH: '1' });
+  const r = runTty(box, '');
   assert.equal(r.status, 0, r.stdout + r.stderr);
   const log = readFileSync(join(box.home, 'kit.log'), 'utf8');
   assert.match(log, /args=__wrapperless wire --announce/);
@@ -371,7 +371,7 @@ test('install.sh: with the switch set back to 0 the default runs `vibead enable`
   const box = sandbox();
   release(box.rel, '0.1.0-beta.99');
   const off = switchedOff(box);
-  const env = { HOME: box.home, PATH: basePath, SHELL: '/bin/bash', VIBEAD_RELEASE_BASE: box.base, VIBEAD_TEST_RELEASE: '1', VIBEAD_MANIFEST_URL: box.manifest, VIBEAD_NO_MODIFY_PATH: '1' };
+  const env = { HOME: box.home, PATH: basePath, SHELL: '/bin/bash', VIBEAD_RELEASE_BASE: box.base, VIBEAD_TEST_RELEASE: '1', VIBEAD_MANIFEST_URL: box.manifest };
   const r = spawnSync('script', ['-qec', `sh '${off}'`, '/dev/null'], { encoding: 'utf8', env, input: '' });
   assert.equal(r.status, 0, r.stdout + r.stderr);
   const log = readFileSync(join(box.home, 'kit.log'), 'utf8');
@@ -379,17 +379,16 @@ test('install.sh: with the switch set back to 0 the default runs `vibead enable`
   assert.doesNotMatch(log, /__wrapperless/);
 });
 
-test('install.sh: with VIBEAD_ZERO_STEP=1 and a terminal, runs the kit wire once without reading the terminal, and an N to N+1 upgrade runs it again from the new kit', { skip: (!linuxX64 || !which('script')) && 'needs Linux x64 and script(1)' }, () => {
+test('install.sh: with a terminal, runs the kit wire once without reading the terminal, and an N to N+1 upgrade runs it again from the new kit', { skip: (!linuxX64 || !which('script')) && 'needs Linux x64 and script(1)' }, () => {
   const box = sandbox();
   release(box.rel, '0.1.0-beta.99');
-  const first = runTty(box, '', { VIBEAD_ZERO_STEP: '1' });
+  const first = runTty(box, '');
   assert.equal(first.status, 0, first.stdout + first.stderr);
-  assert.match(first.stdout, /FAKE NOTICE zero_step=1/);
-  assert.match(first.stdout, /vibead disable/);
+  assert.match(first.stdout, /FAKE NOTICE[\r\n]+vibead disable/);
   let log = readFileSync(join(box.home, 'kit.log'), 'utf8');
   assert.equal(log, 'kit=0.1.0-beta.99 args=__wrapperless wire --announce tty=no launcher_on_path=yes\n', 'no enable prompt, stdin is not the terminal');
   release(box.rel, '0.1.0-beta.100');
-  const upgrade = runTty(box, '', { VIBEAD_ZERO_STEP: '1' });
+  const upgrade = runTty(box, '');
   assert.equal(upgrade.status, 0, upgrade.stdout + upgrade.stderr);
   log = readFileSync(join(box.home, 'kit.log'), 'utf8');
   assert.match(log.split('\n')[1], /^kit=0\.1\.0-beta\.100 args=__wrapperless wire --announce tty=no launcher_on_path=yes$/);
@@ -398,17 +397,17 @@ test('install.sh: with VIBEAD_ZERO_STEP=1 and a terminal, runs the kit wire once
   assert.equal(execFileSync(join(box.home, '.vibead/bin/vibead'), ['--version'], { encoding: 'utf8' }).trim(), '0.1.0-beta.100');
 });
 
-test('install.sh: with VIBEAD_ZERO_STEP=1, CI, no terminal or root wire nothing at install; the first vibead run does it', { skip: (!linuxX64 || !which('script')) && 'needs Linux x64 and script(1)' }, () => {
+test('install.sh: CI, no terminal or root wire nothing at install; the first vibead run does it', { skip: (!linuxX64 || !which('script')) && 'needs Linux x64 and script(1)' }, () => {
   const ci = sandbox();
   release(ci.rel, '0.1.0-beta.99');
-  const underCi = runTty(ci, '', { VIBEAD_ZERO_STEP: '1', CI: 'true' });
+  const underCi = runTty(ci, '', { CI: 'true' });
   assert.equal(underCi.status, 0, underCi.stdout + underCi.stderr);
   assert.match(underCi.stdout, /Setup finishes the first time you run vibead\./);
   assert.ok(!existsSync(join(ci.home, 'kit.log')), 'CI: the kit did not run');
 
   const piped = sandbox();
   release(piped.rel, '0.1.0-beta.99');
-  const noTty = runSh(piped, { VIBEAD_ZERO_STEP: '1' });
+  const noTty = runSh(piped);
   assert.equal(noTty.status, 0, noTty.stderr);
   assert.match(noTty.stdout, /Setup finishes the first time you run vibead\./);
   assert.ok(!existsSync(join(piped.home, 'kit.log')), 'no terminal: the kit did not run');
@@ -419,7 +418,7 @@ test('install.sh: with VIBEAD_ZERO_STEP=1, CI, no terminal or root wire nothing 
   mkdirSync(fakeBin);
   writeFileSync(join(fakeBin, 'id'), '#!/bin/sh\n[ "$1" = -u ] && { echo 0; exit 0; }\nexec /usr/bin/id "$@"\n');
   chmodSync(join(fakeBin, 'id'), 0o755);
-  const asRoot = runTty(root, '', { VIBEAD_ZERO_STEP: '1', PATH: `${fakeBin}:${basePath}`, SUDO_USER: 'someone' });
+  const asRoot = runTty(root, '', { PATH: `${fakeBin}:${basePath}`, SUDO_USER: 'someone' });
   assert.equal(asRoot.status, 0, asRoot.stdout + asRoot.stderr);
   assert.match(asRoot.stdout, /Setup finishes the first time you run vibead\./);
   assert.ok(!existsSync(join(root.home, 'kit.log')), 'root: nothing is wired from the installer');
@@ -534,7 +533,7 @@ test('install.sh: signed out, the account line is the last line on every success
 test('install.sh: signed out, a terminal install still ends on the account line', { skip: (!linuxX64 || !which('script')) && 'needs Linux x64 and script(1)' }, () => {
   const wire = sandbox();
   release(wire.rel, '0.1.0-beta.99');
-  const wired = runTty(wire, '', { VIBEAD_NO_MODIFY_PATH: '1' });
+  const wired = runTty(wire, '');
   assert.equal(wired.status, 0, wired.stdout + wired.stderr);
   assert.equal(lastLine(wired.stdout), SIGNED_OUT_LINE, 'wire --announce');
   assert.match(wired.stdout, /vibead disable/);
@@ -542,7 +541,7 @@ test('install.sh: signed out, a terminal install still ends on the account line'
 
   const ci = sandbox();
   release(ci.rel, '0.1.0-beta.99');
-  const underCi = runTty(ci, '', { VIBEAD_ZERO_STEP: '1', CI: 'true', VIBEAD_NO_MODIFY_PATH: '1' });
+  const underCi = runTty(ci, '', { CI: 'true' });
   assert.equal(underCi.status, 0, underCi.stdout + underCi.stderr);
   assert.equal(lastLine(underCi.stdout), SIGNED_OUT_LINE, 'CI');
   assert.match(underCi.stdout, /Setup finishes the first time you run vibead\./);
@@ -554,14 +553,14 @@ test('install.sh: signed out, a terminal install still ends on the account line'
   mkdirSync(fakeBin);
   writeFileSync(join(fakeBin, 'id'), '#!/bin/sh\n[ "$1" = -u ] && { echo 0; exit 0; }\nexec /usr/bin/id "$@"\n');
   chmodSync(join(fakeBin, 'id'), 0o755);
-  const asRoot = runTty(root, '', { VIBEAD_ZERO_STEP: '1', PATH: `${fakeBin}:${basePath}`, VIBEAD_NO_MODIFY_PATH: '1' });
+  const asRoot = runTty(root, '', { PATH: `${fakeBin}:${basePath}` });
   assert.equal(asRoot.status, 0, asRoot.stdout + asRoot.stderr);
   assert.equal(lastLine(asRoot.stdout), SIGNED_OUT_LINE, 'root');
   assert.match(asRoot.stdout, /Setup finishes the first time you run vibead\./);
 
   const skipped = sandbox();
   release(skipped.rel, '0.1.0-beta.99');
-  const declined = runTty(skipped, '', { VIBEAD_NO_MODIFY_PATH: '1', FAKE_DECLINE: '1' }, switchedOff(skipped));
+  const declined = runTty(skipped, '', { FAKE_DECLINE: '1' }, switchedOff(skipped));
   assert.equal(declined.status, 0, declined.stdout + declined.stderr);
   assert.equal(lastLine(declined.stdout), SIGNED_OUT_LINE, 'setup skipped');
   assert.match(declined.stdout, /Setup skipped\. Run `vibead enable` any time\./);

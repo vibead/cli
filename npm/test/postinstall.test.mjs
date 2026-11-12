@@ -107,10 +107,9 @@ test('VIBEAD_KIT is wired without a download, and a missing kit still exits 0', 
 
 test('approved (vibead-ai#254): the switch is on and the npm README shows the approved sentence above the install command', async () => {
   assert.equal(ZERO_STEP_CONSENT_APPROVED, true, 'Gaurav approved the 2a sentence in vibead/vibead-ai#254');
-  assert.equal(zeroStepEnabled({}), true);
-  assert.equal(zeroStepEnabled({}, false), false);
-  assert.equal(zeroStepEnabled({ VIBEAD_ZERO_STEP: 'true' }, false), false);
-  assert.equal(zeroStepEnabled({ VIBEAD_ZERO_STEP: '1' }, false), true);
+  assert.equal(zeroStepEnabled(), true);
+  assert.equal(zeroStepEnabled(false), false);
+  assert.equal(zeroStepEnabled(true), true);
   const { createHash } = await import('node:crypto');
   assert.equal(createHash('sha256').update(NOTICE).digest('hex').slice(0, 16), 'ac3b2b0544674e6b', '2a changed: approved text goes back to Gaurav/Nina, never an edit');
   const readme = await readFile(new URL('../README.md', import.meta.url), 'utf8');
@@ -135,14 +134,6 @@ test('switch off: the postinstall downloads nothing and spawns nothing, even wit
   const result = await runAny({ env: {}, approved: false, stdoutIsTTY: true, ancestorStdoutIsTTY: true, uid: 1000, spawn: touch, ensure: async () => { touched = true; return '/kit'; } });
   assert.deepEqual(result, { code: 0, skipped: 'pending-sign-off' });
   assert.equal(touched, false);
-  const spawned = [];
-  const optedIn = await runAny({
-    env: { VIBEAD_ZERO_STEP: '1' }, approved: false, stdoutIsTTY: true, uid: 1000, kit: '/kit',
-    spawn: (cmd, args) => { spawned.push([cmd, args]); return { status: 0, stdout: 'notice\nvibead disable\n' }; },
-    showNotice: () => {},
-  });
-  assert.equal(optedIn.status, 0);
-  assert.deepEqual(spawned, [['/kit', ['__wrapperless', 'wire', '--announce']]]);
 });
 
 test('an npm upgrade (N to N+1) runs the new kit wire with no manual step, and the notice the kit prints is shown as is', async () => {

@@ -18,9 +18,7 @@
 #   VIBEAD_INSTALL_DIR=~/.vibead   where versions and the launcher live
 #   VIBEAD_BIN_DIR=~/.local/bin    where the `vibead` command is linked
 #   VIBEAD_NO_ENABLE=1             install only; run `vibead enable` yourself
-#   VIBEAD_NO_MODIFY_PATH=1        accepted for older scripts; the installer never edits profiles
 #   VIBEAD_REQUIRE_SIGNATURE=1     fail unless cosign verifies SHA256SUMS
-#   VIBEAD_ZERO_STEP=1             zero-step setup even when ZERO_STEP_CONSENT_APPROVED=0 (on by default; see below)
 #
 # Zero-step setup (vibead/vibead-ai#235) connects every detected agent, on
 # install or on the first `vibead` run, whichever comes first, without a
@@ -190,7 +188,7 @@ fetch() {
 
 has_tty() { (: < /dev/tty) 2>/dev/null; }
 
-zero_step() { [ "$ZERO_STEP_CONSENT_APPROVED" = 1 ] || [ "${VIBEAD_ZERO_STEP:-}" = 1 ]; }
+zero_step() { [ "$ZERO_STEP_CONSENT_APPROVED" = 1 ]; }
 
 # Same rule as the npm postinstall: CI set to anything but empty, 0 or false.
 ci_set() { case "${CI:-}" in ''|0|false|FALSE|False) return 1 ;; *) return 0 ;; esac; }
