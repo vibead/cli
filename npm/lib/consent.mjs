@@ -6,6 +6,4 @@
 // beta/lib/notices.mjs and install/install.sh carry the same switch.
 export const ZERO_STEP_CONSENT_APPROVED = true;
 
-// VIBEAD_ZERO_STEP=1 is an explicit opt-in (QA, simulations, anyone who asks).
-export const zeroStepEnabled = (env = process.env, approved = ZERO_STEP_CONSENT_APPROVED) =>
-  approved === true || env?.VIBEAD_ZERO_STEP === '1';
+export const zeroStepEnabled = (approved = ZERO_STEP_CONSENT_APPROVED) => approved === true;

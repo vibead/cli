@@ -59,7 +59,7 @@ test('item 2: the cache keeps only the current kit; shared folders lose nothing 
 
 test('item 9: on Linux arm64 the postinstall says it is unsupported, not "setup finishes later"', async () => {
   const warnings = [];
-  const r = await runPostinstall({ env: { VIBEAD_ZERO_STEP: '1' }, stdoutIsTTY: true, ancestorStdoutIsTTY: true, uid: 1000, approved: true, warn: w => warnings.push(w),
+  const r = await runPostinstall({ env: {}, stdoutIsTTY: true, ancestorStdoutIsTTY: true, uid: 1000, approved: true, warn: w => warnings.push(w),
     ensure: async () => { throw new Error('Unsupported platform linux-arm64. Supported: macOS (Apple Silicon and Intel) and Linux x64 (glibc >= 2.34); Linux arm64 is not supported yet.'); } });
   assert.equal(r.skipped, 'unsupported-platform');
   assert.match(warnings.join('\n'), /Linux arm64 is not supported yet.*npm uninstall -g @vibead\/cli/);
