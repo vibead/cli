@@ -469,6 +469,193 @@ test('install.sh: a Windows shell or another system gets one honest line and no 
   }
 });
 
+// Beta kit (0.1.0-beta.42): `vibead whoami` exits 1 for signed-out and for
+// errors, and refreshes a stored session over the network. `vibead status`
+// always exits 0 and prints the full report. The installer uses an attributes-
+// only macOS Keychain lookup (no -w/-g) and the credentials file. It never
+// runs secret-tool. When libsecret would be the store, it prints nothing.
+const SIGNED_OUT_LINE = "Account: signed out. Ads still show, but you're not earning. Run `vibead login`.";
+
+function lastLine(stdout) {
+  const lines = stdout.replace(/\r/g, '').split('\n');
+  if (lines.at(-1) === '') lines.pop();
+  return lines.at(-1) ?? '';
+}
+
+function credentialsFile(session, site = 'https://www.vibead.ai') {
+  return JSON.stringify({ [site]: JSON.stringify(session) }) + '\n';
+}
+
+function writeCredentials(home, session, site) {
+  mkdirSync(join(home, '.vibead'), { recursive: true });
+  writeFileSync(join(home, '.vibead', 'credentials'), credentialsFile(session, site), { mode: 0o600 });
+}
+
+function stubBin(home, name, body) {
+  const bin = join(home, 'stubbin');
+  mkdirSync(bin, { recursive: true });
+  writeFileSync(join(bin, name), body);
+  chmodSync(join(bin, name), 0o755);
+  return `${bin}:${basePath}`;
+}
+
+test('install.sh: signed out, the account line is the last line on every successful path', { skip: !linuxX64 && 'Linux x64 only' }, () => {
+  const endings = [
+    ['no tty', {}, 'Setup finishes the first time you run vibead.'],
+    ['VIBEAD_NO_ENABLE', { VIBEAD_NO_ENABLE: '1' }, 'Next: vibead enable'],
+  ];
+  for (const [label, env, before] of endings) {
+    const box = sandbox();
+    release(box.rel, '0.1.0-beta.99');
+    const r = runSh(box, env);
+    assert.equal(r.status, 0, `${label}\n${r.stdout}${r.stderr}`);
+    assert.equal(lastLine(r.stdout), SIGNED_OUT_LINE, label);
+    assert.equal(r.stdout.replace(/\r/g, '').split(SIGNED_OUT_LINE).length, 2, `${label}: printed once`);
+    assert.ok(r.stdout.replace(/\r/g, '').indexOf(before) < r.stdout.replace(/\r/g, '').indexOf(SIGNED_OUT_LINE), label);
+    assert.doesNotMatch(r.stderr, /Account|signed out/);
+    assert.ok(!existsSync(join(box.home, 'kit.log')), `${label}: the check does not run the kit`);
+    rmSync(box.home, { recursive: true, force: true });
+  }
+
+  const off = sandbox();
+  release(off.rel, '0.1.0-beta.99');
+  const offScript = switchedOff(off);
+  const noTtySwitch = spawnSync('sh', [offScript], {
+    encoding: 'utf8', detached: true,
+    env: { HOME: off.home, PATH: basePath, SHELL: '/bin/bash', VIBEAD_RELEASE_BASE: off.base, VIBEAD_TEST_RELEASE: '1', VIBEAD_MANIFEST_URL: off.manifest },
+  });
+  assert.equal(noTtySwitch.status, 0, noTtySwitch.stdout + noTtySwitch.stderr);
+  assert.equal(lastLine(noTtySwitch.stdout), SIGNED_OUT_LINE, 'switch off, no tty');
+  assert.match(noTtySwitch.stdout, /Next: vibead enable {3}\(reviews and approves the changes\)/);
+  assert.ok(noTtySwitch.stdout.indexOf('Next: vibead enable') < noTtySwitch.stdout.indexOf(SIGNED_OUT_LINE));
+  rmSync(off.home, { recursive: true, force: true });
+});
+
+test('install.sh: signed out, a terminal install still ends on the account line', { skip: (!linuxX64 || !which('script')) && 'needs Linux x64 and script(1)' }, () => {
+  const wire = sandbox();
+  release(wire.rel, '0.1.0-beta.99');
+  const wired = runTty(wire, '', { VIBEAD_NO_MODIFY_PATH: '1' });
+  assert.equal(wired.status, 0, wired.stdout + wired.stderr);
+  assert.equal(lastLine(wired.stdout), SIGNED_OUT_LINE, 'wire --announce');
+  assert.match(wired.stdout, /vibead disable/);
+  assert.ok(wired.stdout.indexOf('vibead disable') < wired.stdout.replace(/\r/g, '').indexOf(SIGNED_OUT_LINE));
+
+  const ci = sandbox();
+  release(ci.rel, '0.1.0-beta.99');
+  const underCi = runTty(ci, '', { VIBEAD_ZERO_STEP: '1', CI: 'true', VIBEAD_NO_MODIFY_PATH: '1' });
+  assert.equal(underCi.status, 0, underCi.stdout + underCi.stderr);
+  assert.equal(lastLine(underCi.stdout), SIGNED_OUT_LINE, 'CI');
+  assert.match(underCi.stdout, /Setup finishes the first time you run vibead\./);
+  assert.ok(!existsSync(join(ci.home, 'kit.log')), 'CI: the kit did not run');
+
+  const root = sandbox();
+  release(root.rel, '0.1.0-beta.99');
+  const fakeBin = join(root.home, 'fakebin');
+  mkdirSync(fakeBin);
+  writeFileSync(join(fakeBin, 'id'), '#!/bin/sh\n[ "$1" = -u ] && { echo 0; exit 0; }\nexec /usr/bin/id "$@"\n');
+  chmodSync(join(fakeBin, 'id'), 0o755);
+  const asRoot = runTty(root, '', { VIBEAD_ZERO_STEP: '1', PATH: `${fakeBin}:${basePath}`, VIBEAD_NO_MODIFY_PATH: '1' });
+  assert.equal(asRoot.status, 0, asRoot.stdout + asRoot.stderr);
+  assert.equal(lastLine(asRoot.stdout), SIGNED_OUT_LINE, 'root');
+  assert.match(asRoot.stdout, /Setup finishes the first time you run vibead\./);
+
+  const skipped = sandbox();
+  release(skipped.rel, '0.1.0-beta.99');
+  const declined = runTty(skipped, '', { VIBEAD_NO_MODIFY_PATH: '1', FAKE_DECLINE: '1' }, switchedOff(skipped));
+  assert.equal(declined.status, 0, declined.stdout + declined.stderr);
+  assert.equal(lastLine(declined.stdout), SIGNED_OUT_LINE, 'setup skipped');
+  assert.match(declined.stdout, /Setup skipped\. Run `vibead enable` any time\./);
+
+  for (const box of [wire, ci, root, skipped]) rmSync(box.home, { recursive: true, force: true });
+});
+
+test('install.sh: signed in (credentials file or keychain) prints no account line', { skip: !linuxX64 && 'Linux x64 only' }, () => {
+  const fileBox = sandbox();
+  release(fileBox.rel, '0.1.0-beta.99');
+  writeCredentials(fileBox.home, { email: 'person@example.com', refresh_token: 'rt-test' });
+  const fromFile = runSh(fileBox);
+  assert.equal(fromFile.status, 0, fromFile.stdout + fromFile.stderr);
+  assert.doesNotMatch(fromFile.stdout + fromFile.stderr, /Account|signed out/);
+  assert.equal(lastLine(fromFile.stdout), 'Setup finishes the first time you run vibead.');
+  rmSync(fileBox.home, { recursive: true, force: true });
+
+  const chain = sandbox();
+  release(chain.rel, '0.1.0-beta.99');
+  const path = stubBin(chain.home, 'secret-tool', '#!/bin/sh\necho called >> "$HOME/secret-tool.log"\nexit 0\n');
+  const fromChain = runSh(chain, { PATH: path, DBUS_SESSION_BUS_ADDRESS: 'unix:path=/tmp/vibead-test-bus' });
+  assert.equal(fromChain.status, 0, fromChain.stdout + fromChain.stderr);
+  assert.doesNotMatch(fromChain.stdout + fromChain.stderr, /Account|signed out/);
+  assert.equal(lastLine(fromChain.stdout), 'Setup finishes the first time you run vibead.');
+  assert.equal(existsSync(join(chain.home, 'secret-tool.log')), false, 'libsecret is not consulted');
+  rmSync(chain.home, { recursive: true, force: true });
+
+  // VIBEAD_CREDENTIAL_STORE=file is the CLI's "skip the keyring" mode, so the
+  // file check still decides even when a session bus is set.
+  const forced = sandbox();
+  release(forced.rel, '0.1.0-beta.99');
+  const forcedPath = stubBin(forced.home, 'secret-tool', '#!/bin/sh\necho called >> "$HOME/secret-tool.log"\nexit 0\n');
+  const fromForced = runSh(forced, { PATH: forcedPath, DBUS_SESSION_BUS_ADDRESS: 'unix:path=/tmp/vibead-test-bus', VIBEAD_CREDENTIAL_STORE: 'file' });
+  assert.equal(fromForced.status, 0, fromForced.stdout + fromForced.stderr);
+  assert.equal(lastLine(fromForced.stdout), SIGNED_OUT_LINE, 'file store, no credentials file');
+  assert.equal(existsSync(join(forced.home, 'secret-tool.log')), false);
+  rmSync(forced.home, { recursive: true, force: true });
+});
+
+test('install.sh: a failed or timed-out session check prints nothing extra and still installs', { skip: !linuxX64 && 'Linux x64 only' }, () => {
+  const cases = [];
+
+  const timed = sandbox();
+  release(timed.rel, '0.1.0-beta.99');
+  cases.push(['timeout exits 124', timed, { PATH: stubBin(timed.home, 'timeout', '#!/bin/sh\nexit 124\n') }]);
+
+  const dir = sandbox();
+  release(dir.rel, '0.1.0-beta.99');
+  mkdirSync(join(dir.home, '.vibead', 'credentials'), { recursive: true });
+  cases.push(['credentials not a file', dir, {}]);
+
+  const hung = sandbox();
+  release(hung.rel, '0.1.0-beta.99');
+  cases.push(['secret-tool is not run', hung, {
+    PATH: stubBin(hung.home, 'secret-tool', '#!/bin/sh\necho called >> "$HOME/secret-tool.log"\nexec sleep 30\n'),
+    DBUS_SESSION_BUS_ADDRESS: 'unix:path=/tmp/vibead-test-bus',
+  }]);
+
+  for (const [label, box, env] of cases) {
+    const started = Date.now();
+    const r = runSh(box, env);
+    const elapsed = Date.now() - started;
+    assert.equal(r.status, 0, `${label}\n${r.stdout}${r.stderr}`);
+    assert.match(r.stdout, /Installed VibeAd 0\.1\.0-beta\.99/, label);
+    assert.equal(lastLine(r.stdout), 'Setup finishes the first time you run vibead.', label);
+    assert.doesNotMatch(r.stdout + r.stderr, /Account|signed out|secret-tool|refresh_token/, label);
+    assert.ok(elapsed < 12000, `${label}: check took ${elapsed}ms`);
+    if (label === 'secret-tool is not run') {
+      assert.ok(elapsed < 3000, `${label}: took ${elapsed}ms`);
+      assert.equal(existsSync(join(box.home, 'secret-tool.log')), false);
+    }
+    rmSync(box.home, { recursive: true, force: true });
+  }
+});
+
+test('install.sh: never calls security with -w or -g, and never runs secret-tool', () => {
+  const code = readFileSync(installSh, 'utf8').split('\n').filter(line => !/^\s*#/.test(line)).join('\n');
+  assert.ok(code.includes('security find-generic-password -s vibead -a "$1" >/dev/null'), code);
+  for (const line of code.split('\n')) {
+    if (!/\bsecurity\b/.test(line)) continue;
+    assert.doesNotMatch(line, /(^|[\s=])-[wg](\s|$)/, line);
+  }
+  assert.doesNotMatch(code, /\bsecret-tool\b/);
+});
+
+test('install.sh: a failed install does not print the account line', { skip: !linuxX64 && 'Linux x64 only' }, () => {
+  const box = sandbox();
+  release(box.rel, '0.1.0-beta.99', { corrupt: true });
+  const r = runSh(box);
+  assert.notEqual(r.status, 0);
+  assert.doesNotMatch(r.stdout + r.stderr, /Account|signed out/);
+  rmSync(box.home, { recursive: true, force: true });
+});
+
 // CLI Tester re-check: VIBEAD_RELEASE_BASE is test-only. Left in a profile without
 // VIBEAD_TEST_RELEASE=1, install.sh refuses it and writes nothing.
 test('install.sh: VIBEAD_RELEASE_BASE without VIBEAD_TEST_RELEASE=1 is refused, nothing installed', () => {
