@@ -1,8 +1,8 @@
 {
-  "version": "0.1.0-beta.43",
+  "version": "0.1.0-beta.44",
   "platforms": {
-    "darwin-arm64": "98662e7a22461e22998953c8ee68d7c1c5e10b790deba4614f952823b4408d6e",
-    "darwin-x64": "17c3281568d83a65d66b825455f013597532c91232166fc75a7fc1b00fed939b",
-    "linux-x64": "6340aaab1abcee0c78e1a3766e094da693cc75e6bdf2e41c4efcb8df8631c47e"
+    "darwin-arm64": "9545909de61bc499a7224680cfa5f2ffda6077ee7e696790ae08f6972519c973",
+    "darwin-x64": "dd15c08a9210d560668113486db3f3a5b41b1d3bb89e69ce5519e729e131541c",
+    "linux-x64": "a5d9c2d5d28fd64bf1e5399c4a398337db1b60dbb4f6cfbc8d7658cd64f34ce0"
   }
 }

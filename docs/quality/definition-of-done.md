@@ -65,6 +65,14 @@ One DoD with the same stable line IDs lives in [vibead/vibead-ai](https://github
   *Evidence:* the ticked checklist (MERGE-0) and the head SHA it was run on.
 - **MERGE-9** A PR that changes this file lists, for each new or edited line, every existing line it overlaps or contradicts, and resolves each one by amending or retiring the older line (IDs stay stable). The text stays byte-identical in the three repos; only the *In vibead/<repo>* notes and the "This repo" section differ.
   *Evidence:* the overlap list in the PR body, plus a diff of the three copies with the per-repo lines stripped, which must be empty.
+- **MERGE-10** Every changed signed-in page is checked at 360 and 390 px, and CI is green, before asking for QA.
+  *Evidence:* the 360 px and 390 px check of every changed signed-in page, plus the green CI run on that head, both recorded before the QA request.
+- **MERGE-11** Any sticky or fixed element is checked for first paint, scroll, and where it should and shouldn't show, at 360 and 390 px.
+  *Evidence:* that check at 360 px and 390 px, or `N/A - <reason>` when the change has no sticky or fixed element.
+- **MERGE-12** Grep every form field, including hidden inputs, against the API contract, and prove a rejected key stores nothing and writes no audit row.
+  *Evidence:* the field-to-contract grep, plus a probe or test that a rejected key is not stored and writes no audit row, or `N/A - <reason>` when the change has no form field.
+- **MERGE-13** Shared front-end modules are import-safe, with a no-side-effects import test, and admin sections are checked on the deployed page after deploy.
+  *Evidence:* the no-side-effects import test name and its result on the head, plus the deployed-page check after deploy.
 
 ## TEST: tests that really guard the change
 
