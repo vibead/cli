@@ -59,6 +59,15 @@ flowchart LR
 
 - **Merged, not released (0.1.0-beta.36, CLI accuracy).** `vibead uninstall` through the npm launcher (`npm/lib/uninstall.mjs`) runs the kit's `vibead uninstall` (restores the user's files, removes `~/.vibead` and the kits in `~/.cache/vibead`), removes the launcher's cache folder again in case the kit could not run, then runs `npm uninstall --global --prefix <prefix> @vibead/cli` for the prefix the launcher lives in (npm next to this node first, then npm on PATH), so `which vibead` is empty. npm 7+ runs no uninstall scripts, so this is the only place it can happen. If the kit fails, the package is kept so the user can retry; if npm cannot run (npx, a local install), it prints `npm uninstall -g @vibead/cli`. The launcher keeps only the current kit in its cache (`pruneOldKits`). On an unsupported platform (Linux arm64, Windows) the postinstall says so and names the uninstall command instead of "setup finishes the first time you run vibead"; `cpu` keeps `arm64` because Apple Silicon needs it. npm 11 prints `npm warn install-scripts` for the postinstall; the README explains it in one line. The npm description, README, BETA guide and enterprise demo name Claude Code, Codex and OpenCode only.
 - **Merged, not released (0.1.0-beta.36, CLI Tester re-check).** `VIBEAD_RELEASE_BASE` (a local release mirror) is test-only in `install/install.sh` and the npm launcher (`npm/lib/install.mjs`): without `VIBEAD_TEST_RELEASE=1` both refuse it before writing anything, so a value left in a shell profile cannot quietly change the download source.
+- **Merged, not released.** `install/install.sh`, after it links `vibead`, walks `PATH` (at most 64 entries) and prints one stderr line when a different VibeAd launcher is earlier. The line names the link just installed, the version just installed, the earlier path, and the remove command for that other channel: `rm` of the earlier path (a file under `~/.vibead/`, or a script carrying the curl install header), `npm rm -g @vibead/cli` (resolved path under `node_modules/@vibead/cli`), or `brew uninstall vibead` (resolved path under `Cellar/vibead`). The same install reached again through a symlink, an unrelated `vibead`, and a scan error stay silent, and the scan never fails the install.
+
+```mermaid
+flowchart TD
+  Linked["Link vibead"] --> Scan["Walk PATH, 64 entries"]
+  Scan --> Earlier{"Different VibeAd launcher earlier?"}
+  Earlier -->|no| Silent["Print nothing"]
+  Earlier -->|yes| Line["One stderr line and the remove command"]
+```
 
 ## Zero-step install
 

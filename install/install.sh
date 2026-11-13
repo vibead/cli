@@ -28,6 +28,11 @@
 # terminal or root installs wire nothing here; the first `vibead` run does it
 # as the user.
 #
+# After the link is in place, if a different VibeAd launcher is earlier on
+# PATH, one stderr line names it and the command that removes that other
+# install. The same install, an unrelated `vibead`, and a scan error stay
+# silent, and the check never fails the install.
+#
 # The whole script is a function called on the last line, so a partial
 # download runs nothing.
 
@@ -141,6 +146,8 @@ LAUNCHER
     warn "$link exists and was not installed by this script; left it alone. Use $launcher."
   else
     ln -sf "$launcher" "$link" || fail "Could not link $link."
+    # A shadow is a warning on stderr. It must not change the install's exit.
+    (note_shadowed_launcher "$link" "$launcher" "$version") >/dev/null || true
   fi
 
   # Keep the current and the previous version; remove older ones (ls skips
@@ -247,6 +254,143 @@ ensure_path() {
   # profile edit: print the line to add.
   say "To use \`vibead\` in new terminals, add this to your shell profile:"
   say "  $line"
+}
+
+# Install-time shadow check. The link just written is <this path>; <version>
+# is the version just installed. An earlier distinct VibeAd launcher is
+# <other path>, and the remove command is chosen from that other install.
+# The same resolved file (this link, its launcher, or a symlink to either)
+# is not another install. Once-a-day and TTY rules are not applied: the
+# person is reading the installer. At most 64 PATH entries. Any error skips
+# that entry or the rest of the scan. Never fails the install.
+#
+# PATH is split with the shell. The walk does not call `which`. `readlink`
+# is the one external: POSIX sh has no builtin that reads a symlink target,
+# and a missing or failing `readlink` is a silent skip.
+note_shadowed_launcher() {
+  this=$1
+  launcher=$2
+  ver=$3
+  this_res=$(resolve_launcher "$this") || this_res=$(resolve_launcher "$launcher") || return 0
+  old_ifs=$IFS
+  IFS=:
+  set -f
+  # shellcheck disable=SC2086
+  set -- $PATH
+  set +f
+  IFS=$old_ifs
+  n=0
+  other=""
+  other_ch=""
+  for dir do
+    n=$((n + 1))
+    if [ "$n" -gt 64 ]; then
+      return 0
+    fi
+    if [ -z "$dir" ]; then
+      dir=.
+    fi
+    if [ ! -d "$dir" ] || [ ! -x "$dir" ]; then
+      continue
+    fi
+    cand=$dir/vibead
+    if [ ! -e "$cand" ] && [ ! -L "$cand" ]; then
+      continue
+    fi
+    res=$(resolve_launcher "$cand") || continue
+    if [ "$res" = "$this_res" ]; then
+      if [ -n "$other" ]; then
+        print_shadow_line "$other" "$other_ch" "$this" "$ver"
+      fi
+      return 0
+    fi
+    ch=$(launcher_channel "$res" "$cand") || continue
+    if [ -z "$other" ]; then
+      other=$cand
+      other_ch=$ch
+    fi
+  done
+  return 0
+}
+
+# Absolute path with symlink components followed. 1 on a cycle, a broken
+# link, or any other resolution error.
+resolve_launcher() {
+  p=$1
+  hops=0
+  while [ -L "$p" ] && [ "$hops" -lt 16 ]; do
+    tgt=$(readlink "$p" 2>/dev/null) || return 1
+    [ -n "$tgt" ] || return 1
+    case "$tgt" in
+      /*) p=$tgt ;;
+      *)
+        d=${p%/*}
+        if [ "$d" = "$p" ]; then
+          d=.
+        fi
+        p=$d/$tgt
+        ;;
+    esac
+    hops=$((hops + 1))
+  done
+  if [ -L "$p" ]; then
+    return 1
+  fi
+  case "$p" in
+    /*) ;;
+    *) p=$PWD/$p ;;
+  esac
+  f=${p##*/}
+  d=${p%/*}
+  if [ -z "$d" ]; then
+    d=/
+  fi
+  c=$(CDPATH='' cd -P -- "$d" 2>/dev/null && pwd -P) || return 1
+  case "$c" in
+    /) printf '/%s\n' "$f" ;;
+    *) printf '%s/%s\n' "$c" "$f" ;;
+  esac
+}
+
+# Channel of another launcher, from its resolved path, else the curl header.
+# Prints npm, brew, or curl. Returns 1 when the file is not a VibeAd launcher.
+launcher_channel() {
+  res=$1
+  file=$2
+  case "$res" in
+    */node_modules/@vibead/cli|*/node_modules/@vibead/cli/*) printf '%s\n' npm; return 0 ;;
+    */Cellar/vibead|*/Cellar/vibead/*) printf '%s\n' brew; return 0 ;;
+    */.vibead/*) printf '%s\n' curl; return 0 ;;
+  esac
+  # A broken symlink or an unreadable file is a scan error: say nothing.
+  if [ ! -f "$file" ] || [ ! -r "$file" ]; then
+    return 1
+  fi
+  needle='# Installed by https://www.vibead.ai/install'
+  i=0
+  while [ "$i" -lt 8 ]; do
+    IFS= read -r line || return 1
+    case "$line" in
+      *"$needle"*) printf '%s\n' curl; return 0 ;;
+    esac
+    i=$((i + 1))
+  done < "$file" || return 1
+  return 1
+}
+
+print_shadow_line() {
+  other=$1
+  ch=$2
+  this=$3
+  ver=$4
+  case "$ch" in
+    npm) cmd='npm rm -g @vibead/cli' ;;
+    brew) cmd='brew uninstall vibead' ;;
+    curl) cmd="rm $other" ;;
+    *) return 0 ;;
+  esac
+  printf 'VibeAd: another vibead is installed at %s. You'\''re running %s (%s). To keep only this one, run: %s\n' \
+    "$other" "$this" "$ver" "$cmd" >&2
 }
 
 # Last line of a successful install, only when this computer is positively

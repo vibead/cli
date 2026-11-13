@@ -5,7 +5,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { createHash } from 'node:crypto';
 import { spawnSync, execFileSync } from 'node:child_process';
-import { chmodSync, existsSync, lstatSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, readlinkSync, rmSync, writeFileSync, copyFileSync } from 'node:fs';
+import { chmodSync, existsSync, lstatSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, readlinkSync, rmSync, symlinkSync, writeFileSync, copyFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
@@ -667,4 +667,198 @@ test('install.sh: VIBEAD_RELEASE_BASE without VIBEAD_TEST_RELEASE=1 is refused, 
     assert.equal(existsSync(join(s.home, '.local')), false);
   }
   rmSync(s.home, { recursive: true, force: true });
+});
+
+// Install-time shadow warning. Byte-exact line: the link just installed, the
+// version just installed, the earlier launcher, and that other channel's
+// remove command. Run against the real install.sh and a local mirror.
+const SHADOW_VERSION = '0.1.0-beta.99';
+const shadowLine = (other, installed, version, remove) =>
+  `VibeAd: another vibead is installed at ${other}. You're running ${installed} (${version}). To keep only this one, run: ${remove}`;
+
+function writeExe(path, body) {
+  mkdirSync(dirname(path), { recursive: true });
+  writeFileSync(path, body);
+  chmodSync(path, 0o755);
+}
+
+function runOnPath(box, path, shell = 'sh') {
+  // `sh` is dash here. `bash --posix` is the macOS /bin/sh shape (bash as sh).
+  const args = shell === 'bash-posix' ? ['--posix', installSh] : [installSh];
+  const bin = shell === 'bash-posix' ? 'bash' : shell;
+  return spawnSync(bin, args, {
+    encoding: 'utf8', detached: true,
+    env: { HOME: box.home, PATH: path, SHELL: '/bin/bash', VIBEAD_RELEASE_BASE: box.base, VIBEAD_TEST_RELEASE: '1', VIBEAD_MANIFEST_URL: box.manifest },
+  });
+}
+
+const installedLink = box => join(box.home, '.local/bin/vibead');
+
+function assertShadow(r, line) {
+  assert.equal(r.status, 0, r.stdout + r.stderr);
+  assert.equal(r.stderr, `${line}\n`);
+  assert.equal(r.stderr.split(line).length - 1, 1);
+  assert.doesNotMatch(r.stdout, /another vibead/);
+  assert.match(r.stdout, new RegExp(`Installed VibeAd ${SHADOW_VERSION.replaceAll('.', '\\.')}`));
+}
+
+function assertNoShadow(r) {
+  assert.equal(r.status, 0, r.stdout + r.stderr);
+  assert.equal(r.stderr, '');
+  assert.match(r.stdout, /Installed VibeAd 0\.1\.0-beta\.99/);
+}
+
+function npmEarlier(box) {
+  writeExe(join(box.home, 'prefix/lib/node_modules/@vibead/cli/bin/vibead.mjs'), '#!/bin/sh\necho npm\n');
+  const early = join(box.home, 'early-npm');
+  mkdirSync(early);
+  symlinkSync('../prefix/lib/node_modules/@vibead/cli/bin/vibead.mjs', join(early, 'vibead'));
+  return early;
+}
+
+function brewEarlier(box) {
+  writeExe(join(box.home, 'brew/Cellar/vibead/0.1.0/bin/vibead'), '#!/bin/sh\necho brew\n');
+  const early = join(box.home, 'early-brew');
+  mkdirSync(early);
+  symlinkSync('../brew/Cellar/vibead/0.1.0/bin/vibead', join(early, 'vibead'));
+  return early;
+}
+
+// 1-based PATH slots. Empty directories fill the rest so the bound is real.
+function pathAt(box, earlyDir, earlyAt, binAt) {
+  const bin = dirname(installedLink(box));
+  const slots = [];
+  for (let i = 1; i <= Math.max(earlyAt, binAt); i++) {
+    if (i === earlyAt) slots.push(earlyDir);
+    else if (i === binAt) slots.push(bin);
+    else {
+      const d = join(box.home, 'slots', String(i));
+      mkdirSync(d, { recursive: true });
+      slots.push(d);
+    }
+  }
+  return `${slots.join(':')}:${basePath}`;
+}
+
+test('install.sh: shadowed by an earlier npm launcher prints the npm remove line', { skip: !linuxX64 && 'Linux x64 only' }, () => {
+  for (const shell of ['sh', 'bash', 'bash-posix']) {
+    const box = sandbox();
+    release(box.rel, SHADOW_VERSION);
+    const early = npmEarlier(box);
+    const link = installedLink(box);
+    const r = runOnPath(box, `${early}:${dirname(link)}:${basePath}`, shell);
+    assertShadow(r, shadowLine(join(early, 'vibead'), link, SHADOW_VERSION, 'npm rm -g @vibead/cli'));
+    rmSync(box.home, { recursive: true, force: true });
+  }
+});
+
+test('install.sh: shadowed by an earlier Homebrew launcher prints the brew remove line', { skip: !linuxX64 && 'Linux x64 only' }, () => {
+  const box = sandbox();
+  release(box.rel, SHADOW_VERSION);
+  const early = brewEarlier(box);
+  const link = installedLink(box);
+  const r = runOnPath(box, `${early}:${dirname(link)}:${basePath}`);
+  assertShadow(r, shadowLine(join(early, 'vibead'), link, SHADOW_VERSION, 'brew uninstall vibead'));
+  rmSync(box.home, { recursive: true, force: true });
+});
+
+test('install.sh: shadowed by an older curl-style launcher prints rm of that path', { skip: !linuxX64 && 'Linux x64 only' }, () => {
+  const box = sandbox();
+  release(box.rel, SHADOW_VERSION);
+  const early = join(box.home, 'early-curl');
+  const other = join(early, 'vibead');
+  writeExe(other, '#!/bin/sh\n# Installed by https://www.vibead.ai/install. Points at the current version.\nprintf old\\n');
+  const link = installedLink(box);
+  const r = runOnPath(box, `${early}:${dirname(link)}:${basePath}`);
+  assertShadow(r, shadowLine(other, link, SHADOW_VERSION, `rm ${other}`));
+  rmSync(box.home, { recursive: true, force: true });
+});
+
+test('install.sh: a different file under ~/.vibead is a curl shadow even without the header', { skip: !linuxX64 && 'Linux x64 only' }, () => {
+  const box = sandbox();
+  release(box.rel, SHADOW_VERSION);
+  const early = join(box.home, '.vibead/older');
+  const other = join(early, 'vibead');
+  writeExe(other, '#!/bin/sh\nprintf old\\n');
+  const link = installedLink(box);
+  const r = runOnPath(box, `${early}:${dirname(link)}:${basePath}`);
+  assertShadow(r, shadowLine(other, link, SHADOW_VERSION, `rm ${other}`));
+  rmSync(box.home, { recursive: true, force: true });
+});
+
+test('install.sh: no shadow warning when the new link is first, including a duplicate PATH entry', { skip: !linuxX64 && 'Linux x64 only' }, () => {
+  for (const order of ['first', 'duplicate']) {
+    const box = sandbox();
+    release(box.rel, SHADOW_VERSION);
+    const early = npmEarlier(box);
+    const bin = dirname(installedLink(box));
+    const path = order === 'first' ? `${bin}:${early}:${basePath}` : `${bin}:${bin}:${early}:${basePath}`;
+    const r = runOnPath(box, path);
+    assertNoShadow(r);
+    rmSync(box.home, { recursive: true, force: true });
+  }
+});
+
+test('install.sh: no shadow warning when an earlier PATH entry is the same install via a symlink', { skip: !linuxX64 && 'Linux x64 only' }, () => {
+  const box = sandbox();
+  release(box.rel, SHADOW_VERSION);
+  const early = join(box.home, 'early-same');
+  mkdirSync(early);
+  symlinkSync(join(box.home, '.vibead/bin/vibead'), join(early, 'vibead'));
+  const bin = dirname(installedLink(box));
+  const r = runOnPath(box, `${early}:${bin}:${basePath}`);
+  assertNoShadow(r);
+  rmSync(box.home, { recursive: true, force: true });
+});
+
+test('install.sh: no shadow warning for an unrelated vibead', { skip: !linuxX64 && 'Linux x64 only' }, () => {
+  const box = sandbox();
+  release(box.rel, SHADOW_VERSION);
+  const early = join(box.home, 'early-other');
+  writeExe(join(early, 'vibead'), '#!/bin/sh\necho not vibead\n');
+  const bin = dirname(installedLink(box));
+  const r = runOnPath(box, `${early}:${bin}:${basePath}`);
+  assertNoShadow(r);
+  rmSync(box.home, { recursive: true, force: true });
+});
+
+test('install.sh: an unreadable PATH directory still exits 0', { skip: !linuxX64 && 'Linux x64 only' }, () => {
+  const box = sandbox();
+  release(box.rel, SHADOW_VERSION);
+  const blocked = join(box.home, 'blocked');
+  mkdirSync(blocked);
+  chmodSync(blocked, 0);
+  const broken = join(box.home, 'broken');
+  mkdirSync(broken);
+  symlinkSync(join(box.home, 'missing-vibead-target'), join(broken, 'vibead'));
+  const bin = dirname(installedLink(box));
+  try {
+    const r = runOnPath(box, `${blocked}:${broken}:${bin}:${basePath}`);
+    assert.equal(r.status, 0, r.stdout + r.stderr);
+    assert.equal(r.stderr, '');
+    assert.match(r.stdout, /Installed VibeAd 0\.1\.0-beta\.99/);
+    assert.equal(execFileSync(installedLink(box), ['--version'], { encoding: 'utf8' }).trim(), SHADOW_VERSION);
+  } finally {
+    chmodSync(blocked, 0o755);
+    rmSync(box.home, { recursive: true, force: true });
+  }
+});
+
+test('install.sh: a shadow at PATH entry 63 still warns when the new link is entry 64', { skip: !linuxX64 && 'Linux x64 only' }, () => {
+  const box = sandbox();
+  release(box.rel, SHADOW_VERSION);
+  const early = npmEarlier(box);
+  const link = installedLink(box);
+  const r = runOnPath(box, pathAt(box, early, 63, 64));
+  assertShadow(r, shadowLine(join(early, 'vibead'), link, SHADOW_VERSION, 'npm rm -g @vibead/cli'));
+  rmSync(box.home, { recursive: true, force: true });
+});
+
+test('install.sh: a shadow past the 64 PATH entry bound is silent and the install exits 0', { skip: !linuxX64 && 'Linux x64 only' }, () => {
+  const box = sandbox();
+  release(box.rel, SHADOW_VERSION);
+  const early = npmEarlier(box);
+  const r = runOnPath(box, pathAt(box, early, 64, 65));
+  assertNoShadow(r);
+  rmSync(box.home, { recursive: true, force: true });
 });
