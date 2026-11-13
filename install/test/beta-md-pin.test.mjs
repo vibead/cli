@@ -7,7 +7,7 @@ import assert from 'node:assert/strict';
 import { createHash } from 'node:crypto';
 import { readFileSync } from 'node:fs';
 
-export const BETA_MD_SHA256 = 'db3bb26a3cf1e3c41e2d03c9c384bf11331aa110e7a0d0b76dd3b1a364ef382d';
+export const BETA_MD_SHA256 = 'b1e6c6e65f9dde415cb5ae53419ab3422e7515e29867478d84bf4ac45c0acbea';
 
 test('BETA.md is byte-identical to the kit BETA.md (pinned SHA-256 shared with vibead/vibead)', () => {
   const sha = createHash('sha256').update(readFileSync(new URL('../../BETA.md', import.meta.url))).digest('hex');
@@ -17,7 +17,7 @@ test('BETA.md is byte-identical to the kit BETA.md (pinned SHA-256 shared with v
 // beta.36 RC3 QA (03:48 AEDT Oct 30): README.md carries the approved Codex sentence (Nina 02:29
 // AEDT Oct 30) byte-exact as its own sentence, the same one BETA.md has; the old trust line
 // and the double-semicolon form are gone.
-export const CODEX_TRUST_SENTENCE = 'Codex will ask you to review VibeAd\'s hooks ("Hooks need review"). Choose "Trust all and continue" to see ads; "Continue without trusting" runs Codex normally without ads. It asks again each time you turn VibeAd off and back on.';
+export const CODEX_TRUST_SENTENCE = 'Codex will ask you to review VibeAd\'s hooks ("Hooks need review"). Choose "Trust all and continue" (press t) to see ads; "Continue without trusting" runs Codex normally without ads. It asks again each time you turn VibeAd off and back on.';
 test('README.md and BETA.md carry the approved Codex sentence as one sentence', () => {
   for (const f of ['README.md', 'BETA.md']) {
     const text = readFileSync(new URL(`../../${f}`, import.meta.url), 'utf8');

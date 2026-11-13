@@ -12,7 +12,7 @@ curl -fsSL https://www.vibead.ai/install | sh       # or: macOS and Linux, no su
 brew install vibead/tap/vibead && vibead            # or: Homebrew
 ```
 
-Run `vibead` once after installing or upgrading. It connects Claude Code, Codex and OpenCode when they are installed, and prints what it did. Then start your agent as usual: `claude`, `codex` or `opencode`. Open a new terminal first for Codex: it gets a `codex` shell function that runs `vibead codex`. Codex will ask you to review VibeAd's hooks ("Hooks need review"). Choose "Trust all and continue" to see ads; "Continue without trusting" runs Codex normally without ads. It asks again each time you turn VibeAd off and back on.
+Run `vibead` once after installing or upgrading. It connects Claude Code, Codex and OpenCode when they are installed, and prints what it did. Then start your agent as usual: `claude`, `codex` or `opencode`. Open a new terminal first for Codex: it gets a `codex` shell function that runs `vibead codex`. Codex will ask you to review VibeAd's hooks ("Hooks need review"). Choose "Trust all and continue" (press t) to see ads; "Continue without trusting" runs Codex normally without ads. It asks again each time you turn VibeAd off and back on.
 
 - **Claude Code:** a status line, spinner tips and turn hooks in `~/.claude/settings.json`.
 - **OpenCode:** a plugin: a line in the status area on OpenCode 1.19+, a labelled toast on 1.18.
