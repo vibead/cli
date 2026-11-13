@@ -27,6 +27,10 @@ Docs (DOC-1): <files changed | docs: n/a - why>
 - [ ] MERGE-3 clean merge with current main plus the suite green on the merge result: <merge-tree + counts>
 - [ ] MERGE-5 carry-over only: merge-only head, `scripts/pr-own-diff.sh <passed> <new>` output: <paste>; conflict fixes only in LESSONS/docs
 - [ ] MERGE-6 true 2-parent merges, earlier QA'd head is an ancestor, no force-push: <cat-file / merge-base output>
+- [ ] MERGE-10 Every changed signed-in page is checked at 360 and 390 px, and CI is green, before asking for QA.
+- [ ] MERGE-11 Any sticky or fixed element is checked for first paint, scroll, and where it should and shouldn't show, at 360 and 390 px.
+- [ ] MERGE-12 Grep every form field, including hidden inputs, against the API contract, and prove a rejected key stores nothing and writes no audit row.
+- [ ] MERGE-13 Shared front-end modules are import-safe, with a no-side-effects import test, and admin sections are checked on the deployed page after deploy.
 
 ### Tests
 - [ ] TEST-1 full suite on head: <counts; skips explained>
